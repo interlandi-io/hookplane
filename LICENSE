@@ -1,0 +1,10 @@
+Copyright 2026 Michael Interlandi
+
+This repository contains multiple components under different licenses:
+
+- The code in src/core licensed under the MIT License.
+- The code in src/providers licensed under the MIT License.
+- The code in src/shared licensed under the MIT License.
+- The code in src/server is licensed under the GNU Affero General Public License v3.0.
+
+See the LICENSE files in each directory for full terms.
