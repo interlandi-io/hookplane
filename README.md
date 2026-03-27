@@ -21,6 +21,7 @@ Define, manage, and validate webhooks exactly where they’re handled.
 ## Built for agents, not just humans
 
 With end-to-end type-safety, LLMs can safely:
+
 - add new webhook subscriptions
 - update event handlers
 - reason about real schemas.
@@ -44,6 +45,10 @@ export default function handler(request: Request) {
     console.log('Payment Intent Failed: ', event.data.id) // 100% type safe
 }
 ```
+
+## Zero-Latency
+
+Hookplane is proxyless, meaning we use provider APIs to pair endpoints with events directly.
 
 ---
 
