@@ -1,0 +1,29 @@
+{
+    "name": "npm-packages",
+    "private": true,
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+        "check-types": "turbo run check-types",
+        "test": "turbo run test",
+        "test:run": "turbo run test:run",
+        "test:watch": "turbo run test:watch",
+        "prepare": "husky",
+        "changeset": "changeset",
+        "version-packages": "changeset version",
+        "release": "turbo run build lint test && changeset publish"
+    },
+    "devDependencies": {
+        "@changesets/cli": "^2.30.0",
+        "husky": "^9.1.7",
+        "prettier": "^3.7.4",
+        "turbo": "^2.8.17",
+        "typescript": "5.9.2"
+    },
+    "packageManager": "pnpm@9.0.0",
+    "engines": {
+        "node": ">=18"
+    }
+}

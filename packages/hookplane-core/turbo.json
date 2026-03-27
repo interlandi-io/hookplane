@@ -1,0 +1,18 @@
+{
+    "$schema": "https://turborepo.dev/schema.json",
+    "extends": ["//"],
+    "tasks": {
+        "test": {
+            "cache": false,
+            "persistent": false,
+        },
+        "test:run": {
+            "cache": false,
+            "persistent": false,
+        },
+        "test:watch": {
+            "cache": false,
+            "persistent": true,
+        }
+    }
+}
