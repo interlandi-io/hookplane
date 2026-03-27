@@ -1,21 +1,35 @@
 # Hookplane
 
+Define and manage webhooks entirely in code.
+
+Built for the LLM era.
+
 ## Receive webhooks with one line of code.
 
 ```typescript
 hookplane.subscribe('hubspot', 'ticket.creation')
 ```
 
-## One Declarative Source of Truth
+## Your integrations live in your codebase.
 
-Hookplane has no dashboard.
+Hookplane is stateless and 100% declarative.
 
-Instead of dancing between Zapier, your Terraform config, and your Stripe dashboard,
-you &mdash; or your agents &mdash;
-subscribe to a webhook right in the code that consumes it.
+No more keeping code in sync with dashboards.
 
+Define, manage, and validate webhooks exactly where they’re handled.
 
-## Framework-Native Tooling
+## Built for agents, not just humans
+
+With end-to-end type-safety, LLMs can safely:
+- add new webhook subscriptions
+- update event handlers
+- reason about real schemas.
+
+No MCP required.
+
+## Framework-native
+
+This isn't Terraform, it's:
 
 ```typescript
 // In a next.js app:
@@ -27,10 +41,7 @@ const paymentFailed = hookplane.subscribe('stripe') // route inferred
 
 export default function handler(request: Request) {
     const event = hookplane.parse(request, paymentFailed)
-
-    if (event.type == 'payment_intent.payment_failed') { // autocompleted
-        console.log('Payment Intent Failed: ', event.data.id) // 100% type safe
-    }
+    console.log('Payment Intent Failed: ', event.data.id) // 100% type safe
 }
 ```
 
