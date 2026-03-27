@@ -1,3 +1,5 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - "src/core/*"
+  - "src/providers/*"
+  - "src/server/*"
+  - "src/shared/*"

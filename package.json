@@ -1,5 +1,5 @@
 {
-    "name": "npm-packages",
+    "name": "hookplane",
     "private": true,
     "scripts": {
         "build": "turbo run build",
