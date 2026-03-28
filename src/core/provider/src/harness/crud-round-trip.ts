@@ -9,7 +9,10 @@ import {
     EventTypeOf,
 } from '@hookplane/core'
 
-export function crudRoundTrip<P extends Provider>(provider: P) {
+export function crudRoundTrip<P extends Provider>(
+    provider: P,
+    testConfig: EndpointConfigOf<P>,
+) {
     describe(`CRUD Round Trip: ${provider.name}`, () => {
         let createdHandle: EndpointHandle
 
@@ -17,7 +20,6 @@ export function crudRoundTrip<P extends Provider>(provider: P) {
         const testRelativeUrl = createRelativeUrl('/webhook')
         const testEndpointUrl = createEndpointUrl(testBaseUrl, testRelativeUrl)
         const testEvents = Object.keys(provider.events) as EventTypeOf<P>[]
-        const testConfig = {} as EndpointConfigOf<P>
 
         const updatedRelativeUrl = createRelativeUrl('/updated-webhook')
         const updatedEndpointUrl = createEndpointUrl(
