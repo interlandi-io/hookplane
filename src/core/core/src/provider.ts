@@ -6,6 +6,17 @@
  *
  */
 import { Result, ResultAsync } from 'neverthrow'
+import {
+    type BaseUrl,
+    type RelativeUrl,
+    type EndpointUrl,
+    type EndpointHandle,
+    createEndpointHandle,
+    createBaseUrl,
+    createRelativeUrl,
+    createEndpointUrl,
+    composeEndpointUrl,
+} from './url'
 
 /**
  * A provider defines how to interact with an external system for a set of events.
@@ -112,21 +123,6 @@ interface Provider<
 }
 
 /**
- * The base URL a state corresponds to.
- */
-type BaseUrl = string & { __brand: 'baseUrl' }
-
-/**
- * The URL of an endpoint relative to a base URL.
- */
-type RelativeUrl = string & { __brand: 'relativeUrl' }
-
-/**
- * `BaseUrl` + `RelativeUrl` = `EndpointUrl`
- */
-type EndpointUrl = string & { __brand: 'endpointUrl' }
-
-/**
  * Params passed to an Endpoint CRUD/I(ndex) operation
  */
 type EndpointOperationParams<TProviderState, TProviderConfig> = {
@@ -214,12 +210,6 @@ type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
      */
     headers: Record<string, string>
 }
-
-/**
- * A Provider-side key corresponding to an Endpoint.
- * Must be able to be passed to a Provider's `readEndpoint` method.
- */
-type EndpointHandle = string & { __brand: 'EndpointHandle' }
 
 type ProviderError =
     | AuthError
@@ -364,30 +354,6 @@ type ProviderStateOf<P extends Provider> =
  * Derive the Payload type of an Event Definition.
  */
 type PayloadOf<E> = E extends EventDefinition<infer T> ? T : never
-
-function createEndpointHandle(handle: string) {
-    return handle as EndpointHandle
-}
-
-function createBaseUrl(url: string) {
-    return url as BaseUrl
-}
-
-function createRelativeUrl(url: string) {
-    return url as RelativeUrl
-}
-
-function createEndpointUrl(base: BaseUrl, rel?: RelativeUrl) {
-    const url = new URL((rel as string) ?? '/', base as string).toString()
-    return url as EndpointUrl
-}
-
-function composeEndpointUrl(
-    baseUrl: BaseUrl,
-    endpoint: EndpointState<Provider>,
-): EndpointUrl {
-    return createEndpointUrl(baseUrl, endpoint.relativeUrl)
-}
 
 export {
     type Provider,

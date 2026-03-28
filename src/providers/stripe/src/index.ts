@@ -6,6 +6,7 @@ import {
     ProviderError,
     UnknownError,
     RequestSignatureValidationError,
+    InvalidResponseError,
 } from '@hookplane/provider'
 import { okAsync, errAsync, ResultAsync } from 'neverthrow'
 import Stripe from 'stripe'
@@ -99,8 +100,16 @@ const createStripeProvider = describeProvider<
                 )
             }
             const pathname = new URL(endpointUrl).pathname
+            const relativeUrl = createRelativeUrl(pathname)
+            if (relativeUrl.isErr()) {
+                throw {
+                    name: 'InvalidResponseError',
+                    message: `received invalid response from server: invalid url: ${endpointUrl}`,
+                    source: relativeUrl.error,
+                } satisfies InvalidResponseError
+            }
             return {
-                relativeUrl: createRelativeUrl(pathname),
+                relativeUrl: relativeUrl.value,
                 events: res.enabled_events as StripeEvent[],
                 config: {
                     name: res.name,
