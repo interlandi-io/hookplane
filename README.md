@@ -20,11 +20,16 @@ Define, manage, and validate webhooks exactly where they’re handled.
 
 ## Built for agents, not just humans
 
-With end-to-end type-safety, LLMs can safely:
+Hookplane has
+
+- End-to-end type safety
+- Best-in-class LoB (Locality of Behavior), eliminating the "context tax" of isolated config files
+
+So, LLMs can safely:
 
 - add new webhook subscriptions
 - update event handlers
-- reason about real schemas.
+- reason about real schemas
 
 No MCP required.
 
