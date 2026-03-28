@@ -9,6 +9,7 @@ import {
 } from './provider'
 import { IndexedState } from './pull'
 import { err, ok, Result } from 'neverthrow'
+import { ProviderSet } from './provider-set'
 
 /**
  * A plan for moving from the `left` `IndexedState` to the `right` `State`.
@@ -21,7 +22,7 @@ import { err, ok, Result } from 'neverthrow'
  * const plan = createPlan(left, right)
  * ```
  */
-type Plan<P extends Record<string, Provider>> = {
+type Plan<P extends ProviderSet> = {
     baseUrl: BaseUrl
     providers: P
     providerPlans: {
@@ -86,12 +87,12 @@ type UpdateStep<P extends Provider> = {
  * @returns A `Plan` for updating the left state to the right state.
  */
 function createPlan<
-    L extends IndexedState<Record<string, Provider>>,
-    R extends State<Record<string, Provider>>,
->(left: L, right: R): Plan<Record<string, Provider>> {
+    L extends IndexedState<ProviderSet>,
+    R extends State<ProviderSet>,
+>(left: L, right: R): Plan<ProviderSet> {
     const comparison = createComparison(left, right)
     const providers = comparison.providers // Merged providers
-    const providerPlans: Plan<Record<string, Provider>>['providerPlans'] = {}
+    const providerPlans: Plan<ProviderSet>['providerPlans'] = {}
     let idCounter = 0
 
     for (const [providerKey, providerComparison] of Object.entries(
@@ -115,9 +116,7 @@ function createPlan<
 }
 
 const getStepById =
-    <P extends Record<string, Provider>>(
-        providerPlans: Plan<P>['providerPlans'],
-    ) =>
+    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
     (id: StepId) => {
         let existing = 0
         let step: Step<Provider> | undefined = undefined
@@ -139,9 +138,7 @@ const getStepById =
     }
 
 const getStepIds =
-    <P extends Record<string, Provider>>(
-        providerPlans: Plan<P>['providerPlans'],
-    ) =>
+    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
     () => {
         const ids: StepId[] = []
         for (const providerPlan of Object.values(providerPlans)) {
@@ -154,7 +151,7 @@ const getStepIds =
 /**
  * Comapres two states by merging their Providers and juxtaposing their respective `EndpointState`s.
  */
-type Comparison<P extends Record<string, Provider>> = {
+type Comparison<P extends ProviderSet> = {
     providers: P
     providerComparisons: {
         [K in keyof P]: ProviderComparison<P[K]>
@@ -176,9 +173,9 @@ type ProviderComparison<P extends Provider> = {
  * @returns A `Comparison` of left and right.
  */
 function createComparison<
-    L extends IndexedState<Record<string, Provider>>,
-    R extends State<Record<string, Provider>>,
->(left: L, right: R): Comparison<Record<string, Provider>> {
+    L extends IndexedState<ProviderSet>,
+    R extends State<ProviderSet>,
+>(left: L, right: R): Comparison<ProviderSet> {
     const providers = mergeProviders(left.providers, right.providers)
     const providerComparisons: Comparison<
         typeof providers
@@ -219,11 +216,11 @@ function createComparison<
  * @param right The right provider.
  * @returns A merged provider.
  */
-function mergeProviders<
-    L extends Record<string, Provider>,
-    R extends Record<string, Provider>,
->(left: L, right: R): Record<string, Provider> {
-    const merged: Record<string, Provider> = left
+function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
+    left: L,
+    right: R,
+): ProviderSet {
+    const merged: ProviderSet = left
     for (const [kr, vr] of Object.entries(right)) {
         // TODO: right now, this just chooses the right provider params.
         // It might make more sense to implement more complex merging logic.

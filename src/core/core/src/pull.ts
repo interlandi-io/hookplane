@@ -1,10 +1,11 @@
 import { err, ok, Result } from 'neverthrow'
-import { Provider, EndpointIndex, BaseUrl } from './provider'
+import { EndpointIndex, BaseUrl } from './provider'
+import { ProviderSet } from './provider-set'
 
 /**
  * Similar to a `State`, only it now contains `SubscriptionKeys` mapping subscriptions to a real remote resource.
  */
-interface IndexedState<P extends Record<string, Provider>> {
+interface IndexedState<P extends ProviderSet> {
     /** The base URL of the application/state. */
     baseUrl: BaseUrl
     /** The providers themselves. */
@@ -15,7 +16,7 @@ interface IndexedState<P extends Record<string, Provider>> {
     }
 }
 
-async function pull<P extends Record<string, Provider>>(
+async function pull<P extends ProviderSet>(
     baseUrl: BaseUrl,
     providers: P,
 ): Promise<Result<IndexedState<P>, Error>> {
