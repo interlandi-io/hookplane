@@ -62,8 +62,8 @@ export function crudRoundTrip<P extends Provider>(
             const [handle, state] = firstEntry
 
             expect(state.relativeUrl).toBe(testRelativeUrl)
-            expect(state.events).toBe(testEvents)
-            expect(state.config).toBe(testConfig)
+            expect(state.events).toEqual(testEvents)
+            expect(state.config).toEqual(testConfig)
 
             createdHandle = handle
         })
