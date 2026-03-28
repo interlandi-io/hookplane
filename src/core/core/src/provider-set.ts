@@ -2,72 +2,74 @@ import { err, ok, Result } from 'neverthrow'
 import { Provider } from './provider'
 
 /**
- * An immutable, deduplicated set of `Provider`s.
- * Only one provider can exist with a given name in the set.
- *
- * @example
- * ```typescript
- * const providerSet = createProviderSet([stripeProvider, githubProvider])
- * if (providerSet.isOk()) {
- *     providerSet.value.has('stripe') // true
- * }
- * ```
- */
-export type ProviderSet<P extends Provider[]> = {
-    /**
-     * Returns all providers in the set as an array.
-     */
-    all(): Provider[]
-    /**
-     * Returns the provider with the given name, or undefined if not found.
-     */
-    get(key: P[number]['name']): Provider | undefined
-    /**
-     * Returns true if a provider with the given name exists in the set.
-     */
-    has(key: P[number]['name']): boolean
-}
-
-/**
- * Error types that can occur when working with a ProviderSet.
- */
-type ProviderSetError = AlreadyExistsError
-
-/**
- * Error returned when attempting to add a provider with a name that already exists.
- */
-interface AlreadyExistsError extends Error {
-    name: 'AlreadExistsError'
-    message: `Provider ${string} already exists in ProviderSet`
-    providerName: string
-}
-
-/**
- * Creates an immutable, deduplicated set of providers.
- *
- * @param providers - An array of providers to include in the set
- * @returns Ok with a ProviderSet if all provider names are unique, Err with AlreadyExistsError otherwise
+ * A deduplicated Record<string, Provider> that ensures unique provider names.
  *
  * @example
  * ```typescript
  * const result = createProviderSet([stripeProvider, githubProvider])
  * if (result.isOk()) {
- *     const ps = result.value
- *     ps.get('stripe') // returns stripeProvider
+ *     result.value['stripe'] // stripeProvider
+ * }
+ * ```
+ */
+export interface ProviderSet {
+    /**
+     * Access providers by name.
+     */
+    [key: string]: Provider
+}
+
+/**
+ * Error types that can occur when working with a ProviderSet.
+ */
+type ProviderSetError = AlreadyExistsError | KeyNameMismatchError
+
+/**
+ * Error returned when attempting to add a provider with a name that already exists.
+ */
+interface AlreadyExistsError extends Error {
+    name: 'AlreadyExistsError'
+    message: `Provider ${string} already exists in ProviderSet`
+    providerName: string
+}
+
+/**
+ * Error returned when a provider's name does not match its key in the set.
+ */
+interface KeyNameMismatchError extends Error {
+    name: 'KeyNameMismatchError'
+    message: `Provider key "${string}" does not match provider name "${string}"`
+    key: string
+    providerName: string
+}
+
+/**
+ * Creates a ProviderSet from an array of providers.
+ *
+ * Validates that all provider names are unique.
+ *
+ * @param providers - An array of providers to include in the set
+ * @returns Ok with a ProviderSet if validation passes, Err with AlreadyExistsError otherwise
+ *
+ * @example
+ * ```typescript
+ * const result = createProviderSet([stripeProvider, githubProvider])
+ * if (result.isOk()) {
+ *     result.value['stripe'] // stripeProvider
  * } else {
  *     console.error(result.error.providerName) // name of duplicate
  * }
  * ```
  */
-export function createProviderSet<P extends Provider[]>(
-    providers: P,
-): Result<ProviderSet<P>, ProviderSetError> {
-    const inner: Map<P[number]['name'], Provider> = new Map()
+export function createProviderSet(
+    providers: Provider[],
+): Result<ProviderSet, ProviderSetError> {
+    const inner: Map<string, Provider> = new Map()
 
     for (const provider of providers) {
         if (inner.has(provider.name)) {
             return err({
-                name: 'AlreadExistsError',
+                name: 'AlreadyExistsError',
                 message: `Provider ${provider.name} already exists in ProviderSet`,
                 providerName: provider.name,
             } satisfies AlreadyExistsError)
@@ -75,9 +77,9 @@ export function createProviderSet<P extends Provider[]>(
         inner.set(provider.name, provider)
     }
 
+    const record = Object.fromEntries(inner) as Record<string, Provider>
+
     return ok({
-        all: () => Array.from(inner.values()),
-        get: (key) => inner.get(key),
-        has: (key) => inner.has(key),
+        ...record,
     })
 }

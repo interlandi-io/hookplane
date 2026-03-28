@@ -33,9 +33,8 @@ describe('ProviderSet', () => {
 
             expect(result.isOk()).toBe(true)
             const providerSet = result._unsafeUnwrap()
-            expect(providerSet).toHaveProperty('all')
-            expect(providerSet).toHaveProperty('get')
-            expect(providerSet).toHaveProperty('has')
+            expect(providerSet['test-provider']).toEqual(mockProvider)
+            expect(providerSet['another-provider']).toEqual(anotherProvider)
         })
 
         it('returns an error when duplicate provider names exist', () => {
@@ -44,7 +43,7 @@ describe('ProviderSet', () => {
 
             expect(result.isErr()).toBe(true)
             const error = result._unsafeUnwrapErr()
-            expect(error.name).toBe('AlreadExistsError')
+            expect(error.name).toBe('AlreadyExistsError')
             expect(error.providerName).toBe('test-provider')
         })
 
@@ -61,19 +60,27 @@ describe('ProviderSet', () => {
             expect(error.providerName).toBe('first')
         })
 
-        it('returns an empty ProviderSet for an empty array', () => {
+        it('returns an empty object for an empty array', () => {
             const result = createProviderSet([])
 
             expect(result.isOk()).toBe(true)
             const providerSet = result._unsafeUnwrap()
-            expect(providerSet.all()).toEqual([])
+            expect(Object.keys(providerSet)).toEqual([])
+        })
+
+        it('is a valid Record with provider name as key', () => {
+            const providerSet = createProviderSet([
+                mockProvider,
+                anotherProvider,
+            ])._unsafeUnwrap()
+
+            expect(providerSet['test-provider']).toEqual(mockProvider)
+            expect(providerSet['another-provider']).toEqual(anotherProvider)
         })
     })
 
-    describe('ProviderSet methods', () => {
-        let providerSet: ProviderSet<
-            [typeof mockProvider, typeof anotherProvider]
-        >
+    describe('Record access', () => {
+        let providerSet: ProviderSet
 
         beforeEach(() => {
             providerSet = createProviderSet([
@@ -82,39 +89,13 @@ describe('ProviderSet', () => {
             ])._unsafeUnwrap()
         })
 
-        describe('all', () => {
-            it('returns all providers as an array', () => {
-                const all = providerSet.all()
-
-                expect(all).toHaveLength(2)
-                expect(all).toContainEqual(mockProvider)
-                expect(all).toContainEqual(anotherProvider)
-            })
+        it('returns the provider when it exists', () => {
+            expect(providerSet['test-provider']).toEqual(mockProvider)
+            expect(providerSet['another-provider']).toEqual(anotherProvider)
         })
 
-        describe('get', () => {
-            it('returns the provider when it exists', () => {
-                const provider = providerSet.get('test-provider')
-
-                expect(provider).toEqual(mockProvider)
-            })
-
-            it('returns undefined when provider does not exist', () => {
-                const provider = providerSet.get('non-existent')
-
-                expect(provider).toBeUndefined()
-            })
-        })
-
-        describe('has', () => {
-            it('returns true when provider exists', () => {
-                expect(providerSet.has('test-provider')).toBe(true)
-                expect(providerSet.has('another-provider')).toBe(true)
-            })
-
-            it('returns false when provider does not exist', () => {
-                expect(providerSet.has('non-existent')).toBe(false)
-            })
+        it('returns undefined when provider does not exist', () => {
+            expect(providerSet['non-existent']).toBeUndefined()
         })
     })
 
