@@ -1,13 +1,12 @@
 import { isDeepStrictEqual } from 'util'
-import { State } from './state'
+import { State, MappedState } from './state'
 import {
     Provider,
     EndpointState,
     EndpointHandle,
-    EndpointIndex,
+    EndpointMap,
     BaseUrl,
 } from './provider'
-import { IndexedState } from './pull'
 import { err, ok, Result } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 
@@ -87,7 +86,7 @@ type UpdateStep<P extends Provider> = {
  * @returns A `Plan` for updating the left state to the right state.
  */
 function createPlan<
-    L extends IndexedState<ProviderSet>,
+    L extends MappedState<ProviderSet>,
     R extends State<ProviderSet>,
 >(left: L, right: R): Plan<ProviderSet> {
     const comparison = createComparison(left, right)
@@ -163,7 +162,7 @@ type Comparison<P extends ProviderSet> = {
  * `right` contains the states for `P` from the right state
  */
 type ProviderComparison<P extends Provider> = {
-    left: EndpointIndex<P>
+    left: EndpointMap<P>
     right: EndpointState<P>[]
 }
 
@@ -173,7 +172,7 @@ type ProviderComparison<P extends Provider> = {
  * @returns A `Comparison` of left and right.
  */
 function createComparison<
-    L extends IndexedState<ProviderSet>,
+    L extends MappedState<ProviderSet>,
     R extends State<ProviderSet>,
 >(left: L, right: R): Comparison<ProviderSet> {
     const providers = mergeProviders(left.providers, right.providers)
@@ -182,7 +181,7 @@ function createComparison<
     >['providerComparisons'] = {}
 
     for (const [leftProviderKey, leftEndpointIndex] of Object.entries(
-        left.providerStates,
+        left.providerMaps,
     )) {
         providerComparisons[leftProviderKey] = {
             left: new Map(leftEndpointIndex.entries()),

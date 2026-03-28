@@ -1,51 +1,36 @@
 import { err, ok, Result } from 'neverthrow'
-import { EndpointIndex, BaseUrl } from './provider'
+import { BaseUrl } from './provider'
+import { MappedState } from './state'
 import { ProviderSet } from './provider-set'
 
-/**
- * Similar to a `State`, only it now contains `SubscriptionKeys` mapping subscriptions to a real remote resource.
- */
-interface IndexedState<P extends ProviderSet> {
-    /** The base URL of the application/state. */
-    baseUrl: BaseUrl
-    /** The providers themselves. */
-    providers: P
-    /** A map of providers to the endpoints the know about. */
-    providerStates: {
-        [K in keyof P]: EndpointIndex<P[K]>
-    }
-}
-
-async function pull<P extends ProviderSet>(
+export async function pull<P extends ProviderSet>(
     baseUrl: BaseUrl,
     providers: P,
-): Promise<Result<IndexedState<P>, Error>> {
-    const providerStates = {} as IndexedState<P>['providerStates']
+): Promise<Result<MappedState<P>, Error>> {
+    const providerMaps = {} as MappedState<P>['providerMaps']
 
     for (const [providerKey, provider] of Object.entries(providers)) {
-        const endpointIndex = await provider.indexEndpoints({
+        const endpointMap = await provider.mapEndpoints({
             providerConfig: provider.config,
             providerState: provider.state,
         })
-        if (endpointIndex.isErr()) {
+        if (endpointMap.isErr()) {
             return err(
                 Object.assign(
                     new Error(
                         `failed to index endpoints for provider "${providerKey}"`,
                     ),
-                    { cause: endpointIndex.error },
+                    { cause: endpointMap.error },
                 ),
             )
         }
-        providerStates[providerKey as keyof typeof providerStates] =
-            endpointIndex.value
+        providerMaps[providerKey as keyof typeof providerMaps] =
+            endpointMap.value
     }
 
     return ok({
         baseUrl,
         providers,
-        providerStates,
+        providerMaps,
     })
 }
-
-export { type IndexedState, pull }

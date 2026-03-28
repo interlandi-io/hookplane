@@ -109,9 +109,9 @@ interface Provider<
      * @see `EndpointIndex`
      * @returns an `EndpointIndex`
      */
-    indexEndpoints(
+    mapEndpoints(
         params: IndexEndpointsParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<EndpointIndex<this>, ProviderError>
+    ): ResultAsync<EndpointMap<this>, ProviderError>
 
     /**
      * Validate the cryptographic signature of a request.
@@ -293,16 +293,21 @@ interface UnknownError extends Error {
 }
 
 type EndpointState<P extends Provider> = {
-    relativeUrl: RelativeUrl
     events: EventTypeOf<P>[]
     config: EndpointConfigOf<P>
 }
 
+// Maps an endpoint to a real registed endpoint on the Provider side.
+type EndpointMapping<P extends Provider> = {
+    handle: EndpointHandle,
+    state: EndpointState<P>,
+}
+ 
 /**
  * Used to map local Endpoint representations to Endpoints actually registered with a provider.
  * @see EndpointHandle
  */
-type EndpointIndex<P extends Provider> = Map<EndpointHandle, EndpointState<P>>
+type EndpointMap<P extends Provider> = Map<RelativeUrl, EndpointMapping<P>>
 
 /**
  * Defines an event of a `Provider`.
@@ -358,6 +363,7 @@ type PayloadOf<E> = E extends EventDefinition<infer T> ? T : never
 export {
     type Provider,
     type EndpointState,
+    type EndpointMapping,
     type BaseUrl,
     type RelativeUrl,
     type EndpointUrl,
@@ -368,7 +374,7 @@ export {
     type IndexEndpointsParams,
     type ValidateRequestSignatureParams,
     type EndpointHandle,
-    type EndpointIndex,
+    type EndpointMap,
     type EventDefinition,
     type ProviderKeyOf,
     type EventTypeOf,

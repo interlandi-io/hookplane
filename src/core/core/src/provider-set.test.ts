@@ -20,7 +20,7 @@ const TestProvider = (
         }),
     updateEndpoint: () => okAsync(undefined),
     deleteEndpoint: () => okAsync(undefined),
-    indexEndpoints: () => okAsync(new Map()),
+    mapEndpoints: () => okAsync(new Map()),
 })
 
 const mockProvider = TestProvider('test-provider')

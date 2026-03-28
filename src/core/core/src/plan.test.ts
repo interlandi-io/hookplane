@@ -39,7 +39,7 @@ const TestProvider = (config: {
     deleteEndpoint: function () {
         throw new Error('Function not implemented.')
     },
-    indexEndpoints: function () {
+    mapEndpoints: function () {
         throw new Error('Function not implemented.')
     },
 })

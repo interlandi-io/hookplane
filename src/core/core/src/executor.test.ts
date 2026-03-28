@@ -76,7 +76,7 @@ const MockProvider: Provider<
         endpoints.delete(handle)
         return okAsync()
     },
-    indexEndpoints() {
+    mapEndpoints() {
         const index = new Map<
             EndpointHandle,
             {
