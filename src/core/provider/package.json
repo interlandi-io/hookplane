@@ -10,7 +10,8 @@
         "lint": "eslint . --max-warnings 0"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": "./src/index.ts",
+        "./harness": "./src/harness/index.ts"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
