@@ -10,13 +10,12 @@ import {
     type BaseUrl,
     type RelativeUrl,
     type EndpointUrl,
-    type EndpointHandle,
-    createEndpointHandle,
     createBaseUrl,
     createRelativeUrl,
     createEndpointUrl,
     composeEndpointUrl,
 } from './url'
+import { EndpointHandle, createEndpointHandle } from './endpoint-handle'
 
 /**
  * A provider defines how to interact with an external system for a set of events.

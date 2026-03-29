@@ -3,13 +3,13 @@ import { State } from './state'
 import {
     Provider,
     EndpointState,
-    EndpointHandle,
     EndpointIndex,
     BaseUrl,
 } from './provider'
-import { ENDPOINT_HANDLE_ORPHAN } from './url'
+import {  } from './url'
 import { err, ok, Result } from 'neverthrow'
 import { ProviderSet } from './provider-set'
+import { EndpointHandle, endpointHandleIsOrphan } from './endpoint-handle'
 
 /**
  * A plan for moving from the `left` `IndexedState` to the `right` `State`.
@@ -244,7 +244,7 @@ function matchAndDiff<P extends Provider>({
     const steps: Set<Step<P>> = new Set()
 
     for (const [leftHandle, leftState] of left) {
-        if (leftHandle === ENDPOINT_HANDLE_ORPHAN) { 
+        if (endpointHandleIsOrphan(leftHandle)) { 
             // TODO error/assert here
             continue
         }
@@ -268,7 +268,7 @@ function matchAndDiff<P extends Provider>({
     }
 
     for (const [rightHandle, rightState] of right) {
-        if (rightHandle != ENDPOINT_HANDLE_ORPHAN) {
+        if (!endpointHandleIsOrphan(rightHandle)) {
             continue
         }
         // TODO assert that left shouldn't have this one

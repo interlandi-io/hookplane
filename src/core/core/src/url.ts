@@ -2,16 +2,6 @@ import { err, ok, Result } from 'neverthrow'
 import { type EndpointState, type Provider } from './provider'
 
 /**
- * A branded string for endpoint handles.
- */
-export type EndpointHandle = string & { __brand: 'EndpointHandle' }
-
-/**
- * Represents an a subscription yet to be created.
- */
-export const ENDPOINT_HANDLE_ORPHAN = '___ORPHAN___' as EndpointHandle
-
-/**
  * The full URL of an endpoint (base URL + relative URL).
  */
 export type EndpointUrl = string & { __brand: 'endpointUrl' }
@@ -47,24 +37,6 @@ export interface InvalidRelativeUrlError extends Error {
 export interface InvalidEndpointHandleError extends Error {
     name: 'InvalidEndpointHandleError'
     message: 'endpoint handle cannot be empty'
-}
-
-/**
- * Creates an EndpointHandle from a string.
- *
- * @param handle - The handle string
- * @returns Ok with EndpointHandle if non-empty, Err otherwise
- */
-export function createEndpointHandle(
-    handle: string,
-): Result<EndpointHandle, InvalidEndpointHandleError> {
-    if (handle.length === 0) {
-        return err({
-            name: 'InvalidEndpointHandleError',
-            message: 'endpoint handle cannot be empty',
-        } satisfies InvalidEndpointHandleError)
-    }
-    return ok(handle as EndpointHandle)
 }
 
 /**
