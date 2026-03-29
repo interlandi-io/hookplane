@@ -55,7 +55,7 @@ export function createProviderSet(
     providers: Record<string, Provider>,
 ): Result<ProviderSet, ProviderSetError> {
     for (const [key, provider] of Object.entries(providers)) {
-        if (provider.name != key) {
+        if (provider.name !== key) {
             return err({
                 name: 'KeyNameMismatchError',
                 message: `Provider key "${key}" does not match provider name "${provider.name}"`,
