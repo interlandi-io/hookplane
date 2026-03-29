@@ -10,7 +10,6 @@ import {
     type EndpointState,
     type BaseUrl,
     type RelativeUrl,
-    type EndpointMap,
 } from './provider'
 import { ProviderSet } from './provider-set'
 
@@ -24,23 +23,10 @@ interface State<P extends ProviderSet> {
     providers: P
     /** A map of providers to the endpoints the know about. */
     providerStates: {
-        [K in keyof P]: Map<RelativeUrl, EndpointState<P[K]>> 
+        [K in keyof P]: EndpointState<P[K]>[]
     }
 }
 
-/**
- * Similar to a `State`, only it now contains `SubscriptionKeys` mapping subscriptions to a real remote resource.
- */
-interface MappedState<P extends ProviderSet> {
-    /** The base URL of the application/state. */
-    baseUrl: BaseUrl
-    /** The providers themselves. */
-    providers: P
-    /** A map of providers to the mapped endpoints the know about. */
-    providerMaps: {
-        [K in keyof P]: EndpointMap<P[K]> 
-    }
-}
+type ProviderState<P extends Provider> = Record<RelativeUrl, EndpointState<P>>
 
-
-export { type State, type MappedState }
+export { type State, type ProviderState }

@@ -66,7 +66,7 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
             } as NotFoundError)
         }
     },
-    mapEndpoints() {
+    indexEndpoints() {
         return okAsync(endpoints)
     },
 }

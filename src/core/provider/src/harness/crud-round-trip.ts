@@ -30,7 +30,7 @@ export function crudRoundTrip<
     )._unsafeUnwrap()
 
     it('1) Returns empty index', async () => {
-        const indexResult = await provider.mapEndpoints({
+        const indexResult = await provider.indexEndpoints({
             providerState: provider.state,
             providerConfig: provider.config,
         })
@@ -57,7 +57,7 @@ export function crudRoundTrip<
     })
 
     it('3) Index returns a single endpoint', async () => {
-        const indexResult = await provider.mapEndpoints({
+        const indexResult = await provider.indexEndpoints({
             providerState: provider.state,
             providerConfig: provider.config,
         })
@@ -139,7 +139,7 @@ export function crudRoundTrip<
     })
 
     it('8) Index returns an empty state again', async () => {
-        const indexResult = await provider.mapEndpoints({
+        const indexResult = await provider.indexEndpoints({
             providerState: provider.state,
             providerConfig: provider.config,
         })
