@@ -14,7 +14,7 @@ const TestProvider = (
     createEndpoint: () => okAsync(undefined),
     readEndpoint: () =>
         okAsync({
-            relativeUrl: createRelativeUrl('/'),
+            relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
             events: [],
             config: {},
         }),
