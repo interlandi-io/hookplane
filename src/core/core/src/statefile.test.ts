@@ -112,6 +112,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -137,6 +138,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -162,6 +164,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -187,6 +190,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: 'not-an-object',
                 },
@@ -204,6 +208,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'example.com',
                     providerStates: {
                         stripe: {
@@ -230,6 +235,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'not-a-url',
                     providerStates: {
                         stripe: {
@@ -256,6 +262,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -282,6 +289,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         unknown: {
@@ -310,6 +318,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -348,6 +357,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -379,6 +389,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -409,6 +420,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         empty: {
@@ -441,6 +453,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -480,6 +493,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {},
                 },
@@ -495,6 +509,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -524,6 +539,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -558,6 +574,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -584,6 +601,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -614,6 +632,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -640,6 +659,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -666,6 +686,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -692,6 +713,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -723,6 +745,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -773,6 +796,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
@@ -812,6 +836,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {},
                 },
@@ -845,6 +870,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     baseUrl: 'https://example.com',
                     providerStates: {
                         nonexistent: {

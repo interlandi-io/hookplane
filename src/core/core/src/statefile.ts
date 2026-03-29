@@ -94,10 +94,12 @@ const ProviderStateSchema = z.record(z.string(), EndpointSchema)
  * Zod schema for the complete statefile.
  *
  * Structure:
+ * - version: The statefile version.
  * - baseUrl: The application's base URL
  * - providerStates: A record of providers, each containing endpoints keyed by handle
  */
 const StatefileSchema = z.object({
+    version: z.literal(1),
     baseUrl: BaseUrlSchema,
     providerStates: z.record(z.string(), ProviderStateSchema),
 })
