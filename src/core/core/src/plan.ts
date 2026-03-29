@@ -1,7 +1,6 @@
 import { isDeepStrictEqual } from 'util'
 import { State } from './state'
 import { Provider, EndpointState, EndpointIndex, BaseUrl } from './provider'
-import {} from './url'
 import { err, ok, Result } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { EndpointHandle, endpointHandleIsOrphan } from './endpoint-handle'

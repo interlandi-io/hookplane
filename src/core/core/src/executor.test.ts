@@ -46,8 +46,11 @@ const MockProvider: Provider<
     readEndpoint({ handle }) {
         const endpoint = endpoints.get(handle)
         if (endpoint) {
+            const relativeUrl = createRelativeUrl(
+                new URL(endpoint.url).pathname,
+            )._unsafeUnwrap()
             return okAsync({
-                relativeUrl: createRelativeUrl(endpoint.url)._unsafeUnwrap(),
+                relativeUrl,
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
             })
