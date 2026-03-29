@@ -9,10 +9,7 @@ export type EndpointUrl = string & { __brand: 'endpointUrl' }
 /**
  * Error types for URL operations.
  */
-export type UrlError =
-    | InvalidBaseUrlError
-    | InvalidRelativeUrlError
-    | InvalidEndpointHandleError
+export type UrlError = InvalidBaseUrlError | InvalidRelativeUrlError
 
 /**
  * Error returned when a base URL is invalid.
@@ -29,14 +26,6 @@ export interface InvalidBaseUrlError extends Error {
 export interface InvalidRelativeUrlError extends Error {
     name: 'InvalidRelativeUrlError'
     message: `relative URL must start with "/": ${string}`
-}
-
-/**
- * Error returned when an endpoint handle is invalid.
- */
-export interface InvalidEndpointHandleError extends Error {
-    name: 'InvalidEndpointHandleError'
-    message: 'endpoint handle cannot be empty'
 }
 
 /**
