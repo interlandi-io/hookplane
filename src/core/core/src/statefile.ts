@@ -15,7 +15,12 @@ import {
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
-import { EndpointIndex, EndpointState, Provider } from './provider'
+import {
+    EndpointHandle,
+    EndpointIndex,
+    EndpointState,
+    Provider,
+} from './provider'
 
 /**
  * Zod schema for base URLs.
@@ -94,7 +99,7 @@ const ProviderStateSchema = z.record(z.string(), EndpointSchema)
  * Zod schema for the complete statefile.
  *
  * Structure:
- * - version: The statefile version.
+ * - version: The statefile version
  * - baseUrl: The application's base URL
  * - providerStates: A record of providers, each containing endpoints keyed by handle
  */
@@ -226,12 +231,69 @@ export function parseStatefile<P extends ProviderSet>(
     }
 
     return ok({
-        baseUrl: parsed.data.baseUrl,
         data: parsed.data,
-        toState() {
-            const providerStatesEntries = Object.entries(
-                parsed.data.providerStates,
-            ).map(([providerName, providerState]) => {
+        toState: toState(providers, parsed.data),
+    })
+}
+
+type SigningSecretsMap<P extends ProviderSet> = Map<
+    keyof P,
+    Map<EndpointHandle, string>
+>
+
+export function fromState<P extends ProviderSet>(
+    version: 1,
+    state: State<P>,
+    signingSecrets?: SigningSecretsMap<P>,
+): Statefile<P> {
+    const providerStatesEntries = Object.entries(state.providerStates).map(
+        ([providerName, endpointIndex]: [string, EndpointIndex<Provider>]) => {
+            const entries = endpointIndex
+                .entries()
+                .map(([handle, endpointState]) => {
+                    const signingSecret = signingSecrets
+                        ?.get(providerName)
+                        ?.get(handle)
+                    return [
+                        handle,
+                        {
+                            state: endpointState,
+                            signingSecret,
+                        },
+                    ] as [
+                        typeof handle,
+                        Statefile<P>['data']['providerStates'][string][string],
+                    ]
+                })
+            return [providerName, Object.fromEntries(entries)] as [
+                string,
+                Statefile<P>['data']['providerStates'][string],
+            ]
+        },
+    )
+
+    const providerStates = Object.fromEntries(providerStatesEntries)
+
+    const data = {
+        version,
+        baseUrl: state.baseUrl,
+        providerStates,
+    }
+
+    return {
+        data,
+        toState: toState(state.providers, data),
+    }
+}
+
+const toState =
+    <P extends ProviderSet>(
+        providers: P,
+        data: z.infer<typeof StatefileSchema>,
+    ): Statefile<P>['toState'] =>
+    () => {
+        const providerStatesEntries = Object.entries(data.providerStates).map(
+            ([providerName, providerState]) => {
                 const entries = Object.entries(providerState).map(
                     ([handle, endpoint]) =>
                         [handle, endpoint.state] as [
@@ -244,19 +306,18 @@ export function parseStatefile<P extends ProviderSet>(
                     typeof providerName,
                     EndpointIndex<Provider>,
                 ]
-            })
-            const providerStates = Object.fromEntries(
-                providerStatesEntries,
-            ) as State<P>['providerStates']
+            },
+        )
+        const providerStates = Object.fromEntries(
+            providerStatesEntries,
+        ) as State<P>['providerStates']
 
-            return {
-                baseUrl: parsed.data.baseUrl,
-                providers,
-                providerStates,
-            } satisfies State<P>
-        },
-    })
-}
+        return {
+            baseUrl: data.baseUrl,
+            providers,
+            providerStates,
+        } satisfies State<P>
+    }
 
 function validateProviderName(name: string, providers: ProviderSet): boolean {
     if (!Object.hasOwn(providers, name)) {
