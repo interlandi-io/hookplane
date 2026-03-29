@@ -1,12 +1,18 @@
 import { err, ok, Result } from 'neverthrow'
-import { BaseUrl } from './provider'
+import { BaseUrl, ProviderError } from './provider'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
+
+export interface SyncError extends Error {
+    name: 'SyncError'
+    message: string
+    source: ProviderError
+}
 
 export async function sync<P extends ProviderSet>(
     baseUrl: BaseUrl,
     providers: P,
-): Promise<Result<State<P>, Error>> {
+): Promise<Result<State<P>, SyncError>> {
     const providerStates = {} as State<P>['providerStates']
 
     for (const [providerKey, provider] of Object.entries(providers)) {
@@ -15,14 +21,11 @@ export async function sync<P extends ProviderSet>(
             providerState: provider.state,
         })
         if (endpointIndex.isErr()) {
-            return err(
-                Object.assign(
-                    new Error(
-                        `failed to index endpoints for provider "${providerKey}"`,
-                    ),
-                    { cause: endpointIndex.error },
-                ),
-            )
+            return err({
+                name: 'SyncError',
+                message: `failed to index endpoints for provider ${provider.name}`,
+                source: endpointIndex.error,
+            } satisfies SyncError)
         }
         providerStates[providerKey as keyof typeof providerStates] =
             endpointIndex.value

@@ -110,4 +110,48 @@ describe('sync', () => {
             ]),
         )
     })
+
+    it('throws an error when the provider fails to index endpoints', async () => {
+        const errorProvider: Provider<'testEvent', object, object, object> = {
+            name: 'ErrorProvider',
+            events: {
+                testEvent: {},
+            },
+            config: {},
+            state: {},
+            setup() {
+                return okAsync({})
+            },
+            createEndpoint() {
+                throw new Error('not implemented')
+            },
+            readEndpoint() {
+                throw new Error('not implemented')
+            },
+            deleteEndpoint() {
+                throw new Error('not implemented')
+            },
+            updateEndpoint() {
+                throw new Error('not implemented')
+            },
+            indexEndpoints() {
+                return errAsync({
+                    name: 'UnknownError' as const,
+                    message: `an error occurred: index failed`,
+                    source: new Error('index failed'),
+                })
+            },
+        }
+
+        const errorProviders = { ErrorProvider: errorProvider }
+        const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
+        const result = await sync(baseUrl, errorProviders)
+
+        expect(result.isErr()).toBe(true)
+        const error = result._unsafeUnwrapErr()
+        expect(error.name).toBe('SyncError')
+        expect(error.message).toBe(
+            'failed to index endpoints for provider ErrorProvider',
+        )
+    })
 })
