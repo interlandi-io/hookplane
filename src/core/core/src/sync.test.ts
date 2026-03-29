@@ -1,5 +1,5 @@
 import { errAsync } from 'neverthrow'
-import { pull } from './pull'
+import { sync } from './sync'
 import { okAsync } from 'neverthrow'
 import {
     createBaseUrl,
@@ -75,13 +75,13 @@ const providers = {
     MockProvider,
 }
 
-describe('pull', () => {
+describe('sync', () => {
     beforeEach(() => {
         endpoints.clear()
         handleCounter = 0
     })
 
-    it('pulls subs correctly', async () => {
+    it('pulls endpoints correctly', async () => {
         const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
         MockProvider.createEndpoint({
             url: createEndpointUrl(
@@ -93,7 +93,7 @@ describe('pull', () => {
             providerConfig: MockProvider.config,
             endpointConfig: {},
         })
-        const state = await pull(baseUrl, providers)
+        const state = await sync(baseUrl, providers)
 
         expect(state.isOk()).toBe(true)
         expect(state._unsafeUnwrap().providerStates['MockProvider']).toEqual(

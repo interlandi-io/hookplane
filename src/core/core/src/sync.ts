@@ -3,7 +3,7 @@ import { BaseUrl } from './provider'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
 
-async function pull<P extends ProviderSet>(
+export async function sync<P extends ProviderSet>(
     baseUrl: BaseUrl,
     providers: P,
 ): Promise<Result<State<P>, Error>> {
@@ -34,5 +34,3 @@ async function pull<P extends ProviderSet>(
         providerStates,
     })
 }
-
-export { pull }
