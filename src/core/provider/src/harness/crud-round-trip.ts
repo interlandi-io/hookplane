@@ -14,20 +14,16 @@ export function crudRoundTrip<
 >(provider: P, testConfig: EndpointConfigOf<P>, logResults: boolean = false) {
     let createdHandle: EndpointHandle
 
-    const testBaseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
-    const testRelativeUrl = createRelativeUrl('/webhook')._unsafeUnwrap()
-    const testEndpointUrl = createEndpointUrl(
-        testBaseUrl,
-        testRelativeUrl,
-    )._unsafeUnwrap()
+    const testBaseUrl = createBaseUrl('https://example.com')
+    const testRelativeUrl = createRelativeUrl('/webhook')
+    const testEndpointUrl = createEndpointUrl(testBaseUrl, testRelativeUrl)
     const testEvents = Object.keys(provider.events)
 
-    const updatedRelativeUrl =
-        createRelativeUrl('/updated-webhook')._unsafeUnwrap()
+    const updatedRelativeUrl = createRelativeUrl('/updated-webhook')
     const updatedEndpointUrl = createEndpointUrl(
         testBaseUrl,
         updatedRelativeUrl,
-    )._unsafeUnwrap()
+    )
 
     it('1) Returns empty index', async () => {
         const indexResult = await provider.mapEndpoints({

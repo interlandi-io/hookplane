@@ -36,7 +36,7 @@ const Provider = describeProvider<
     },
     readEndpoint: () => {
         return okAsync({
-            relativeUrl: createRelativeUrl('/hooks')._unsafeUnwrap(),
+            relativeUrl: createRelativeUrl('/hooks'),
             events: [],
             config: {
                 fields: [],

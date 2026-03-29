@@ -10,7 +10,6 @@ import {
     EndpointState,
     Provider,
     NotFoundError,
-    type EndpointHandle,
 } from './provider'
 
 const endpoints: EndpointIndex<typeof MockProvider> = new Map()
@@ -26,12 +25,8 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
         return okAsync({})
     },
     createEndpoint({ url, events, endpointConfig }) {
-        const handle = createEndpointHandle(
-            `handle-${handleCounter++}`,
-        )._unsafeUnwrap()
-        const relativeUrl = createRelativeUrl(
-            new URL(url).pathname,
-        )._unsafeUnwrap()
+        const handle = createEndpointHandle(`handle-${handleCounter++}`)
+        const relativeUrl = createRelativeUrl(new URL(url).pathname)
         endpoints.set(handle, {
             relativeUrl,
             events,
@@ -49,9 +44,7 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
     updateEndpoint({ url, handle, events, endpointConfig }) {
         const endpoint = endpoints.get(handle)
         if (endpoint) {
-            const relativeUrl = createRelativeUrl(
-                new URL(url).pathname,
-            )._unsafeUnwrap()
+            const relativeUrl = createRelativeUrl(new URL(url).pathname)
             endpoints.set(handle, {
                 relativeUrl,
                 events,
@@ -82,12 +75,9 @@ describe('pull', () => {
     })
 
     it('pulls subs correctly', async () => {
-        const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
+        const baseUrl = createBaseUrl('https://example.com')
         MockProvider.createEndpoint({
-            url: createEndpointUrl(
-                baseUrl,
-                createRelativeUrl('/webhook')._unsafeUnwrap(),
-            )._unsafeUnwrap(),
+            url: createEndpointUrl(baseUrl, createRelativeUrl('/webhook')),
             events: ['testEvent'],
             providerState: MockProvider.state,
             providerConfig: MockProvider.config,
@@ -99,10 +89,9 @@ describe('pull', () => {
         expect(state._unsafeUnwrap().providerStates['MockProvider']).toEqual(
             new Map([
                 [
-                    'handle-0' as EndpointHandle,
+                    'handle-0' as ReturnType<typeof createEndpointHandle>,
                     {
-                        relativeUrl:
-                            createRelativeUrl('/webhook')._unsafeUnwrap(),
+                        relativeUrl: createRelativeUrl('/webhook'),
                         events: ['testEvent'] as ['testEvent'],
                         config: {},
                     } as EndpointState<typeof MockProvider>,

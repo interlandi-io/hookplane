@@ -7,8 +7,6 @@ import {
     createBaseUrl,
     createRelativeUrl,
     NotFoundError,
-    type EndpointHandle,
-    type RelativeUrl,
 } from './provider'
 import { Plan, StepId, createStepId } from './plan'
 
@@ -37,9 +35,7 @@ const MockProvider: Provider<
         return okAsync({})
     },
     createEndpoint({ url, events, endpointConfig }) {
-        const handle = createEndpointHandle(
-            `handle-${handleCounter++}`,
-        )._unsafeUnwrap()
+        const handle = createEndpointHandle(`handle-${handleCounter++}`)
         endpoints.set(handle, { url, events, config: endpointConfig })
         return okAsync()
     },
@@ -47,7 +43,7 @@ const MockProvider: Provider<
         const endpoint = endpoints.get(handle)
         if (endpoint) {
             return okAsync({
-                relativeUrl: createRelativeUrl(endpoint.url)._unsafeUnwrap(),
+                relativeUrl: createRelativeUrl(endpoint.url),
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
             })
@@ -78,16 +74,16 @@ const MockProvider: Provider<
     },
     mapEndpoints() {
         const index = new Map<
-            EndpointHandle,
+            ReturnType<typeof createEndpointHandle>,
             {
-                relativeUrl: RelativeUrl
+                relativeUrl: ReturnType<typeof createRelativeUrl>
                 events: ['testEvent']
                 config: Record<string, unknown>
             }
         >()
         for (const [handle, endpoint] of endpoints) {
-            index.set(createEndpointHandle(handle)._unsafeUnwrap(), {
-                relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+            index.set(createEndpointHandle(handle), {
+                relativeUrl: createRelativeUrl('/'),
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
             })
@@ -111,8 +107,7 @@ describe('executor', () => {
                     {
                         kind: 'create' as const,
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/webhook')._unsafeUnwrap(),
+                            relativeUrl: createRelativeUrl('/webhook'),
                             events: ['testEvent'] as ['testEvent'],
                             config: { secret: 'abc' },
                         },
@@ -123,8 +118,7 @@ describe('executor', () => {
                     {
                         kind: 'create' as const,
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/api')._unsafeUnwrap(),
+                            relativeUrl: createRelativeUrl('/api'),
                             events: ['testEvent'] as ['testEvent'],
                             config: { apiKey: 'xyz' },
                         },
@@ -133,7 +127,7 @@ describe('executor', () => {
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+            baseUrl: createBaseUrl('https://example.com'),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -187,24 +181,20 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
-                            'handle-0',
-                        )._unsafeUnwrap(),
+                        handle: createEndpointHandle('handle-0'),
                     },
                 ],
                 [
                     createStepId(1),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
-                            'handle-1',
-                        )._unsafeUnwrap(),
+                        handle: createEndpointHandle('handle-1'),
                     },
                 ],
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+            baseUrl: createBaseUrl('https://example.com'),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -250,12 +240,9 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'update' as const,
-                        handle: createEndpointHandle(
-                            'handle-0',
-                        )._unsafeUnwrap(),
+                        handle: createEndpointHandle('handle-0'),
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/webhook')._unsafeUnwrap(),
+                            relativeUrl: createRelativeUrl('/webhook'),
                             events: ['testEvent'] as ['testEvent'],
                             config: { newConfig: true },
                         },
@@ -264,7 +251,7 @@ describe('executor', () => {
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+            baseUrl: createBaseUrl('https://example.com'),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -301,7 +288,7 @@ describe('executor', () => {
     it('should return error for empty plan', () => {
         const providers = { MockProvider }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+            baseUrl: createBaseUrl('https://example.com'),
             providers,
             providerPlans: {
                 MockProvider: new Map(),
