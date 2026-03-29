@@ -1,6 +1,5 @@
 import { okAsync } from 'neverthrow'
 import { State } from './state'
-import { IndexedState } from './pull'
 import {
     Provider,
     createEndpointHandle,

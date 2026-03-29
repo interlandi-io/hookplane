@@ -7,6 +7,11 @@ import { type EndpointState, type Provider } from './provider'
 export type EndpointHandle = string & { __brand: 'EndpointHandle' }
 
 /**
+ * Represents an a subscription yet to be created.
+ */
+export const ENDPOINT_HANDLE_ORPHAN = '___ORPHAN___' as EndpointHandle
+
+/**
  * The full URL of an endpoint (base URL + relative URL).
  */
 export type EndpointUrl = string & { __brand: 'endpointUrl' }

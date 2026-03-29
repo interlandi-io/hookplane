@@ -1,26 +1,13 @@
 import { err, ok, Result } from 'neverthrow'
-import { EndpointIndex, BaseUrl } from './provider'
+import { BaseUrl } from './provider'
 import { ProviderSet } from './provider-set'
-
-/**
- * Similar to a `State`, only it now contains `SubscriptionKeys` mapping subscriptions to a real remote resource.
- */
-interface IndexedState<P extends ProviderSet> {
-    /** The base URL of the application/state. */
-    baseUrl: BaseUrl
-    /** The providers themselves. */
-    providers: P
-    /** A map of providers to the endpoints the know about. */
-    providerStates: {
-        [K in keyof P]: EndpointIndex<P[K]>
-    }
-}
+import { State } from './state'
 
 async function pull<P extends ProviderSet>(
     baseUrl: BaseUrl,
     providers: P,
-): Promise<Result<IndexedState<P>, Error>> {
-    const providerStates = {} as IndexedState<P>['providerStates']
+): Promise<Result<State<P>, Error>> {
+    const providerStates = {} as State<P>['providerStates']
 
     for (const [providerKey, provider] of Object.entries(providers)) {
         const endpointIndex = await provider.indexEndpoints({
@@ -48,4 +35,4 @@ async function pull<P extends ProviderSet>(
     })
 }
 
-export { type IndexedState, pull }
+export { pull }

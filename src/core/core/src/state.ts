@@ -9,6 +9,7 @@ import {
     type Provider,
     type EndpointState,
     type BaseUrl,
+    type EndpointIndex,
     type RelativeUrl,
 } from './provider'
 import { ProviderSet } from './provider-set'
@@ -23,7 +24,7 @@ interface State<P extends ProviderSet> {
     providers: P
     /** A map of providers to the endpoints the know about. */
     providerStates: {
-        [K in keyof P]: EndpointState<P[K]>[]
+        [K in keyof P]: EndpointIndex<P[K]>
     }
 }
 
