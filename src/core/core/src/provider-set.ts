@@ -2,11 +2,13 @@ import { err, ok, Result } from 'neverthrow'
 import { Provider } from './provider'
 
 /**
- * A deduplicated Record<string, Provider> that ensures unique provider names.
+ * A Record<string, Provider> that ensures provider keys match provider names.
  *
  * @example
  * ```typescript
- * const result = createProviderSet([stripeProvider, githubProvider])
+ * const result = createProviderSet({
+ *     stripe: StripeProvider({ ... })
+ * })
  * if (result.isOk()) {
  *     result.value['stripe'] // stripeProvider
  * }
@@ -30,12 +32,12 @@ export interface KeyNameMismatchError extends Error {
 }
 
 /**
- * Creates a ProviderSet from an array of providers.
+ * Creates a ProviderSet from a record of providers.
  *
- * Validates that all provider names are unique.
+ * Validates that all provider keys match their provider names.
  *
- * @param providers - An array of providers to include in the set
- * @returns Ok with a ProviderSet if validation passes, Err with AlreadyExistsError otherwise
+ * @param providers - A record of providers to include in the set
+ * @returns Ok with a ProviderSet if validation passes, Err with KeyNameMismatchError otherwise
  *
  * @example
  * ```typescript
@@ -45,7 +47,7 @@ export interface KeyNameMismatchError extends Error {
  * if (result.isOk()) {
  *     result.value['stripe'] // stripeProvider
  * } else {
- *     console.error(result.error.providerName) // name of duplicate
+ *     console.error(result.error.providerName) // name of mismatched provider
  * }
  * ```
  */
