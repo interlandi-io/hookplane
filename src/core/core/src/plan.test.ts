@@ -7,6 +7,7 @@ import {
     createRelativeUrl,
 } from './provider'
 import { createPlan, createStepId } from './plan'
+import { createOrphanEndpointHandle } from './endpoint-handle'
 
 const TestProvider = (config: {
     storeUrl: string
@@ -46,7 +47,7 @@ const TestProvider = (config: {
 // eslint-disable-next-line
 const providers = { testProvider: TestProvider({ storeUrl: '', storeKey: '' }) }
 
-const left1: IndexedState<typeof providers> = {
+const left1: State<typeof providers> = {
     baseUrl: createBaseUrl('http://localhost')._unsafeUnwrap(),
     providers: {
         testProvider: TestProvider({
@@ -79,13 +80,16 @@ describe('plan', () => {
                 }),
             },
             providerStates: {
-                testProvider: [
-                    {
-                        relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
-                        events: ['testEvent'],
-                        config: {},
-                    },
-                ],
+                testProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
             },
         }
 
@@ -105,7 +109,7 @@ describe('plan', () => {
                 }),
             },
             providerStates: {
-                testProvider: [],
+                testProvider: new Map(),
             },
         }
 
@@ -118,7 +122,7 @@ describe('plan', () => {
     })
 
     it('generates create when adding endpoint', () => {
-        const left: IndexedState<typeof providers> = {
+        const left: State<typeof providers> = {
             baseUrl: createBaseUrl('http://localhost')._unsafeUnwrap(),
             providers: {
                 testProvider: TestProvider({
@@ -139,13 +143,16 @@ describe('plan', () => {
                 }),
             },
             providerStates: {
-                testProvider: [
-                    {
-                        relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
-                        events: ['testEvent'],
-                        config: {},
-                    },
-                ],
+                testProvider: new Map([
+                    [
+                        createOrphanEndpointHandle(),
+                        {
+                            relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
             },
         }
 
@@ -162,7 +169,7 @@ describe('plan', () => {
     })
 
     it('generates update when changing endpoint url', () => {
-        const left: IndexedState<typeof providers> = {
+        const left: State<typeof providers> = {
             baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers: {
                 testProvider: TestProvider({
@@ -193,24 +200,25 @@ describe('plan', () => {
                 }),
             },
             providerStates: {
-                testProvider: [
-                    {
-                        relativeUrl: createRelativeUrl('/new')._unsafeUnwrap(),
-                        events: ['testEvent'],
-                        config: {},
-                    },
-                ],
+                testProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            relativeUrl:
+                                createRelativeUrl('/new')._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
             },
         }
 
         const plan = createPlan(left, right)
-        expect(plan.providerPlans.testProvider!).toHaveLength(2)
+        expect(plan.providerPlans.testProvider!).toHaveLength(1)
         expect(plan.providerPlans.testProvider!.get(createStepId(0))).toEqual({
-            kind: 'delete',
+            kind: 'update',
             handle: 'handle-0',
-        })
-        expect(plan.providerPlans.testProvider!.get(createStepId(1))).toEqual({
-            kind: 'create',
             state: {
                 relativeUrl: createRelativeUrl('/new')._unsafeUnwrap(),
                 events: ['testEvent'],
@@ -315,7 +323,7 @@ describe('plan', () => {
             providerC: ProviderC({ storeUrl: 'c', storeKey: 'c' }),
         }
 
-        const left: IndexedState<typeof multipleProviders> = {
+        const left: State<typeof multipleProviders> = {
             baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers: {
                 providerA: ProviderA({ storeUrl: 'a', storeKey: 'a' }),
@@ -364,23 +372,29 @@ describe('plan', () => {
                 providerC: ProviderC({ storeUrl: 'c', storeKey: 'c' }),
             },
             providerStates: {
-                providerA: [
-                    {
-                        relativeUrl:
-                            createRelativeUrl('/eventA')._unsafeUnwrap(),
-                        events: ['eventA'],
-                        config: { value: 'rightA' },
-                    },
-                ],
-                providerB: [],
-                providerC: [
-                    {
-                        relativeUrl:
-                            createRelativeUrl('/eventD')._unsafeUnwrap(),
-                        events: ['eventD'],
-                        config: { value: 'rightD' },
-                    },
-                ],
+                providerA: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            relativeUrl:
+                                createRelativeUrl('/eventA')._unsafeUnwrap(),
+                            events: ['eventA'],
+                            config: { value: 'rightA' },
+                        },
+                    ],
+                ]),
+                providerB: new Map(),
+                providerC: new Map([
+                    [
+                        createOrphanEndpointHandle(),
+                        {
+                            relativeUrl:
+                                createRelativeUrl('/eventD')._unsafeUnwrap(),
+                            events: ['eventD'],
+                            config: { value: 'rightD' },
+                        },
+                    ],
+                ]),
             },
         }
 
@@ -428,7 +442,7 @@ describe('plan', () => {
 
     // TODO: this definitely should be tested more thoroughly
     it('gets step by id', () => {
-        const left: IndexedState<typeof providers> = {
+        const left: State<typeof providers> = {
             baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers: {
                 testProvider: TestProvider({
@@ -459,13 +473,17 @@ describe('plan', () => {
                 }),
             },
             providerStates: {
-                testProvider: [
-                    {
-                        relativeUrl: createRelativeUrl('/new')._unsafeUnwrap(),
-                        events: ['testEvent'],
-                        config: {},
-                    },
-                ],
+                testProvider: new Map([
+                    [
+                        createOrphanEndpointHandle(),
+                        {
+                            relativeUrl:
+                                createRelativeUrl('/new')._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
             },
         }
 

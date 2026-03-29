@@ -1,12 +1,7 @@
 import { isDeepStrictEqual } from 'util'
 import { State } from './state'
-import {
-    Provider,
-    EndpointState,
-    EndpointIndex,
-    BaseUrl,
-} from './provider'
-import {  } from './url'
+import { Provider, EndpointState, EndpointIndex, BaseUrl } from './provider'
+import {} from './url'
 import { err, ok, Result } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { EndpointHandle, endpointHandleIsOrphan } from './endpoint-handle'
@@ -86,10 +81,10 @@ type UpdateStep<P extends Provider> = {
  * @param right The right state.
  * @returns A `Plan` for updating the left state to the right state.
  */
-function createPlan<
-    L extends State<ProviderSet>,
-    R extends State<ProviderSet>,
->(left: L, right: R): Plan<ProviderSet> {
+function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
+    left: L,
+    right: R,
+): Plan<ProviderSet> {
     const comparison = createComparison(left, right)
     const providers = comparison.providers // Merged providers
     const providerPlans: Plan<ProviderSet>['providerPlans'] = {}
@@ -199,7 +194,9 @@ function createComparison<
                 right: new Map(rightEndpointIndex.entries()),
             }
         } else {
-            providerComparisons[rightProviderKey].right = new Map(rightEndpointIndex.entries())
+            providerComparisons[rightProviderKey].right = new Map(
+                rightEndpointIndex.entries(),
+            )
         }
     }
 
@@ -244,7 +241,7 @@ function matchAndDiff<P extends Provider>({
     const steps: Set<Step<P>> = new Set()
 
     for (const [leftHandle, leftState] of left) {
-        if (endpointHandleIsOrphan(leftHandle)) { 
+        if (endpointHandleIsOrphan(leftHandle)) {
             // TODO error/assert here
             continue
         }
@@ -255,9 +252,9 @@ function matchAndDiff<P extends Provider>({
                 steps.add({
                     kind: 'update',
                     handle: leftHandle,
-                    state: rightState, 
+                    state: rightState,
                 } satisfies UpdateStep<P>)
-            } // else nothing, the endpoints are identical between left & right 
+            } // else nothing, the endpoints are identical between left & right
         } else {
             // If it's in the left, but no the right, delete
             steps.add({

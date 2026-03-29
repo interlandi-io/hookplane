@@ -3,7 +3,6 @@ import {
     createBaseUrl,
     createRelativeUrl,
     createEndpointUrl,
-    createEndpointHandle,
     composeEndpointUrl,
     type BaseUrl,
     type RelativeUrl,
@@ -62,22 +61,6 @@ describe('url', () => {
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe(
                 'InvalidRelativeUrlError',
-            )
-        })
-    })
-
-    describe('createEndpointHandle', () => {
-        it('returns ok with EndpointHandle for non-empty string', () => {
-            const result = createEndpointHandle('handle-123')
-            expect(result.isOk()).toBe(true)
-            expect(result._unsafeUnwrap()).toBe('handle-123')
-        })
-
-        it('returns err for empty string', () => {
-            const result = createEndpointHandle('')
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe(
-                'InvalidEndpointHandleError',
             )
         })
     })
