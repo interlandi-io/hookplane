@@ -9,11 +9,6 @@ const ORPHAN_PREFIX: string = '___ORPHAN___'
 export type EndpointHandle = string & { __brand: 'EndpointHandle' }
 
 /**
- * The full URL of an endpoint (base URL + relative URL).
- */
-export type EndpointUrl = string & { __brand: 'endpointUrl' }
-
-/**
  * Error returned when an endpoint handle is invalid.
  */
 export interface InvalidEndpointHandleError extends Error {
