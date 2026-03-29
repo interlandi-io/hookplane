@@ -1,14 +1,9 @@
 import { isDeepStrictEqual } from 'util'
 import { State } from './state'
-import {
-    Provider,
-    EndpointState,
-    EndpointHandle,
-    EndpointIndex,
-    BaseUrl,
-} from './provider'
-import { IndexedState } from './pull'
+import { Provider, EndpointState, EndpointIndex, BaseUrl } from './provider'
 import { err, ok, Result } from 'neverthrow'
+import { ProviderSet } from './provider-set'
+import { EndpointHandle, endpointHandleIsOrphan } from './endpoint-handle'
 
 /**
  * A plan for moving from the `left` `IndexedState` to the `right` `State`.
@@ -21,7 +16,7 @@ import { err, ok, Result } from 'neverthrow'
  * const plan = createPlan(left, right)
  * ```
  */
-type Plan<P extends Record<string, Provider>> = {
+type Plan<P extends ProviderSet> = {
     baseUrl: BaseUrl
     providers: P
     providerPlans: {
@@ -85,13 +80,13 @@ type UpdateStep<P extends Provider> = {
  * @param right The right state.
  * @returns A `Plan` for updating the left state to the right state.
  */
-function createPlan<
-    L extends IndexedState<Record<string, Provider>>,
-    R extends State<Record<string, Provider>>,
->(left: L, right: R): Plan<Record<string, Provider>> {
+function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
+    left: L,
+    right: R,
+): Plan<ProviderSet> {
     const comparison = createComparison(left, right)
     const providers = comparison.providers // Merged providers
-    const providerPlans: Plan<Record<string, Provider>>['providerPlans'] = {}
+    const providerPlans: Plan<ProviderSet>['providerPlans'] = {}
     let idCounter = 0
 
     for (const [providerKey, providerComparison] of Object.entries(
@@ -115,9 +110,7 @@ function createPlan<
 }
 
 const getStepById =
-    <P extends Record<string, Provider>>(
-        providerPlans: Plan<P>['providerPlans'],
-    ) =>
+    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
     (id: StepId) => {
         let existing = 0
         let step: Step<Provider> | undefined = undefined
@@ -139,9 +132,7 @@ const getStepById =
     }
 
 const getStepIds =
-    <P extends Record<string, Provider>>(
-        providerPlans: Plan<P>['providerPlans'],
-    ) =>
+    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
     () => {
         const ids: StepId[] = []
         for (const providerPlan of Object.values(providerPlans)) {
@@ -154,7 +145,7 @@ const getStepIds =
 /**
  * Comapres two states by merging their Providers and juxtaposing their respective `EndpointState`s.
  */
-type Comparison<P extends Record<string, Provider>> = {
+type Comparison<P extends ProviderSet> = {
     providers: P
     providerComparisons: {
         [K in keyof P]: ProviderComparison<P[K]>
@@ -167,7 +158,7 @@ type Comparison<P extends Record<string, Provider>> = {
  */
 type ProviderComparison<P extends Provider> = {
     left: EndpointIndex<P>
-    right: EndpointState<P>[]
+    right: EndpointIndex<P>
 }
 
 /**
@@ -176,9 +167,9 @@ type ProviderComparison<P extends Provider> = {
  * @returns A `Comparison` of left and right.
  */
 function createComparison<
-    L extends IndexedState<Record<string, Provider>>,
-    R extends State<Record<string, Provider>>,
->(left: L, right: R): Comparison<Record<string, Provider>> {
+    L extends State<ProviderSet>,
+    R extends State<ProviderSet>,
+>(left: L, right: R): Comparison<ProviderSet> {
     const providers = mergeProviders(left.providers, right.providers)
     const providerComparisons: Comparison<
         typeof providers
@@ -189,20 +180,22 @@ function createComparison<
     )) {
         providerComparisons[leftProviderKey] = {
             left: new Map(leftEndpointIndex.entries()),
-            right: [],
+            right: new Map(),
         }
     }
 
-    for (const [rightProviderKey, rightEndpoints] of Object.entries(
+    for (const [rightProviderKey, rightEndpointIndex] of Object.entries(
         right.providerStates,
     )) {
         if (!providerComparisons[rightProviderKey]) {
             providerComparisons[rightProviderKey] = {
                 left: new Map(),
-                right: [...rightEndpoints],
+                right: new Map(rightEndpointIndex.entries()),
             }
         } else {
-            providerComparisons[rightProviderKey].right = [...rightEndpoints]
+            providerComparisons[rightProviderKey].right = new Map(
+                rightEndpointIndex.entries(),
+            )
         }
     }
 
@@ -219,11 +212,11 @@ function createComparison<
  * @param right The right provider.
  * @returns A merged provider.
  */
-function mergeProviders<
-    L extends Record<string, Provider>,
-    R extends Record<string, Provider>,
->(left: L, right: R): Record<string, Provider> {
-    const merged: Record<string, Provider> = left
+function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
+    left: L,
+    right: R,
+): ProviderSet {
+    const merged: ProviderSet = left
     for (const [kr, vr] of Object.entries(right)) {
         // TODO: right now, this just chooses the right provider params.
         // It might make more sense to implement more complex merging logic.
@@ -246,65 +239,39 @@ function matchAndDiff<P extends Provider>({
 }: ProviderComparison<P>) {
     const steps: Set<Step<P>> = new Set()
 
-    type LeftEntry = [EndpointHandle, EndpointState<P>]
-    const leftCopy: LeftEntry[] = Array.from(left.entries())
-    const rightCopy = right.slice()
-    const rightUsed = new Set<number>()
-
-    // Step 1: Remove exact matches (same URL + same events + same config)
-    for (let il = leftCopy.length - 1; il >= 0; il--) {
-        const entry = leftCopy[il]!
-        const [, leftState] = entry
-        for (let ir = 0; ir < rightCopy.length; ir++) {
-            if (rightUsed.has(ir)) continue
-            const rightState = rightCopy[ir]!
-            if (
-                leftState.relativeUrl === rightState.relativeUrl &&
-                isDeepStrictEqual(leftState, rightState)
-            ) {
-                leftCopy.splice(il, 1)
-                rightUsed.add(ir)
-                break
-            }
+    for (const [leftHandle, leftState] of left) {
+        if (endpointHandleIsOrphan(leftHandle)) {
+            // TODO error/assert here
+            continue
         }
-    }
 
-    // Step 2: Find URL matches (same relativeUrl, different events/config) → update
-    for (let il = leftCopy.length - 1; il >= 0; il--) {
-        const entry = leftCopy[il]!
-        const [handle, leftState] = entry
-        const matchIdx = rightCopy.findIndex(
-            (r, ir) =>
-                !rightUsed.has(ir) && r.relativeUrl === leftState.relativeUrl,
-        )
-        if (matchIdx !== -1) {
-            const rightState = rightCopy[matchIdx]!
+        const rightState = right.get(leftHandle)
+        if (rightState) {
+            if (!isDeepStrictEqual(leftState, rightState)) {
+                steps.add({
+                    kind: 'update',
+                    handle: leftHandle,
+                    state: rightState,
+                } satisfies UpdateStep<P>)
+            } // else nothing, the endpoints are identical between left & right
+        } else {
+            // If it's in the left, but not the right, delete
             steps.add({
-                kind: 'update',
-                handle,
-                state: rightState,
-            } as UpdateStep<P>)
-            leftCopy.splice(il, 1)
-            rightUsed.add(matchIdx)
+                kind: 'delete',
+                handle: leftHandle,
+            } satisfies DeleteStep<P>)
         }
     }
 
-    // Step 3: Remaining left items → delete (new URL, removed)
-    for (const entry of leftCopy) {
-        const [handle] = entry
-        steps.add({
-            kind: 'delete',
-            handle,
-        } as DeleteStep<P>)
-    }
-
-    // Step 4: Remaining right items → create (new URL, added)
-    for (let ir = 0; ir < rightCopy.length; ir++) {
-        if (rightUsed.has(ir)) continue
+    for (const [rightHandle, rightState] of right) {
+        if (!endpointHandleIsOrphan(rightHandle)) {
+            continue
+        }
+        // TODO assert that left shouldn't have this one
         steps.add({
             kind: 'create',
-            state: rightCopy[ir],
-        } as CreateStep<P>)
+            state: rightState,
+        } satisfies CreateStep<P>)
     }
 
     return steps

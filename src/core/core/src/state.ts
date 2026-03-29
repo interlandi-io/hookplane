@@ -9,20 +9,22 @@ import {
     type Provider,
     type EndpointState,
     type BaseUrl,
+    type EndpointIndex,
     type RelativeUrl,
 } from './provider'
+import { ProviderSet } from './provider-set'
 
 /**
  * A snapshot of an application-wide endpoint configuration.
  */
-interface State<P extends Record<string, Provider>> {
+interface State<P extends ProviderSet> {
     /** The base URL of the application/state. */
     baseUrl: BaseUrl
     /** The providers themselves. */
     providers: P
     /** A map of providers to the endpoints the know about. */
     providerStates: {
-        [K in keyof P]: EndpointState<P[K]>[]
+        [K in keyof P]: EndpointIndex<P[K]>
     }
 }
 

@@ -10,6 +10,7 @@
 import { ok, err, Result, ResultAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan'
 import { Provider, composeEndpointUrl, BaseUrl } from './provider'
+import { ProviderSet } from './provider-set'
 
 /**
  * Handle to an executor that runs a `Plan` against remote providers.
@@ -20,7 +21,7 @@ import { Provider, composeEndpointUrl, BaseUrl } from './provider'
  * executor.execute()
  * ```
  */
-interface Executor<P extends Record<string, Provider>> {
+interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
@@ -31,7 +32,7 @@ interface Executor<P extends Record<string, Provider>> {
     execute(): void
 }
 
-type ExecutorState<P extends Record<string, Provider>> = {
+type ExecutorState<P extends ProviderSet> = {
     plan: Plan<P>
     stepStates: Map<StepId, StepState>
     dispatchFn: DispatchFn<P[keyof P]>
@@ -46,7 +47,7 @@ type StepState =
     | { status: 'success' }
     | { status: 'failure'; error: DispatchError }
 
-type ExecuteFn<P extends Record<string, Provider>> = (
+type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
     stepStates: Map<StepId, StepState>,
     dispatch: DispatchFn<P[keyof P]>,
@@ -151,7 +152,7 @@ interface UpdateError extends Error {
  * @param executeFn - Strategy like `parallelExecution()`
  * @param dispatchFn - Like `defaultDispatch(plan.baseUrl)`
  */
-function createExecutor<P extends Record<string, Provider>>(
+function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
     executeFn: ExecuteFn<P>,
     dispatchFn: DispatchFn<P[keyof P]>,
@@ -190,7 +191,7 @@ function createExecutor<P extends Record<string, Provider>>(
  * ```
  */
 const parallelExecution =
-    <P extends Record<string, Provider>>() =>
+    <P extends ProviderSet>() =>
     (
         plan: Plan<P>,
         stepStates: Map<StepId, StepState>,
@@ -246,7 +247,7 @@ const parallelExecution =
  * ```
  */
 const defaultDispatch =
-    <P extends Record<string, Provider>>(baseUrl: BaseUrl) =>
+    <P extends ProviderSet>(baseUrl: BaseUrl) =>
     <K extends keyof P>(
         provider: P[K],
         stepId: StepId,
