@@ -1,6 +1,6 @@
 import { okAsync } from 'neverthrow'
 import { describe, it, expect } from 'vitest'
-import { createProviderSet, type ProviderSet } from './provider-set'
+import { createProviderSet } from './provider-set'
 import { createRelativeUrl, Provider } from './provider'
 
 const TestProvider = (
@@ -23,89 +23,31 @@ const TestProvider = (
     indexEndpoints: () => okAsync(new Map()),
 })
 
-const mockProvider = TestProvider('test-provider')
-const anotherProvider = TestProvider('another-provider')
+const mock = TestProvider('mock')
+const another = TestProvider('another')
 
 describe('ProviderSet', () => {
     describe('createProviderSet', () => {
         it('returns ok with a ProviderSet when given valid providers', () => {
-            const result = createProviderSet([mockProvider, anotherProvider])
+            const result = createProviderSet({
+                mock,
+                another,
+            })
 
             expect(result.isOk()).toBe(true)
             const providerSet = result._unsafeUnwrap()
-            expect(providerSet['test-provider']).toEqual(mockProvider)
-            expect(providerSet['another-provider']).toEqual(anotherProvider)
+            expect(providerSet['mock']).toEqual(mock)
+            expect(providerSet['another']).toEqual(another)
         })
 
-        it('returns an error when duplicate provider names exist', () => {
-            const duplicateProvider = TestProvider('test-provider')
-            const result = createProviderSet([mockProvider, duplicateProvider])
+        it('returns an error when a key does not match the name of the provider', () => {
+            const result = createProviderSet({
+                notMock: mock,
+                another,
+            })
 
-            expect(result.isErr()).toBe(true)
-            const error = result._unsafeUnwrapErr()
-            expect(error.name).toBe('AlreadyExistsError')
-            expect(error.providerName).toBe('test-provider')
-        })
-
-        it('returns an error on first duplicate encountered', () => {
-            const providers = [
-                TestProvider('first'),
-                TestProvider('second'),
-                TestProvider('first'),
-            ]
-            const result = createProviderSet(providers)
-
-            expect(result.isErr()).toBe(true)
-            const error = result._unsafeUnwrapErr()
-            expect(error.providerName).toBe('first')
-        })
-
-        it('returns an empty object for an empty array', () => {
-            const result = createProviderSet([])
-
-            expect(result.isOk()).toBe(true)
-            const providerSet = result._unsafeUnwrap()
-            expect(Object.keys(providerSet)).toEqual([])
-        })
-
-        it('is a valid Record with provider name as key', () => {
-            const providerSet = createProviderSet([
-                mockProvider,
-                anotherProvider,
-            ])._unsafeUnwrap()
-
-            expect(providerSet['test-provider']).toEqual(mockProvider)
-            expect(providerSet['another-provider']).toEqual(anotherProvider)
-        })
-    })
-
-    describe('Record access', () => {
-        let providerSet: ProviderSet
-
-        beforeEach(() => {
-            providerSet = createProviderSet([
-                mockProvider,
-                anotherProvider,
-            ])._unsafeUnwrap()
-        })
-
-        it('returns the provider when it exists', () => {
-            expect(providerSet['test-provider']).toEqual(mockProvider)
-            expect(providerSet['another-provider']).toEqual(anotherProvider)
-        })
-
-        it('returns undefined when provider does not exist', () => {
-            expect(providerSet['non-existent']).toBeUndefined()
-        })
-    })
-
-    describe('immutability', () => {
-        it('does not mutate the original array when creating ProviderSet', () => {
-            const providers = [TestProvider('unique')]
-            createProviderSet(providers)
-
-            expect(providers).toHaveLength(1)
-            expect(providers[0]!.name).toBe('unique')
+            expect(result.isOk()).toBe(false)
+            expect(result._unsafeUnwrapErr().name).toBe('KeyNameMismatchError')
         })
     })
 })

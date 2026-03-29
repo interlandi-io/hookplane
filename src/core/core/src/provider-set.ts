@@ -12,31 +12,17 @@ import { Provider } from './provider'
  * }
  * ```
  */
-export interface ProviderSet {
-    /**
-     * Access providers by name.
-     */
-    [key: string]: Provider
-}
+export type ProviderSet = Record<string, Provider>
 
 /**
  * Error types that can occur when working with a ProviderSet.
  */
-type ProviderSetError = AlreadyExistsError | KeyNameMismatchError
-
-/**
- * Error returned when attempting to add a provider with a name that already exists.
- */
-interface AlreadyExistsError extends Error {
-    name: 'AlreadyExistsError'
-    message: `Provider ${string} already exists in ProviderSet`
-    providerName: string
-}
+export type ProviderSetError = KeyNameMismatchError
 
 /**
  * Error returned when a provider's name does not match its key in the set.
  */
-interface KeyNameMismatchError extends Error {
+export interface KeyNameMismatchError extends Error {
     name: 'KeyNameMismatchError'
     message: `Provider key "${string}" does not match provider name "${string}"`
     key: string
@@ -53,7 +39,9 @@ interface KeyNameMismatchError extends Error {
  *
  * @example
  * ```typescript
- * const result = createProviderSet([stripeProvider, githubProvider])
+ * const result = createProviderSet({
+ *     stripe: StripeProvider({ ... })
+ * })
  * if (result.isOk()) {
  *     result.value['stripe'] // stripeProvider
  * } else {
@@ -62,24 +50,18 @@ interface KeyNameMismatchError extends Error {
  * ```
  */
 export function createProviderSet(
-    providers: Provider[],
+    providers: Record<string, Provider>,
 ): Result<ProviderSet, ProviderSetError> {
-    const inner: Map<string, Provider> = new Map()
-
-    for (const provider of providers) {
-        if (inner.has(provider.name)) {
+    for (const [key, provider] of Object.entries(providers)) {
+        if (provider.name != key) {
             return err({
-                name: 'AlreadyExistsError',
-                message: `Provider ${provider.name} already exists in ProviderSet`,
+                name: 'KeyNameMismatchError',
+                message: `Provider key "${key}" does not match provider name "${provider.name}"`,
+                key,
                 providerName: provider.name,
-            } satisfies AlreadyExistsError)
+            } satisfies KeyNameMismatchError)
         }
-        inner.set(provider.name, provider)
     }
 
-    const record = Object.fromEntries(inner) as Record<string, Provider>
-
-    return ok({
-        ...record,
-    })
+    return ok(providers)
 }
