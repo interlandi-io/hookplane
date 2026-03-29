@@ -1,3 +1,10 @@
+/**
+ * Statefile parsing and validation for Hookplane.
+ *
+ * A statefile represents a complete snapshot of an application's endpoint
+ * configuration. It contains a base URL and the state of all endpoints
+ * registered with each provider.
+ */
 import z, { ZodError } from 'zod'
 import {
     createBaseUrl,
@@ -10,6 +17,12 @@ import { ProviderSet } from './provider-set'
 import { State } from './state'
 import { EndpointIndex, EndpointState, Provider } from './provider'
 
+/**
+ * Zod schema for base URLs.
+ *
+ * Validates that the URL is a valid http/https URL and transforms it
+ * to a branded BaseUrl type.
+ */
 const BaseUrlSchema = z
     .string()
     .refine(
@@ -26,6 +39,12 @@ const BaseUrlSchema = z
     )
     .transform((url) => createBaseUrl(url)._unsafeUnwrap()) // validated above
 
+/**
+ * Zod schema for relative URLs.
+ *
+ * Validates that the URL starts with "/" and transforms it to a
+ * branded RelativeUrl type.
+ */
 const RelativeUrlSchema = z
     .string()
     .refine(
@@ -42,29 +61,71 @@ const RelativeUrlSchema = z
     )
     .transform((url) => createRelativeUrl(url)._unsafeUnwrap()) // validated above
 
+/**
+ * Zod schema for endpoint state.
+ *
+ * Represents the configuration of a single endpoint including its
+ * relative URL, subscribed events, and provider-specific config.
+ */
 const EndpointStateSchema: z.ZodType<EndpointState<Provider>> = z.object({
     relativeUrl: RelativeUrlSchema,
     events: z.array(z.string()),
     config: z.record(z.string(), z.unknown()),
 })
 
+/**
+ * Zod schema for an endpoint including optional signing secret.
+ *
+ * The signing secret is used to validate webhook signatures from the provider.
+ */
 const EndpointSchema = z.object({
     state: EndpointStateSchema,
     signingSecret: z.string().nullish(),
 })
 
+/**
+ * Zod schema for a provider's state.
+ *
+ * A record of endpoints (keyed by handle) for a single provider.
+ */
 const ProviderStateSchema = z.record(z.string(), EndpointSchema)
 
+/**
+ * Zod schema for the complete statefile.
+ *
+ * Structure:
+ * - baseUrl: The application's base URL
+ * - providerStates: A record of providers, each containing endpoints keyed by handle
+ */
 const StatefileSchema = z.object({
     baseUrl: BaseUrlSchema,
     providerStates: z.record(z.string(), ProviderStateSchema),
 })
 
+/**
+ * A parsed and validated statefile.
+ *
+ * @typeParam P - The ProviderSet type containing all providers
+ *
+ * @example
+ * ```typescript
+ * const result = parseStatefile(contents, providers)
+ * if (result.isOk()) {
+ *     const state = result.value.toState()
+ *     // use state...
+ * }
+ * ```
+ */
 export type Statefile<P extends ProviderSet> = {
+    /** The raw parsed data from the statefile */
     data: z.infer<typeof StatefileSchema>
+    /** Converts the statefile to a State object for use in the application */
     toState(): State<P>
 }
 
+/**
+ * Union of all possible errors that can occur when parsing a statefile.
+ */
 export type StatefileError =
     | SchemaValidationError
     | ProviderNotFoundError
@@ -72,18 +133,29 @@ export type StatefileError =
     | InvalidBaseUrlError
     | InvalidRelativeUrlError
 
+/**
+ * Error returned when the statefile JSON does not match the expected schema.
+ */
 export interface SchemaValidationError extends Error {
     name: 'SchemaValidationError'
     message: 'statefile does not fit schema'
     source: ZodError
 }
 
+/**
+ * Error returned when a provider referenced in the statefile is not present
+ * in the ProviderSet.
+ */
 export interface ProviderNotFoundError extends Error {
     name: 'ProviderNotFoundError'
     message: `provider ${string} not found in provider set`
     provider: string
 }
 
+/**
+ * Error returned when an event referenced in an endpoint's configuration
+ * is not defined in the provider's events.
+ */
 export interface InvalidEventError extends Error {
     name: 'InvalidEventError'
     message: `provider ${string} has no event ${string}`
@@ -91,6 +163,25 @@ export interface InvalidEventError extends Error {
     event: string
 }
 
+/**
+ * Parses and validates a statefile.
+ *
+ * Validates the statefile structure, checks that all referenced providers
+ * exist in the ProviderSet, and ensures all events are valid for each provider.
+ *
+ * @param contents - The parsed JSON object from a statefile
+ * @param providers - The ProviderSet to validate against
+ * @returns Ok with a Statefile object if validation passes, Err with a StatefileError otherwise
+ *
+ * @example
+ * ```typescript
+ * const result = parseStatefile(jsonContent, providers)
+ * if (result.isOk()) {
+ *     const state = result.value.toState()
+ *     // use state...
+ * }
+ * ```
+ */
 export function parseStatefile<P extends ProviderSet>(
     contents: object,
     providers: P,
@@ -180,4 +271,3 @@ function validateEvent(name: string, provider: Provider): boolean {
 }
 
 export { ZodError } from 'zod'
-export type { InvalidRelativeUrlError } from './url'
