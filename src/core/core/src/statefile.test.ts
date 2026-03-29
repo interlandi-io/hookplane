@@ -5,7 +5,7 @@ import {
     ProviderNotFoundError,
 } from './statefile'
 import { createRelativeUrl } from './url'
-import { EndpointState, type Provider } from './provider'
+import { EndpointHandle, EndpointState, type Provider } from './provider'
 import { createProviderSet, type ProviderSet } from './provider-set'
 import { okAsync } from 'neverthrow'
 
@@ -49,11 +49,59 @@ function createTestProviderSet(providers: Provider[]): ProviderSet {
 
 describe('parseStatefile', () => {
     describe('SchemaValidationError', () => {
-        it('returns error for missing endpoints field', () => {
+        it('returns error for empty object', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile({}, providers)
+            expect(result.isErr()).toBe(true)
+            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
+        })
+
+        it('returns error for missing baseUrl', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isErr()).toBe(true)
+            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
+        })
+
+        it('returns error for missing providerStates', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                { baseUrl: 'https://example.com' },
+                providers,
+            )
+            expect(result.isErr()).toBe(true)
+            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
+        })
+
+        it('returns error for wrong type for baseUrl', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                { baseUrl: 123, providerStates: {} },
+                providers,
+            )
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
         })
@@ -64,11 +112,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: 123,
-                            events: ['payment.succeeded'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: 123,
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -84,11 +137,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: 'not-an-array',
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: 'not-an-array',
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -104,11 +162,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: ['payment.succeeded'],
-                            config: 'not-an-object',
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: 'not-an-object',
+                                },
+                            },
                         },
                     },
                 },
@@ -118,18 +181,97 @@ describe('parseStatefile', () => {
             expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
         })
 
-        it('returns error when endpoints is not an object', () => {
+        it('returns error when providerStates is not an object', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile(
                 {
-                    endpoints: 'not-an-object',
+                    baseUrl: 'https://example.com',
+                    providerStates: 'not-an-object',
                 },
                 providers,
             )
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
+        })
+    })
+
+    describe('InvalidBaseUrlError', () => {
+        it('returns error for URL without protocol', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isErr()).toBe(true)
+            const err = result._unsafeUnwrapErr()
+            expect(err.name).toBe('SchemaValidationError')
+        })
+
+        it('returns error for invalid URL', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'not-a-url',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isErr()).toBe(true)
+            const err = result._unsafeUnwrapErr()
+            expect(err.name).toBe('SchemaValidationError')
+        })
+
+        it('accepts https URL', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
         })
     })
 
@@ -140,11 +282,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         unknown: {
-                            relativeUrl: '/webhook',
-                            events: ['payment.succeeded'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -163,16 +310,25 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: ['payment.succeeded'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
                         },
                         nonexistent: {
-                            relativeUrl: '/webhook',
-                            events: ['push'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['push'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -185,71 +341,6 @@ describe('parseStatefile', () => {
         })
     })
 
-    describe('InvalidRelativeUrlError', () => {
-        it('returns error when relativeUrl does not start with /', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: 'no-slash',
-                            events: ['payment.succeeded'],
-                            config: {},
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            const err = result._unsafeUnwrapErr()
-            expect(err.name).toBe('InvalidRelativeUrlError')
-        })
-
-        it('returns error for empty string relativeUrl', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: '',
-                            events: ['payment.succeeded'],
-                            config: {},
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            const err = result._unsafeUnwrapErr()
-            expect(err.name).toBe('InvalidRelativeUrlError')
-        })
-
-        it('returns error for relativeUrl with whitespace', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: ' webhook',
-                            events: ['payment.succeeded'],
-                            config: {},
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            const err = result._unsafeUnwrapErr()
-            expect(err.name).toBe('InvalidRelativeUrlError')
-        })
-    })
-
     describe('InvalidEventError', () => {
         it('returns error when event does not exist in provider', () => {
             const providers = createTestProviderSet([
@@ -257,11 +348,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: ['nonexistent.event'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['nonexistent.event'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -283,11 +379,19 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: ['payment.succeeded', 'invalid.event'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: [
+                                        'payment.succeeded',
+                                        'invalid.event',
+                                    ],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -305,11 +409,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         empty: {
-                            relativeUrl: '/webhook',
-                            events: ['some.event'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['some.event'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -330,44 +439,54 @@ describe('parseStatefile', () => {
                 ]),
                 createMockProvider('github', ['push', 'pull_request']),
             ])
-            const contents = {
-                endpoints: {
-                    stripe: {
-                        relativeUrl: '/webhook',
-                        events: ['payment.succeeded'],
-                        config: { foo: 'bar' },
-                    },
-                    github: {
-                        relativeUrl: '/github',
-                        events: ['push', 'pull_request'],
-                        config: {},
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: { foo: 'bar' },
+                                },
+                            },
+                        },
+                        github: {
+                            'endpoint-2': {
+                                state: {
+                                    relativeUrl: '/github',
+                                    events: ['push', 'pull_request'],
+                                    config: {},
+                                },
+                            },
+                        },
                     },
                 },
-            }
-            const result = parseStatefile(contents, providers)
+                providers,
+            )
             expect(result.isOk()).toBe(true)
             const statefile = result._unsafeUnwrap()
-            expect(Object.keys(statefile.endpoints)).toEqual([
+            expect(statefile.data.baseUrl).toBe('https://example.com')
+            expect(Object.keys(statefile.data.providerStates)).toEqual([
                 'stripe',
                 'github',
             ])
-            expect(statefile.endpoints['stripe']!.relativeUrl).toBe('/webhook')
-            expect(statefile.endpoints['stripe']!.events).toEqual([
-                'payment.succeeded',
-            ])
-            expect(statefile.endpoints['github']!.events).toEqual([
-                'push',
-                'pull_request',
-            ])
         })
 
-        it('allows empty endpoints object', () => {
+        it('allows empty providerStates object', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
-            const result = parseStatefile({ endpoints: {} }, providers)
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {},
+                },
+                providers,
+            )
             expect(result.isOk()).toBe(true)
-            expect(result._unsafeUnwrap().endpoints).toEqual({})
+            expect(result._unsafeUnwrap().data.providerStates).toEqual({})
         })
 
         it('allows empty events array', () => {
@@ -376,75 +495,331 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/webhook',
-                            events: [],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: [],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
                 providers,
             )
             expect(result.isOk()).toBe(true)
-            expect(result._unsafeUnwrap().endpoints['stripe']!.events).toEqual(
-                [],
-            )
+            expect(
+                result._unsafeUnwrap().data.providerStates['stripe']![
+                    'endpoint-1'
+                ]!.state.events,
+            ).toEqual([])
         })
 
-        it('handles multiple providers with valid statefile', () => {
+        it('allows multiple endpoints per provider', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook-one',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                            'endpoint-2': {
+                                state: {
+                                    relativeUrl: '/webhook-two',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const endpoints =
+                result._unsafeUnwrap().data.providerStates['stripe']
+            expect(Object.keys(endpoints!)).toHaveLength(2)
+        })
+
+        it('returns baseUrl as BaseUrl type', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhooks/stripe',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const url = result._unsafeUnwrap().data.baseUrl
+            expect(url).toBe('https://example.com')
+        })
+
+        it('allows optional signingSecret', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                                signingSecret: 'whsec_abc123',
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            expect(
+                result._unsafeUnwrap().data.providerStates['stripe']![
+                    'endpoint-1'
+                ]!.signingSecret,
+            ).toBe('whsec_abc123')
+        })
+
+        it('allows nullish signingSecret', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+        })
+    })
+
+    describe('toState', () => {
+        it('returns State with correct baseUrl', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const state = result._unsafeUnwrap().toState()
+            expect(state.baseUrl).toBe('https://example.com')
+        })
+
+        it('returns State with providers', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const state = result._unsafeUnwrap().toState()
+            expect(state.providers).toBe(providers)
+        })
+
+        it('returns State with providerStates as Map', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'handle-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const state = result._unsafeUnwrap().toState()
+            const stripeEndpoints = state.providerStates['stripe']!
+            expect(stripeEndpoints).toBeInstanceOf(Map)
+            expect(stripeEndpoints.has('handle-1' as EndpointHandle)).toBe(true)
+        })
+
+        it('converts multiple endpoints to Map entries', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', [
+                    'payment.succeeded',
+                    'payment.failed',
+                ]),
+            ])
+            const result = parseStatefile(
+                {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
+                        stripe: {
+                            'endpoint-a': {
+                                state: {
+                                    relativeUrl: '/webhook-a',
+                                    events: ['payment.succeeded'],
+                                    config: { a: 1 },
+                                },
+                            },
+                            'endpoint-b': {
+                                state: {
+                                    relativeUrl: '/webhook-b',
+                                    events: ['payment.failed'],
+                                    config: { b: 2 },
+                                },
+                            },
+                        },
+                    },
+                },
+                providers,
+            )
+            expect(result.isOk()).toBe(true)
+            const state = result._unsafeUnwrap().toState()
+            const stripeEndpoints = state.providerStates['stripe']!
+
+            expect(stripeEndpoints.size).toBe(2)
+
+            const endpointA = stripeEndpoints.get(
+                'endpoint-a' as EndpointHandle,
+            )
+            expect(endpointA?.relativeUrl).toBe('/webhook-a')
+            expect(endpointA?.events).toEqual(['payment.succeeded'])
+            expect(endpointA?.config).toEqual({ a: 1 })
+
+            const endpointB = stripeEndpoints.get(
+                'endpoint-b' as EndpointHandle,
+            )
+            expect(endpointB?.relativeUrl).toBe('/webhook-b')
+            expect(endpointB?.events).toEqual(['payment.failed'])
+            expect(endpointB?.config).toEqual({ b: 2 })
+        })
+
+        it('handles multiple providers with endpoints', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
                 createMockProvider('github', ['push']),
-                createMockProvider('slack', ['message.posted']),
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         stripe: {
-                            relativeUrl: '/stripe',
-                            events: ['payment.succeeded'],
-                            config: {},
+                            'stripe-1': {
+                                state: {
+                                    relativeUrl: '/stripe',
+                                    events: ['payment.succeeded'],
+                                    config: {},
+                                },
+                            },
                         },
                         github: {
-                            relativeUrl: '/github',
-                            events: ['push'],
-                            config: {},
-                        },
-                        slack: {
-                            relativeUrl: '/slack',
-                            events: ['message.posted'],
-                            config: {},
+                            'github-1': {
+                                state: {
+                                    relativeUrl: '/github',
+                                    events: ['push'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
                 providers,
             )
             expect(result.isOk()).toBe(true)
-            expect(Object.keys(result._unsafeUnwrap().endpoints)).toHaveLength(
-                3,
-            )
+            const state = result._unsafeUnwrap().toState()
+
+            expect(state.providerStates['stripe']).toBeInstanceOf(Map)
+            expect(state.providerStates['github']).toBeInstanceOf(Map)
+            expect(state.providerStates['stripe']!.size).toBe(1)
+            expect(state.providerStates['github']!.size).toBe(1)
         })
 
-        it('returns relativeUrl as RelativeUrl type', () => {
+        it('handles empty providerStates', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: '/webhooks/stripe',
-                            events: ['payment.succeeded'],
-                            config: {},
-                        },
-                    },
+                    baseUrl: 'https://example.com',
+                    providerStates: {},
                 },
                 providers,
             )
             expect(result.isOk()).toBe(true)
-            const url = result._unsafeUnwrap().endpoints['stripe']!.relativeUrl
-            expect(url).toBe('/webhooks/stripe')
+            const state = result._unsafeUnwrap().toState()
+            expect(Object.keys(state.providerStates)).toEqual([])
         })
     })
 
@@ -455,13 +830,8 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: 123,
-                            events: ['payment.succeeded'],
-                            config: {},
-                        },
-                    },
+                    baseUrl: 123,
+                    providerStates: {},
                 },
                 providers,
             )
@@ -475,11 +845,16 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
-                    endpoints: {
+                    baseUrl: 'https://example.com',
+                    providerStates: {
                         nonexistent: {
-                            relativeUrl: '/webhook',
-                            events: ['nonexistent.event'],
-                            config: {},
+                            'endpoint-1': {
+                                state: {
+                                    relativeUrl: '/webhook',
+                                    events: ['nonexistent.event'],
+                                    config: {},
+                                },
+                            },
                         },
                     },
                 },
@@ -487,28 +862,6 @@ describe('parseStatefile', () => {
             )
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('ProviderNotFoundError')
-        })
-
-        it('invalid relative URL comes before invalid event', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    endpoints: {
-                        stripe: {
-                            relativeUrl: 'no-slash',
-                            events: ['nonexistent.event'],
-                            config: {},
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe(
-                'InvalidRelativeUrlError',
-            )
         })
     })
 })
