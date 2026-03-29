@@ -255,7 +255,7 @@ function matchAndDiff<P extends Provider>({
                 } satisfies UpdateStep<P>)
             } // else nothing, the endpoints are identical between left & right
         } else {
-            // If it's in the left, but no the right, delete
+            // If it's in the left, but not the right, delete
             steps.add({
                 kind: 'delete',
                 handle: leftHandle,
