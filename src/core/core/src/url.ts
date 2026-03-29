@@ -116,6 +116,7 @@ export function createEndpointUrl(
  * @param baseUrl - The base URL
  * @param endpoint - The endpoint state containing relativeUrl
  * @returns Ok with EndpointUrl
+ * @throws Error if URL composition fails (should not occur with valid branded inputs)
  */
 export function composeEndpointUrl(
     baseUrl: BaseUrl,
