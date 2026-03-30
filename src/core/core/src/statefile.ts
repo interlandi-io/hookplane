@@ -122,7 +122,7 @@ export type Statefile<P extends ProviderSet> = {
     /** The raw parsed data from the statefile */
     data: z.infer<typeof StatefileSchema>
     /** Converts the statefile to a State object for use in the application */
-    toState(): State<P>
+    toState(): Result<State<P>, StatefileError>
 }
 
 /**
@@ -131,6 +131,7 @@ export type Statefile<P extends ProviderSet> = {
 export type StatefileError =
     | SchemaValidationError
     | ProviderNotFoundError
+    | ProviderNotUsedError
     | InvalidEventError
 
 /**
@@ -149,6 +150,16 @@ export interface SchemaValidationError extends Error {
 export interface ProviderNotFoundError extends Error {
     name: 'ProviderNotFoundError'
     message: `provider ${string} not found in provider set`
+    provider: string
+}
+
+/**
+ * Error returned when a provider is not used in a Statefile,
+ * but is included in the ProviderSet
+ */
+export interface ProviderNotUsedError extends Error {
+    name: 'ProviderNotUsedError'
+    message: `provider ${string} not used in statefile`
     provider: string
 }
 
@@ -308,31 +319,57 @@ const toState =
         data: z.infer<typeof StatefileSchema>,
     ): Statefile<P>['toState'] =>
     () => {
-        const providerStatesEntries = Object.entries(data.providerStates).map(
-            ([providerName, providerState]) => {
-                const entries = Object.entries(providerState).map(
-                    ([handle, endpoint]) =>
-                        [handle, endpoint.state] as [
-                            typeof handle,
-                            typeof endpoint.state,
-                        ],
-                )
-                const endpointIndex = new Map(entries)
-                return [providerName, endpointIndex] as [
-                    typeof providerName,
-                    EndpointIndex<Provider>,
-                ]
-            },
-        )
+        // validate that all providers in providers have at least one endpoint in data
+        const providersInData = Object.keys(data.providerStates)
+        for (const providerName of Object.keys(providers)) {
+            if (!providersInData.includes(providerName)) {
+                return err({
+                    name: 'ProviderNotUsedError',
+                    message: `provider ${providerName} not used in statefile`,
+                    provider: providerName,
+                } satisfies ProviderNotUsedError)
+            }
+        }
+
+        const providerStatesEntries: [
+            keyof P,
+            State<P>['providerStates'][keyof P],
+        ][] = []
+        for (const [providerName, providerState] of Object.entries(
+            data.providerStates,
+        )) {
+            // validate that all providers in data are in providers X
+            if (!Object.hasOwn(providers, providerName)) {
+                return err({
+                    name: 'ProviderNotFoundError',
+                    message: `provider ${providerName} not found in provider set`,
+                    provider: providerName,
+                } satisfies ProviderNotFoundError)
+            }
+
+            const entries = Object.entries(providerState).map(
+                ([handle, endpoint]) =>
+                    [handle, endpoint.state] as [
+                        typeof handle,
+                        typeof endpoint.state,
+                    ],
+            )
+            const endpointIndex = new Map(entries)
+            const entry = [providerName, endpointIndex] as [
+                typeof providerName,
+                EndpointIndex<Provider>,
+            ]
+            providerStatesEntries.push(entry)
+        }
         const providerStates = Object.fromEntries(
             providerStatesEntries,
         ) as State<P>['providerStates']
 
-        return {
+        return ok({
             baseUrl: data.baseUrl,
             providers,
             providerStates,
-        } satisfies State<P>
+        } satisfies State<P>)
     }
 
 function validateProviderName(name: string, providers: ProviderSet): boolean {
