@@ -1,11 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import {
+    fromState,
     InvalidEventError,
     parseStatefile,
     ProviderNotFoundError,
 } from './statefile'
-import { createRelativeUrl } from './url'
-import { EndpointHandle, EndpointState, type Provider } from './provider'
+import { createBaseUrl, createRelativeUrl } from './url'
+import {
+    createEndpointHandle,
+    EndpointHandle,
+    EndpointState,
+    type Provider,
+} from './provider'
 import { createProviderSet, type ProviderSet } from './provider-set'
 import { okAsync } from 'neverthrow'
 
@@ -775,14 +781,14 @@ describe('parseStatefile', () => {
             expect(stripeEndpoints.size).toBe(2)
 
             const endpointA = stripeEndpoints.get(
-                'endpoint-a' as EndpointHandle,
+                createEndpointHandle('endpoint-a')._unsafeUnwrap(),
             )
             expect(endpointA?.relativeUrl).toBe('/webhook-a')
             expect(endpointA?.events).toEqual(['payment.succeeded'])
             expect(endpointA?.config).toEqual({ a: 1 })
 
             const endpointB = stripeEndpoints.get(
-                'endpoint-b' as EndpointHandle,
+                createEndpointHandle('endpoint-b')._unsafeUnwrap(),
             )
             expect(endpointB?.relativeUrl).toBe('/webhook-b')
             expect(endpointB?.events).toEqual(['payment.failed'])
@@ -888,6 +894,380 @@ describe('parseStatefile', () => {
             )
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('ProviderNotFoundError')
+        })
+    })
+
+    describe('fromState', () => {
+        it('converts State to Statefile with correct structure', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const result = fromState(1, state)
+
+            expect(result.data.version).toBe(1)
+            expect(result.data.baseUrl).toBe('https://example.com')
+            expect(result.data.providerStates.stripe).toBeDefined()
+            expect(
+                result.data.providerStates.stripe!['endpoint-1']!.state
+                    .relativeUrl,
+            ).toBe('/webhook')
+        })
+
+        it('includes signingSecrets when provided', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const signingSecrets = new Map([
+                [
+                    'stripe',
+                    new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            'whsec_abc123',
+                        ],
+                    ]),
+                ],
+            ])
+
+            const result = fromState(1, state, signingSecrets)
+
+            expect(
+                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+            ).toBe('whsec_abc123')
+        })
+
+        it('handles missing signingSecrets (undefined)', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const result = fromState(1, state)
+
+            expect(
+                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+            ).toBeUndefined()
+        })
+
+        it('handles partial signingSecrets map', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+                createMockProvider('github', ['push']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                    github: new Map([
+                        [
+                            createEndpointHandle('endpoint-2')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/github',
+                                    )._unsafeUnwrap(),
+                                events: ['push'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const signingSecrets = new Map([
+                [
+                    'stripe',
+                    new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            'whsec_abc123',
+                        ],
+                    ]),
+                ],
+            ])
+
+            const result = fromState(1, state, signingSecrets)
+
+            expect(
+                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+            ).toBe('whsec_abc123')
+            expect(
+                result.data.providerStates.github!['endpoint-2']!.signingSecret,
+            ).toBeUndefined()
+        })
+
+        it('roundtrips through parseStatefile and toState', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const originalStatefile = {
+                version: 1,
+                baseUrl: 'https://example.com',
+                providerStates: {
+                    stripe: {
+                        'endpoint-1': {
+                            state: {
+                                relativeUrl: '/webhook',
+                                events: ['payment.succeeded'],
+                                config: { foo: 'bar' },
+                            },
+                            signingSecret: 'whsec_secret',
+                        },
+                    },
+                },
+            }
+
+            const parseResult = parseStatefile(originalStatefile, providers)
+            expect(parseResult.isOk()).toBe(true)
+
+            const state = parseResult._unsafeUnwrap().toState()
+            const statefile = fromState(1, state)
+
+            expect(statefile.data.version).toBe(1)
+            expect(statefile.data.baseUrl).toBe('https://example.com')
+            expect(
+                statefile.data.providerStates.stripe!['endpoint-1']!.state
+                    .relativeUrl,
+            ).toBe('/webhook')
+            expect(
+                statefile.data.providerStates.stripe!['endpoint-1']!.state
+                    .events,
+            ).toEqual(['payment.succeeded'])
+        })
+
+        it('handles multiple providers', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+                createMockProvider('github', ['push']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/stripe',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                    github: new Map([
+                        [
+                            createEndpointHandle('endpoint-2')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/github',
+                                    )._unsafeUnwrap(),
+                                events: ['push'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const result = fromState(1, state)
+
+            expect(Object.keys(result.data.providerStates)).toEqual([
+                'stripe',
+                'github',
+            ])
+            expect(
+                result.data.providerStates.stripe!['endpoint-1']!.state
+                    .relativeUrl,
+            ).toBe('/stripe')
+            expect(
+                result.data.providerStates.github!['endpoint-2']!.state
+                    .relativeUrl,
+            ).toBe('/github')
+        })
+
+        it('handles multiple endpoints per provider', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', [
+                    'payment.succeeded',
+                    'payment.failed',
+                ]),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-a')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook-a',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: { a: 1 },
+                            },
+                        ],
+                        [
+                            createEndpointHandle('endpoint-b')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook-b',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.failed'],
+                                config: { b: 2 },
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const result = fromState(1, state)
+
+            const stripeEndpoints = result.data.providerStates.stripe!
+            expect(Object.keys(stripeEndpoints)).toEqual([
+                'endpoint-a',
+                'endpoint-b',
+            ])
+            expect(stripeEndpoints['endpoint-a']!.state.relativeUrl).toBe(
+                '/webhook-a',
+            )
+            expect(stripeEndpoints['endpoint-b']!.state.relativeUrl).toBe(
+                '/webhook-b',
+            )
+        })
+
+        it('handles empty providerStates', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {},
+            }
+
+            const result = fromState(1, state)
+
+            expect(result.data.providerStates).toEqual({})
+        })
+
+        it('toState method on result works correctly', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+            ])
+
+            const state = {
+                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
+                providers,
+                providerStates: {
+                    stripe: new Map([
+                        [
+                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            {
+                                relativeUrl:
+                                    createRelativeUrl(
+                                        '/webhook',
+                                    )._unsafeUnwrap(),
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                        ],
+                    ]),
+                },
+            }
+
+            const result = fromState(1, state)
+            const recoveredState = result.toState()
+
+            expect(recoveredState.baseUrl).toBe('https://example.com')
+            expect(recoveredState.providers).toBe(providers)
+            expect(recoveredState.providerStates['stripe']).toBeInstanceOf(Map)
+            expect(recoveredState.providerStates['stripe']!.size).toBe(1)
         })
     })
 })
