@@ -236,11 +236,34 @@ export function parseStatefile<P extends ProviderSet>(
     })
 }
 
-type SigningSecretsMap<P extends ProviderSet> = Map<
+/**
+ * A map of signing secrets for endpoints.
+ *
+ * Used to preserve signing secrets when converting between State and Statefile.
+ */
+export type SigningSecretsMap<P extends ProviderSet> = Map<
     keyof P,
     Map<EndpointHandle, string>
 >
 
+/**
+ * Creates a Statefile from a State object.
+ *
+ * This is the inverse of calling `toState()` on a parsed Statefile.
+ * Used when serializing state for storage.
+ *
+ * @param version - The statefile version (currently only 1)
+ * @param state - The State to convert
+ * @param signingSecrets - Optional map of signing secrets to include in the statefile
+ * @returns A Statefile with the same data as the input State
+ *
+ * @example
+ * ```typescript
+ * const state = { baseUrl, providers, providerStates }
+ * const statefile = fromState(1, state, signingSecrets)
+ * // serialize statefile.data to JSON for storage
+ * ```
+ */
 export function fromState<P extends ProviderSet>(
     version: 1,
     state: State<P>,
