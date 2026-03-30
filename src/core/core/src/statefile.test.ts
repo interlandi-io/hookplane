@@ -589,8 +589,9 @@ describe('parseStatefile', () => {
             expect(result.data.baseUrl).toBe('https://example.com')
             expect(result.data.providerStates.stripe).toBeDefined()
             expect(
-                result.data.providerStates.stripe!['endpoint-1']!.state
-                    .relativeUrl,
+                result.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.relativeUrl,
             ).toBe('/webhook')
         })
 
@@ -634,7 +635,9 @@ describe('parseStatefile', () => {
             const result = fromState(1, state, signingSecrets)
 
             expect(
-                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+                result.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.signingSecret,
             ).toBe('whsec_abc123')
         })
 
@@ -666,7 +669,9 @@ describe('parseStatefile', () => {
             const result = fromState(1, state)
 
             expect(
-                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+                result.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.signingSecret,
             ).toBeUndefined()
         })
 
@@ -724,10 +729,14 @@ describe('parseStatefile', () => {
             const result = fromState(1, state, signingSecrets)
 
             expect(
-                result.data.providerStates.stripe!['endpoint-1']!.signingSecret,
+                result.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.signingSecret,
             ).toBe('whsec_abc123')
             expect(
-                result.data.providerStates.github!['endpoint-2']!.signingSecret,
+                result.data.providerStates.github![
+                    createEndpointHandle('endpoint-2')._unsafeUnwrap()
+                ]!.signingSecret,
             ).toBeUndefined()
         })
 
@@ -762,12 +771,14 @@ describe('parseStatefile', () => {
             expect(statefile.data.version).toBe(1)
             expect(statefile.data.baseUrl).toBe('https://example.com')
             expect(
-                statefile.data.providerStates.stripe!['endpoint-1']!.state
-                    .relativeUrl,
+                statefile.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.relativeUrl,
             ).toBe('/webhook')
             expect(
-                statefile.data.providerStates.stripe!['endpoint-1']!.state
-                    .events,
+                statefile.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.events,
             ).toEqual(['payment.succeeded'])
         })
 
@@ -817,12 +828,14 @@ describe('parseStatefile', () => {
                 'github',
             ])
             expect(
-                result.data.providerStates.stripe!['endpoint-1']!.state
-                    .relativeUrl,
+                result.data.providerStates.stripe![
+                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.relativeUrl,
             ).toBe('/stripe')
             expect(
-                result.data.providerStates.github!['endpoint-2']!.state
-                    .relativeUrl,
+                result.data.providerStates.github![
+                    createEndpointHandle('endpoint-2')._unsafeUnwrap()
+                ]!.state.relativeUrl,
             ).toBe('/github')
         })
 
@@ -872,12 +885,16 @@ describe('parseStatefile', () => {
                 'endpoint-a',
                 'endpoint-b',
             ])
-            expect(stripeEndpoints['endpoint-a']!.state.relativeUrl).toBe(
-                '/webhook-a',
-            )
-            expect(stripeEndpoints['endpoint-b']!.state.relativeUrl).toBe(
-                '/webhook-b',
-            )
+            expect(
+                stripeEndpoints[
+                    createEndpointHandle('endpoint-a')._unsafeUnwrap()
+                ]!.state.relativeUrl,
+            ).toBe('/webhook-a')
+            expect(
+                stripeEndpoints[
+                    createEndpointHandle('endpoint-b')._unsafeUnwrap()
+                ]!.state.relativeUrl,
+            ).toBe('/webhook-b')
         })
 
         it('handles empty providerStates', () => {

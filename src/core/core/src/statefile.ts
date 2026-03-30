@@ -6,16 +6,12 @@
  * registered with each provider.
  */
 import z, { ZodError } from 'zod'
-import { createBaseUrl, createRelativeUrl } from './url'
+import { BaseUrl, createBaseUrl, createRelativeUrl, RelativeUrl } from './url'
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
-import {
-    EndpointHandle,
-    EndpointIndex,
-    EndpointState,
-    Provider,
-} from './provider'
+import { EndpointIndex, EndpointState, Provider } from './provider'
+import { EndpointHandle, createEndpointHandle } from './endpoint-handle'
 
 /**
  * Zod schema for base URLs.
@@ -23,21 +19,10 @@ import {
  * Validates that the URL is a valid http/https URL and transforms it
  * to a branded BaseUrl type.
  */
-const BaseUrlSchema = z
-    .string()
-    .refine(
-        (url) => {
-            const result = createBaseUrl(url)
-            return result.isOk() ? result.value : false
-        },
-        {
-            error: ({ input }) =>
-                'invalid base url' + input?.toString
-                    ? `: ${input?.toString()}`
-                    : '',
-        },
-    )
-    .transform((url) => createBaseUrl(url)._unsafeUnwrap()) // validated above
+const BaseUrlSchema = refineString<BaseUrl>(
+    createBaseUrl,
+    'invalid relative URL',
+)
 
 /**
  * Zod schema for relative URLs.
@@ -45,21 +30,20 @@ const BaseUrlSchema = z
  * Validates that the URL starts with "/" and transforms it to a
  * branded RelativeUrl type.
  */
-const RelativeUrlSchema = z
-    .string()
-    .refine(
-        (url) => {
-            const result = createRelativeUrl(url)
-            return result.isOk() ? result.value : false
-        },
-        {
-            error: ({ input }) =>
-                'invalid relative url' + input?.toString
-                    ? `: ${input?.toString()}`
-                    : '',
-        },
-    )
-    .transform((url) => createRelativeUrl(url)._unsafeUnwrap()) // validated above
+const RelativeUrlSchema = refineString<RelativeUrl>(
+    createRelativeUrl,
+    'invalid relative URL',
+)
+
+/**
+ * Zod schema for endpoint handles.
+ *
+ * Validates that the handle is not empty.
+ */
+const EndpointHandleSchema = refineString<EndpointHandle>(
+    createEndpointHandle,
+    'invalid endpoint handle',
+)
 
 /**
  * Zod schema for endpoint state.
@@ -88,7 +72,7 @@ const EndpointSchema = z.object({
  *
  * A record of endpoints (keyed by handle) for a single provider.
  */
-const ProviderStateSchema = z.record(z.string(), EndpointSchema)
+const ProviderStateSchema = z.record(EndpointHandleSchema, EndpointSchema)
 
 /**
  * Zod schema for the complete statefile.
@@ -288,7 +272,8 @@ export function fromState<P extends ProviderSet>(
                         },
                     ] as [
                         typeof handle,
-                        Statefile<P>['data']['providerStates'][string][string],
+                        // This is fine, right?
+                        Statefile<P>['data']['providerStates'][string][keyof Statefile<P>['data']['providerStates'][string]],
                     ]
                 },
             )
@@ -338,7 +323,7 @@ const toState =
         for (const [providerName, providerState] of Object.entries(
             data.providerStates,
         )) {
-            // validate that all providers in data are in providers X
+            // validate that all providers in data are in providers
             if (!Object.hasOwn(providers, providerName)) {
                 return err({
                     name: 'ProviderNotFoundError',
@@ -384,6 +369,24 @@ function validateEvent(name: string, provider: Provider): boolean {
         return false
     }
     return true
+}
+
+function refineString<T>(f: (s: string) => Result<T, unknown>, errMsg: string) {
+    return z
+        .string()
+        .refine(
+            (url) => {
+                const result = f(url)
+                return result.isOk() ? result.value : false
+            },
+            {
+                error: ({ input }) =>
+                    input != null
+                        ? errMsg + ': ' + input?.toString()
+                        : 'errMsg',
+            },
+        )
+        .transform((url) => f(url)._unsafeUnwrap()) // validated above
 }
 
 export { ZodError } from 'zod'
