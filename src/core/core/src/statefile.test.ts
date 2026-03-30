@@ -1041,6 +1041,74 @@ describe('parseStatefile', () => {
             ).toEqual(['payment.succeeded'])
         })
 
+        it('roundtrips signing secrets via getSigningSecrets', () => {
+            const providers = createTestProviderSet([
+                createMockProvider('stripe', ['payment.succeeded']),
+                createMockProvider('github', ['push', 'pull_request']),
+            ])
+
+            const originalStatefile = {
+                version: 1,
+                baseUrl: 'https://example.com',
+                providerStates: {
+                    stripe: {
+                        'endpoint-1': {
+                            state: {
+                                relativeUrl: '/webhook',
+                                events: ['payment.succeeded'],
+                                config: {},
+                            },
+                            signingSecret: 'whsec_stripe',
+                        },
+                    },
+                    github: {
+                        'endpoint-2': {
+                            state: {
+                                relativeUrl: '/github',
+                                events: ['push'],
+                                config: {},
+                            },
+                            signingSecret: 'whsec_github',
+                        },
+                        'endpoint-3': {
+                            state: {
+                                relativeUrl: '/github-pr',
+                                events: ['pull_request'],
+                                config: {},
+                            },
+                        },
+                    },
+                },
+            }
+
+            const parseResult = parseStatefile(originalStatefile, providers)
+            expect(parseResult.isOk()).toBe(true)
+
+            const statefile = parseResult._unsafeUnwrap()
+            const signingSecrets1 = statefile.getSigningSecrets()
+
+            expect(signingSecrets1.get('stripe')).toBeDefined()
+            expect(
+                signingSecrets1
+                    .get('stripe')!
+                    .get(createEndpointHandle('endpoint-1')._unsafeUnwrap()),
+            ).toBe('whsec_stripe')
+            expect(signingSecrets1.get('github')).toBeDefined()
+            expect(
+                signingSecrets1
+                    .get('github')!
+                    .get(createEndpointHandle('endpoint-2')._unsafeUnwrap()),
+            ).toBe('whsec_github')
+            expect(
+                signingSecrets1
+                    .get('github')!
+                    .get(createEndpointHandle('endpoint-3')._unsafeUnwrap()),
+            ).toBeUndefined()
+
+            const newStateResult = statefile.toState()
+            expect(newStateResult.isOk()).toBe(true)
+        })
+
         it('handles multiple providers', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
