@@ -70,6 +70,7 @@ describe('parseStatefile', () => {
             ])
             const result = parseStatefile(
                 {
+                    version: 1,
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
@@ -93,7 +94,7 @@ describe('parseStatefile', () => {
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile(
-                { baseUrl: 'https://example.com' },
+                { version: 1, baseUrl: 'https://example.com' },
                 providers,
             )
             expect(result.isErr()).toBe(true)
