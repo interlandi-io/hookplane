@@ -1,6 +1,9 @@
 import { Result, ok, err } from 'neverthrow'
 import { randomUUID } from 'crypto'
 
+// TODO instead of a prefix, create two branded types
+// EndpointHandleReal and EndpointHandlOrphan and
+// make EndpointHandle a union of the two.
 const ORPHAN_PREFIX: string = '___ORPHAN___'
 
 /**

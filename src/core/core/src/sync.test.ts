@@ -1,5 +1,5 @@
 import { errAsync } from 'neverthrow'
-import { pull } from './pull'
+import { sync } from './sync'
 import { okAsync } from 'neverthrow'
 import {
     createBaseUrl,
@@ -75,13 +75,13 @@ const providers = {
     MockProvider,
 }
 
-describe('pull', () => {
+describe('sync', () => {
     beforeEach(() => {
         endpoints.clear()
         handleCounter = 0
     })
 
-    it('pulls subs correctly', async () => {
+    it('pulls endpoints correctly', async () => {
         const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
         MockProvider.createEndpoint({
             url: createEndpointUrl(
@@ -93,7 +93,7 @@ describe('pull', () => {
             providerConfig: MockProvider.config,
             endpointConfig: {},
         })
-        const state = await pull(baseUrl, providers)
+        const state = await sync(baseUrl, providers)
 
         expect(state.isOk()).toBe(true)
         expect(state._unsafeUnwrap().providerStates['MockProvider']).toEqual(
@@ -108,6 +108,50 @@ describe('pull', () => {
                     } as EndpointState<typeof MockProvider>,
                 ],
             ]),
+        )
+    })
+
+    it('throws an error when the provider fails to index endpoints', async () => {
+        const errorProvider: Provider<'testEvent', object, object, object> = {
+            name: 'ErrorProvider',
+            events: {
+                testEvent: {},
+            },
+            config: {},
+            state: {},
+            setup() {
+                return okAsync({})
+            },
+            createEndpoint() {
+                throw new Error('not implemented')
+            },
+            readEndpoint() {
+                throw new Error('not implemented')
+            },
+            deleteEndpoint() {
+                throw new Error('not implemented')
+            },
+            updateEndpoint() {
+                throw new Error('not implemented')
+            },
+            indexEndpoints() {
+                return errAsync({
+                    name: 'UnknownError' as const,
+                    message: `an error occurred: index failed`,
+                    source: new Error('index failed'),
+                })
+            },
+        }
+
+        const errorProviders = { ErrorProvider: errorProvider }
+        const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
+        const result = await sync(baseUrl, errorProviders)
+
+        expect(result.isErr()).toBe(true)
+        const error = result._unsafeUnwrapErr()
+        expect(error.name).toBe('SyncError')
+        expect(error.message).toBe(
+            'failed to index endpoints for provider ErrorProvider',
         )
     })
 })
