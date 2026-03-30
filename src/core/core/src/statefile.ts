@@ -6,12 +6,7 @@
  * registered with each provider.
  */
 import z, { ZodError } from 'zod'
-import {
-    createBaseUrl,
-    createRelativeUrl,
-    InvalidBaseUrlError,
-    InvalidRelativeUrlError,
-} from './url'
+import { createBaseUrl, createRelativeUrl } from './url'
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
@@ -137,8 +132,6 @@ export type StatefileError =
     | SchemaValidationError
     | ProviderNotFoundError
     | InvalidEventError
-    | InvalidBaseUrlError
-    | InvalidRelativeUrlError
 
 /**
  * Error returned when the statefile JSON does not match the expected schema.
@@ -271,9 +264,8 @@ export function fromState<P extends ProviderSet>(
 ): Statefile<P> {
     const providerStatesEntries = Object.entries(state.providerStates).map(
         ([providerName, endpointIndex]: [string, EndpointIndex<Provider>]) => {
-            const entries = endpointIndex
-                .entries()
-                .map(([handle, endpointState]) => {
+            const entries = Array.from(endpointIndex.entries()).map(
+                ([handle, endpointState]) => {
                     const signingSecret = signingSecrets
                         ?.get(providerName)
                         ?.get(handle)
@@ -287,7 +279,8 @@ export function fromState<P extends ProviderSet>(
                         typeof handle,
                         Statefile<P>['data']['providerStates'][string][string],
                     ]
-                })
+                },
+            )
             return [providerName, Object.fromEntries(entries)] as [
                 string,
                 Statefile<P>['data']['providerStates'][string],
