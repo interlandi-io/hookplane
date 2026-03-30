@@ -19,10 +19,7 @@ import { EndpointHandle, createEndpointHandle } from './endpoint-handle'
  * Validates that the URL is a valid http/https URL and transforms it
  * to a branded BaseUrl type.
  */
-const BaseUrlSchema = refineString<BaseUrl>(
-    createBaseUrl,
-    'invalid relative URL',
-)
+const BaseUrlSchema = refineString<BaseUrl>(createBaseUrl, 'invalid base URL')
 
 /**
  * Zod schema for relative URLs.
