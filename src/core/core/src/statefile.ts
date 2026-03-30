@@ -104,7 +104,19 @@ export type Statefile<P extends ProviderSet> = {
     data: z.infer<typeof StatefileSchema>
     /** Converts the statefile to a State object for use in the application */
     toState(): Result<State<P>, StatefileError>
+    /** Extracts a signing secret map from the statefile */
+    getSigningSecrets(): SigningSecretMap<P>
 }
+
+/**
+ * A map of signing secrets for endpoints.
+ *
+ * Used to preserve signing secrets when converting between State and Statefile.
+ */
+export type SigningSecretMap<P extends ProviderSet> = Map<
+    keyof P,
+    Map<EndpointHandle, string>
+>
 
 /**
  * Union of all possible errors that can occur when parsing a statefile.
@@ -218,18 +230,9 @@ export function parseStatefile<P extends ProviderSet>(
     return ok({
         data: parsed.data,
         toState: toState(providers, parsed.data),
+        getSigningSecrets: getSigningSecrets(parsed.data),
     })
 }
-
-/**
- * A map of signing secrets for endpoints.
- *
- * Used to preserve signing secrets when converting between State and Statefile.
- */
-export type SigningSecretsMap<P extends ProviderSet> = Map<
-    keyof P,
-    Map<EndpointHandle, string>
->
 
 /**
  * Creates a Statefile from a State object.
@@ -252,7 +255,7 @@ export type SigningSecretsMap<P extends ProviderSet> = Map<
 export function fromState<P extends ProviderSet>(
     version: 1,
     state: State<P>,
-    signingSecrets?: SigningSecretsMap<P>,
+    signingSecrets?: SigningSecretMap<P>,
 ): Statefile<P> {
     const providerStatesEntries = Object.entries(state.providerStates).map(
         ([providerName, endpointIndex]: [string, EndpointIndex<Provider>]) => {
@@ -292,6 +295,7 @@ export function fromState<P extends ProviderSet>(
     return {
         data,
         toState: toState(state.providers, data),
+        getSigningSecrets: getSigningSecrets(data),
     }
 }
 
@@ -352,6 +356,32 @@ const toState =
             providers,
             providerStates,
         } satisfies State<P>)
+    }
+
+const getSigningSecrets =
+    <P extends ProviderSet>(
+        data: z.infer<typeof StatefileSchema>,
+    ): (() => SigningSecretMap<P>) =>
+    () => {
+        const map: SigningSecretMap<P> = new Map()
+        for (const [providerName, providerState] of Object.entries(
+            data.providerStates,
+        )) {
+            map.set(providerName, new Map())
+            for (const [handle, { signingSecret }] of Object.entries(
+                providerState,
+            )) {
+                if (signingSecret) {
+                    // Endpoint handle has already been validated by constructor.
+                    map.get(providerName)!.set(
+                        handle as EndpointHandle,
+                        signingSecret,
+                    )
+                }
+            }
+        }
+
+        return map
     }
 
 function validateProviderName(name: string, providers: ProviderSet): boolean {
