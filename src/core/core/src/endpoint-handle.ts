@@ -57,3 +57,18 @@ export function createOrphanEndpointHandle(): EndpointHandleOrphan {
 export function endpointHandleIsOrphan(handle: EndpointHandle): boolean {
     return handle.startsWith(ORPHAN_PREFIX)
 }
+
+/**
+ * Downcasts an endpoint handle, validating that it is real.
+ * @param handle The endpoint handle
+ * @returns The endpoint handle as real if real, else undefined
+ */
+export function downcastEndpointHandle(
+    handle: EndpointHandle,
+): EndpointHandleReal | undefined {
+    if (endpointHandleIsOrphan(handle)) {
+        return undefined
+    }
+
+    return handle as EndpointHandleReal
+}

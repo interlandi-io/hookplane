@@ -3,7 +3,11 @@ import { State } from './state'
 import { Provider, EndpointState, EndpointIndex, BaseUrl } from './provider'
 import { err, ok, Result } from 'neverthrow'
 import { ProviderSet } from './provider-set'
-import { EndpointHandle, endpointHandleIsOrphan } from './endpoint-handle'
+import {
+    downcastEndpointHandle,
+    endpointHandleIsOrphan,
+    EndpointHandleReal,
+} from './endpoint-handle'
 
 /**
  * A plan for moving from the `left` `IndexedState` to the `right` `State`.
@@ -60,7 +64,7 @@ type CreateStep<P extends Provider> = {
  */
 type DeleteStep<P> = {
     kind: 'delete'
-    handle: EndpointHandle
+    handle: EndpointHandleReal
     __phantom?: P
 }
 
@@ -69,7 +73,7 @@ type DeleteStep<P> = {
  */
 type UpdateStep<P extends Provider> = {
     kind: 'update'
-    handle: EndpointHandle
+    handle: EndpointHandleReal
     state: EndpointState<P>
 }
 
@@ -240,9 +244,9 @@ function matchAndDiff<P extends Provider>({
     const steps: Set<Step<P>> = new Set()
 
     for (const [leftHandle, leftState] of left) {
-        if (endpointHandleIsOrphan(leftHandle)) {
-            // TODO error/assert here
-            continue
+        const realHandle = downcastEndpointHandle(leftHandle)
+        if (realHandle == undefined) {
+            // TODO error
         }
 
         const rightState = right.get(leftHandle)
@@ -250,7 +254,7 @@ function matchAndDiff<P extends Provider>({
             if (!isDeepStrictEqual(leftState, rightState)) {
                 steps.add({
                     kind: 'update',
-                    handle: leftHandle,
+                    handle: realHandle as EndpointHandleReal, // TODO above
                     state: rightState,
                 } satisfies UpdateStep<P>)
             } // else nothing, the endpoints are identical between left & right
@@ -258,7 +262,7 @@ function matchAndDiff<P extends Provider>({
             // If it's in the left, but not the right, delete
             steps.add({
                 kind: 'delete',
-                handle: leftHandle,
+                handle: realHandle as EndpointHandleReal, // TODO above
             } satisfies DeleteStep<P>)
         }
     }
