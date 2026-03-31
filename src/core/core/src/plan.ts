@@ -33,6 +33,13 @@ type Plan<P extends ProviderSet> = {
     getStepIds(): StepId[]
 }
 
+export type PlanError = InvalidOrphanEndpointHandleError
+
+export interface InvalidOrphanEndpointHandleError extends Error {
+    name: 'InvalidOrphanEndpointHandleError'
+    message: string
+}
+
 /**
  * A number branded to prevent accidental mixing with plain numbers.
  */
@@ -87,7 +94,7 @@ type UpdateStep<P extends Provider> = {
 function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     left: L,
     right: R,
-): Plan<ProviderSet> {
+): Result<Plan<ProviderSet>, PlanError> {
     const comparison = createComparison(left, right)
     const providers = comparison.providers // Merged providers
     const providerPlans: Plan<ProviderSet>['providerPlans'] = {}
@@ -98,19 +105,23 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     )) {
         providerPlans[providerKey] = new Map()
         const steps = matchAndDiff(providerComparison)
-        for (const step of steps) {
+        if (steps.isErr()) {
+            return err(steps.error)
+        }
+
+        for (const step of steps.value) {
             const id = createStepId(idCounter++)
             providerPlans[providerKey].set(id, step)
         }
     }
 
-    return {
+    return ok({
         baseUrl: right.baseUrl,
         providers,
         providerPlans,
         getStepById: getStepById(providerPlans),
         getStepIds: getStepIds(providerPlans),
-    }
+    })
 }
 
 const getStepById =
@@ -240,13 +251,16 @@ function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
 function matchAndDiff<P extends Provider>({
     left,
     right,
-}: ProviderComparison<P>) {
+}: ProviderComparison<P>): Result<Set<Step<P>>, PlanError> {
     const steps: Set<Step<P>> = new Set()
 
     for (const [leftHandle, leftState] of left) {
         const realHandle = downcastEndpointHandle(leftHandle)
         if (realHandle == undefined) {
-            // TODO error
+            return err({
+                name: 'InvalidOrphanEndpointHandleError',
+                message: 'left state contains an orphan endpoint handle',
+            } satisfies InvalidOrphanEndpointHandleError)
         }
 
         const rightState = right.get(leftHandle)
@@ -254,7 +268,7 @@ function matchAndDiff<P extends Provider>({
             if (!isDeepStrictEqual(leftState, rightState)) {
                 steps.add({
                     kind: 'update',
-                    handle: realHandle as EndpointHandleReal, // TODO above
+                    handle: realHandle,
                     state: rightState,
                 } satisfies UpdateStep<P>)
             } // else nothing, the endpoints are identical between left & right
@@ -262,7 +276,7 @@ function matchAndDiff<P extends Provider>({
             // If it's in the left, but not the right, delete
             steps.add({
                 kind: 'delete',
-                handle: realHandle as EndpointHandleReal, // TODO above
+                handle: realHandle,
             } satisfies DeleteStep<P>)
         }
     }
@@ -278,7 +292,7 @@ function matchAndDiff<P extends Provider>({
         } satisfies CreateStep<P>)
     }
 
-    return steps
+    return ok(steps)
 }
 
 export {

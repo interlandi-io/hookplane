@@ -93,7 +93,9 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left1, right)
+        const result = createPlan(left1, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
         expect(plan.providers.testProvider).toBe(left1.providers.testProvider)
         expect(plan.providerPlans.testProvider!).toHaveLength(0)
         expect(plan.getStepIds().length).toBe(0)
@@ -113,7 +115,9 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left1, right)
+        const result = createPlan(left1, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
         expect(plan.providerPlans.testProvider!).toHaveLength(1)
         expect(plan.providerPlans.testProvider!.get(createStepId(0))).toEqual({
             kind: 'delete',
@@ -156,7 +160,9 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left, right)
+        const result = createPlan(left, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
         expect(plan.providerPlans.testProvider!).toHaveLength(1)
         expect(plan.providerPlans.testProvider!.get(createStepId(0))).toEqual({
             kind: 'create',
@@ -214,7 +220,9 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left, right)
+        const result = createPlan(left, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
         expect(plan.providerPlans.testProvider!).toHaveLength(1)
         expect(plan.providerPlans.testProvider!.get(createStepId(0))).toEqual({
             kind: 'update',
@@ -398,7 +406,10 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left, right)
+        const result = createPlan(left, right)
+
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
 
         expect(plan.providerPlans.providerA!).toHaveLength(2)
         expect(plan.providerPlans.providerB!).toHaveLength(1)
@@ -487,7 +498,9 @@ describe('plan', () => {
             },
         }
 
-        const plan = createPlan(left, right)
+        const result = createPlan(left, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
         expect(plan.providerPlans.testProvider!).toHaveLength(2)
 
         const deleteStep = plan.getStepById(createStepId(0))
