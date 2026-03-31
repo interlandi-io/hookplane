@@ -6,7 +6,7 @@ import {
     composeEndpointUrl,
     type BaseUrl,
     type RelativeUrl,
-} from './url'
+} from '~/url'
 
 describe('url', () => {
     describe('createBaseUrl', () => {

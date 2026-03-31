@@ -9,6 +9,9 @@
         "check-types": "tsc --noEmit",
         "lint": "eslint . --max-warnings 0"
     },
+    "imports": {
+        "~/*": "./src/*"
+    },
     "exports": {
         ".": "./src/index.ts"
     },
@@ -17,9 +20,11 @@
         "@repo/typescript-config": "workspace:*",
         "@types/node": "^22.15.3",
         "vite": "^8.0.0",
+        "vite-tsconfig-paths": "^6.1.1",
         "vitest": "^4.1.0"
     },
     "dependencies": {
-        "neverthrow": "^8.2.0"
+        "neverthrow": "^8.2.0",
+        "zod": "^4.3.6"
     }
 }

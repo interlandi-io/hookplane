@@ -4,15 +4,15 @@ import {
     parseStatefile,
     ProviderNotFoundError,
     ProviderNotUsedError,
-} from './statefile'
-import { createBaseUrl, createRelativeUrl } from './url'
+} from '~/statefile'
+import { createBaseUrl, createRelativeUrl } from '~/url'
 import {
     createEndpointHandle,
     EndpointHandle,
     EndpointState,
     type Provider,
-} from './provider'
-import { createProviderSet, type ProviderSet } from './provider-set'
+} from '~/provider'
+import { createProviderSet, type ProviderSet } from '~/provider-set'
 import { okAsync } from 'neverthrow'
 
 function createMockProvider(name: string, events: string[]): Provider {
