@@ -11,7 +11,7 @@ import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set'
 import { State } from './state'
 import { EndpointIndex, EndpointState, Provider } from './provider'
-import { EndpointHandle, createEndpointHandle } from './endpoint-handle'
+import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle'
 
 /**
  * Zod schema for base URLs.
@@ -38,7 +38,7 @@ const RelativeUrlSchema = refineString<RelativeUrl>(
  * Validates that the handle is not empty.
  */
 const EndpointHandleSchema = refineString<EndpointHandle>(
-    createEndpointHandle,
+    createRealEndpointHandle,
     'invalid endpoint handle',
 )
 

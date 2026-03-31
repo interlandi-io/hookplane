@@ -7,43 +7,78 @@ import { randomUUID } from 'crypto'
 const ORPHAN_PREFIX: string = '___ORPHAN___'
 
 /**
- * A branded string for endpoint handles.
+ * Represents a provider-side id keying a provider-registered endpoint.
  */
-export type EndpointHandle = string & { __brand: 'EndpointHandle' }
+export type EndpointHandle = EndpointHandleReal | EndpointHandleOrphan
+
+/**
+ * An endpoint handle that corresponds to an endpoint currently registered with a provider.
+ */
+export type EndpointHandleReal = string & { __brand: 'EndpointHandleReal' }
+
+/**
+ * An endpoint handle that corresponds to an endpoint yet to be registered/not registered with a provider.
+ */
+export type EndpointHandleOrphan = string & { __brand: 'EndpointHandleOrphan' }
 
 /**
  * Error returned when an endpoint handle is invalid.
  */
 export interface InvalidEndpointHandleError extends Error {
     name: 'InvalidEndpointHandleError'
-    message: 'endpoint handle cannot be empty'
+    message: string
 }
 
 /**
- * Creates an EndpointHandle from a string.
+ * Creates a real EndpointHandle from a string.
  *
  * @param handle - The handle string
- * @returns Ok with EndpointHandle if non-empty, Err otherwise
+ * @returns A real endpoint handle.
  */
-export function createEndpointHandle(
+export function createRealEndpointHandle(
     handle: string,
-): Result<EndpointHandle, InvalidEndpointHandleError> {
+): Result<EndpointHandleReal, InvalidEndpointHandleError> {
     if (handle.length === 0) {
         return err({
             name: 'InvalidEndpointHandleError',
             message: 'endpoint handle cannot be empty',
         } satisfies InvalidEndpointHandleError)
+    } else if (endpointHandleIsOrphan(handle as EndpointHandle)) {
+        return err({
+            name: 'InvalidEndpointHandleError',
+            message:
+                'attempted to create a real endpoint handle from an orphan endpoint handle',
+        } satisfies InvalidEndpointHandleError)
     }
-    return ok(handle as EndpointHandle)
+    return ok(handle as EndpointHandleReal)
 }
 
-export function createOrphanEndpointHandle(): EndpointHandle {
+/**
+ * Creates an orphan endpoint handle.
+ * @returns An orphan endpoint handle
+ */
+export function createOrphanEndpointHandle(): EndpointHandleOrphan {
     const uuid = randomUUID()
     const handle = ORPHAN_PREFIX + uuid
 
-    return handle as EndpointHandle
+    return handle as EndpointHandleOrphan
 }
 
 export function endpointHandleIsOrphan(handle: EndpointHandle): boolean {
     return handle.startsWith(ORPHAN_PREFIX)
+}
+
+/**
+ * Downcasts an endpoint handle, validating that it is real.
+ * @param handle The endpoint handle
+ * @returns The endpoint handle as real if real, else undefined
+ */
+export function downcastEndpointHandle(
+    handle: EndpointHandle,
+): EndpointHandleReal | undefined {
+    if (endpointHandleIsOrphan(handle)) {
+        return undefined
+    }
+
+    return handle as EndpointHandleReal
 }
