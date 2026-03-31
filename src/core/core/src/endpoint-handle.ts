@@ -33,7 +33,7 @@ export interface InvalidEndpointHandleError extends Error {
  * Creates a real EndpointHandle from a string.
  *
  * @param handle - The handle string
- * @returns Ok with EndpointHandle if non-empty, Err otherwise
+ * @returns A real endpoint handle.
  */
 export function createRealEndpointHandle(
     handle: string,
