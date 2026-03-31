@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto'
 const ORPHAN_PREFIX: string = '___ORPHAN___'
 
 /**
- * A branded string for endpoint handles.
+ * Represents a provider-side id keying a provider-registered endpoint.
  */
 export type EndpointHandle = EndpointHandleReal | EndpointHandleOrphan
 
@@ -30,7 +30,7 @@ export interface InvalidEndpointHandleError extends Error {
 }
 
 /**
- * Creates an EndpointHandle from a string.
+ * Creates a real EndpointHandle from a string.
  *
  * @param handle - The handle string
  * @returns Ok with EndpointHandle if non-empty, Err otherwise
@@ -47,6 +47,10 @@ export function createRealEndpointHandle(
     return ok(handle as EndpointHandleReal)
 }
 
+/**
+ * Creates an orphan endpoint handle.
+ * @returns An orphan endpoint handle
+ */
 export function createOrphanEndpointHandle(): EndpointHandleOrphan {
     const uuid = randomUUID()
     const handle = ORPHAN_PREFIX + uuid
