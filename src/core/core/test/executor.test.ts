@@ -1,5 +1,5 @@
 import { errAsync, okAsync } from 'neverthrow'
-import { createExecutor, parallelExecution, defaultDispatch } from './executor'
+import { createExecutor, parallelExecution, defaultDispatch } from '~/executor'
 import { err, ok } from 'neverthrow'
 import {
     Provider,
@@ -9,8 +9,8 @@ import {
     NotFoundError,
     type EndpointHandle,
     type RelativeUrl,
-} from './provider'
-import { Plan, StepId, createStepId } from './plan'
+} from '~/provider'
+import { Plan, StepId, createStepId } from '~/plan'
 
 interface EndpointRecord {
     url: string

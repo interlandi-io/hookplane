@@ -1,5 +1,5 @@
 import { errAsync } from 'neverthrow'
-import { sync } from './sync'
+import { sync } from '~/sync'
 import { okAsync } from 'neverthrow'
 import {
     createBaseUrl,
@@ -11,7 +11,7 @@ import {
     Provider,
     NotFoundError,
     type EndpointHandle,
-} from './provider'
+} from '~/provider'
 
 const endpoints: EndpointIndex<typeof MockProvider> = new Map()
 let handleCounter = 0

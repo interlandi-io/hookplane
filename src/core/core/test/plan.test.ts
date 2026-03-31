@@ -1,13 +1,13 @@
 import { okAsync } from 'neverthrow'
-import { State } from './state'
+import { State } from '~/state'
 import {
     Provider,
     createEndpointHandle,
     createBaseUrl,
     createRelativeUrl,
-} from './provider'
-import { createPlan, createStepId } from './plan'
-import { createOrphanEndpointHandle } from './endpoint-handle'
+} from '~/provider'
+import { createPlan, createStepId } from '~/plan'
+import { createOrphanEndpointHandle } from '~/endpoint-handle'
 
 const TestProvider = (config: {
     storeUrl: string
