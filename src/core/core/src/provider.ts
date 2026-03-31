@@ -49,6 +49,11 @@ interface Provider<
     readonly state: TProviderState
 
     /**
+     * The features of the provider e.g signing secret requirements.
+     */
+    readonly features?: ProviderFeatures
+
+    /**
      * A mapping of each event a Provider provides to its definition.
      */
     readonly events: Record<TEventType, EventDefinition<unknown>>
@@ -134,6 +139,10 @@ type EndpointOperationParams<TProviderState, TProviderConfig> = {
      * The `ProviderConfig` of the `Provider`
      */
     providerConfig: TProviderConfig
+}
+
+type ProviderFeatures = {
+    requiresSigningSecret?: boolean
 }
 
 type CreateEndpointParams<S, C, TEventType, TEndpointConfig> =
@@ -356,6 +365,7 @@ type PayloadOf<E> = E extends EventDefinition<infer T> ? T : never
 
 export {
     type Provider,
+    type ProviderFeatures,
     type EndpointState,
     type BaseUrl,
     type RelativeUrl,
