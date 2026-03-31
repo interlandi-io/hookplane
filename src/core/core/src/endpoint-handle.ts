@@ -26,7 +26,7 @@ export type EndpointHandleOrphan = string & { __brand: 'EndpointHandleOrphan' }
  */
 export interface InvalidEndpointHandleError extends Error {
     name: 'InvalidEndpointHandleError'
-    message: 'endpoint handle cannot be empty'
+    message: string
 }
 
 /**
@@ -42,6 +42,12 @@ export function createRealEndpointHandle(
         return err({
             name: 'InvalidEndpointHandleError',
             message: 'endpoint handle cannot be empty',
+        } satisfies InvalidEndpointHandleError)
+    } else if (endpointHandleIsOrphan(handle as EndpointHandle)) {
+        return err({
+            name: 'InvalidEndpointHandleError',
+            message:
+                'attempted to create a real endpoint handle from an orphan endpoint handle',
         } satisfies InvalidEndpointHandleError)
     }
     return ok(handle as EndpointHandleReal)
