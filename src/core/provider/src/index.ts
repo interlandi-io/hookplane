@@ -1,5 +1,6 @@
 import {
     Provider,
+    ProviderFeatures,
     EventDefinition,
     EndpointIndex,
     EndpointState,
@@ -70,6 +71,7 @@ type ProviderDescriptor<
 > = {
     readonly name: string
     readonly events: Record<TEventType, EventDefinition<unknown>>
+    readonly features?: ProviderFeatures
 
     setup(
         providerConfig: TProviderConfig,
@@ -130,6 +132,13 @@ type ProviderDescriptor<
     ): ResultAsync<void, ProviderError>
 }
 
+export type ProviderDescriptionError = ProviderFeaturesMismatchError
+
+export interface ProviderFeaturesMismatchError extends Error {
+    name: 'ProviderFeaturesMismatchError'
+    message: string
+}
+
 /**
  * Creates a provider factory from a descriptor.
  *
@@ -145,6 +154,10 @@ type ProviderDescriptor<
  *   indexEndpoints: async ({ providerConfig }) => { ... },
  *   // ... other methods
  * })
+ *
+ * @throws `ProviderDescriptionError`
+ * @throws `ProviderFeatureMismatchError`
+ *  - if `features.requiresSigningSecret` is `true`, but `validateRequestSignature` is not defined
  *
  * const provider = myProvider({ apiKey: 'xxx' })
  * ```
@@ -168,6 +181,18 @@ function describeProvider<
     ProviderError
 > {
     const { events, ..._desc } = desc
+
+    if (
+        desc.features?.requiresSigningSecret &&
+        desc.validateRequestSignature === undefined
+    ) {
+        // We throw instead of using neverthrow b/c this touches the public API boundary.
+        throw {
+            name: 'ProviderFeaturesMismatchError',
+            message:
+                'features.requiresSigningSecret is true, but validateRequestSignature is not defined',
+        } satisfies ProviderFeaturesMismatchError
+    }
 
     return (config: TProviderConfig) =>
         desc.setup(config).map(
