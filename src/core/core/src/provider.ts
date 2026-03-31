@@ -15,7 +15,7 @@ import {
     createEndpointUrl,
     composeEndpointUrl,
 } from './url'
-import { EndpointHandle, createEndpointHandle } from './endpoint-handle'
+import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle'
 
 /**
  * A provider defines how to interact with an external system for a set of events.
@@ -387,7 +387,7 @@ export {
     type RequestSignatureValidationError,
     type RequestPayloadSchemaValidationError,
     type UnknownError,
-    createEndpointHandle,
+    createRealEndpointHandle as createEndpointHandle,
     createBaseUrl,
     createRelativeUrl,
     createEndpointUrl,

@@ -9,7 +9,17 @@ const ORPHAN_PREFIX: string = '___ORPHAN___'
 /**
  * A branded string for endpoint handles.
  */
-export type EndpointHandle = string & { __brand: 'EndpointHandle' }
+export type EndpointHandle = EndpointHandleReal | EndpointHandleOrphan
+
+/**
+ * An endpoint handle that corresponds to an endpoint currently registered with a provider.
+ */
+export type EndpointHandleReal = string & { __brand: 'EndpointHandleReal' }
+
+/**
+ * An endpoint handle that corresponds to an endpoint yet to be registered/not registered with a provider.
+ */
+export type EndpointHandleOrphan = string & { __brand: 'EndpointHandleOrphan' }
 
 /**
  * Error returned when an endpoint handle is invalid.
@@ -25,23 +35,23 @@ export interface InvalidEndpointHandleError extends Error {
  * @param handle - The handle string
  * @returns Ok with EndpointHandle if non-empty, Err otherwise
  */
-export function createEndpointHandle(
+export function createRealEndpointHandle(
     handle: string,
-): Result<EndpointHandle, InvalidEndpointHandleError> {
+): Result<EndpointHandleReal, InvalidEndpointHandleError> {
     if (handle.length === 0) {
         return err({
             name: 'InvalidEndpointHandleError',
             message: 'endpoint handle cannot be empty',
         } satisfies InvalidEndpointHandleError)
     }
-    return ok(handle as EndpointHandle)
+    return ok(handle as EndpointHandleReal)
 }
 
-export function createOrphanEndpointHandle(): EndpointHandle {
+export function createOrphanEndpointHandle(): EndpointHandleOrphan {
     const uuid = randomUUID()
     const handle = ORPHAN_PREFIX + uuid
 
-    return handle as EndpointHandle
+    return handle as EndpointHandleOrphan
 }
 
 export function endpointHandleIsOrphan(handle: EndpointHandle): boolean {
