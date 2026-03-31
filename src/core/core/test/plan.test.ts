@@ -521,4 +521,46 @@ describe('plan', () => {
             },
         })
     })
+
+    it('fails when left state contains orphan endpoint handle', () => {
+        const left: State<typeof providers> = {
+            baseUrl: createBaseUrl('http://localhost')._unsafeUnwrap(),
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map([
+                    [
+                        createOrphanEndpointHandle(),
+                        {
+                            relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
+            },
+        }
+        const right: State<typeof providers> = {
+            baseUrl: createBaseUrl('http://localhost')._unsafeUnwrap(),
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map(),
+            },
+        }
+
+        const result = createPlan(left, right)
+        expect(result.isErr()).toBe(true)
+        expect(result._unsafeUnwrapErr().name).toBe(
+            'InvalidOrphanEndpointHandleError',
+        )
+    })
 })
