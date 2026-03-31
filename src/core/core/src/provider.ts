@@ -219,6 +219,11 @@ type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
     headers: Record<string, string>
 }
 
+type CreateEndpointResponse = {
+    endpointHandle: EndpointHandle
+    signingSecret?: string
+}
+
 type ProviderError =
     | AuthError
     | RateLimitError
@@ -376,6 +381,7 @@ export {
     type DeleteEndpointParams,
     type IndexEndpointsParams,
     type ValidateRequestSignatureParams,
+    type CreateEndpointResponse,
     type EndpointHandle,
     type EndpointIndex,
     type EventDefinition,
