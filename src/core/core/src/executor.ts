@@ -26,7 +26,7 @@ import { ProviderSet } from './provider-set'
  * executor.execute()
  * ```
  */
-interface Executor<P extends ProviderSet> {
+export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
@@ -37,7 +37,7 @@ interface Executor<P extends ProviderSet> {
     execute(): void
 }
 
-type ExecutorState<P extends ProviderSet> = {
+export type ExecutorState<P extends ProviderSet> = {
     plan: Plan<P>
     stepStates: Map<StepId, StepState>
     dispatchFn: DispatchFn<P[keyof P]>
@@ -46,7 +46,7 @@ type ExecutorState<P extends ProviderSet> = {
 /**
  * The status of a step during execution.
  */
-type StepState =
+export type StepState =
     | { status: 'pending' }
     | { status: 'inFlight' }
     | { status: 'success'; result: StepResult }
@@ -55,7 +55,7 @@ type StepState =
 /**
  * The result of a step completed successfully.
  */
-type StepResult =
+export type StepResult =
     | { kind: 'create'; value: CreateEndpointReturn }
     | { kind: 'delete' }
     | { kind: 'update' }
@@ -66,7 +66,7 @@ type StepResult =
  * @param stepStates - The initial set of step states.
  * @param dispatch- The dispatch function to use.
  */
-type ExecuteFn<P extends ProviderSet> = (
+export type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
     stepStates: Map<StepId, StepState>,
     dispatch: DispatchFn<P[keyof P]>,
@@ -78,49 +78,49 @@ type ExecuteFn<P extends ProviderSet> = (
  * @param stepId - The step's unique ID
  * @param step - The step to execute (create, delete, or update)
  */
-type DispatchFn<P extends Provider> = (
+export type DispatchFn<P extends Provider> = (
     provider: P,
     stepId: StepId,
     step: Step<P>,
 ) => ResultAsync<StepResult, DispatchError>
 
-type ExecutorError = EmptyPlanError
+export type ExecutorError = EmptyPlanError
 
 /**
  * Returned when creating an executor for an empty plan.
  */
-interface EmptyPlanError extends Error {
+export interface EmptyPlanError extends Error {
     name: 'EmptyPlanError'
     message: 'attempted to create Executor for an empty plan'
 }
 
-type DispatchError =
+export type DispatchError =
     | InvalidStepIdError
     | CreateError
     | DeleteError
     | UpdateError
 
-interface InvalidStepIdError extends Error {
+export interface InvalidStepIdError extends Error {
     name: 'InvalidStepIdError'
     message: 'invalid step id'
     stepId: StepId
 }
 
-interface CreateError extends Error {
+export interface CreateError extends Error {
     name: 'CreateError'
     message: 'failed to create endpoint'
     stepId: StepId
     source: Error
 }
 
-interface DeleteError extends Error {
+export interface DeleteError extends Error {
     name: 'DeleteError'
     message: 'failed to delete endpoint'
     stepId: StepId
     source: Error
 }
 
-interface UpdateError extends Error {
+export interface UpdateError extends Error {
     name: 'UpdateError'
     message: 'failed to update endpoint'
     stepId: StepId
@@ -171,7 +171,7 @@ interface UpdateError extends Error {
  * @param executeFn - Strategy like `parallelExecution()`
  * @param dispatchFn - Like `defaultDispatch(plan.baseUrl)`
  */
-function createExecutor<P extends ProviderSet>(
+export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
     executeFn: ExecuteFn<P>,
     dispatchFn: DispatchFn<P[keyof P]>,
@@ -209,7 +209,7 @@ function createExecutor<P extends ProviderSet>(
  * const executor = createExecutor(plan, parallelExecution(), dispatch)
  * ```
  */
-const parallelExecution =
+export const parallelExecution =
     <P extends ProviderSet>() =>
     (
         plan: Plan<P>,
@@ -267,7 +267,7 @@ const parallelExecution =
  * const dispatch = defaultDispatch(plan.baseUrl)
  * ```
  */
-const defaultDispatch =
+export const defaultDispatch =
     <P extends ProviderSet>(baseUrl: BaseUrl) =>
     <K extends keyof P>(
         provider: P[K],
@@ -341,5 +341,3 @@ const defaultDispatch =
                     )
         }
     }
-
-export { type Executor, createExecutor, parallelExecution, defaultDispatch }
