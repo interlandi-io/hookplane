@@ -8,7 +8,7 @@ import {
     RequestSignatureValidationError,
     InvalidResponseError,
 } from '@hookplane/provider'
-import { okAsync, errAsync, ResultAsync } from 'neverthrow'
+import { okAsync, errAsync, ResultAsync, err, ok } from 'neverthrow'
 import Stripe from 'stripe'
 import { StripeEvents, type StripeEvent } from './events'
 
@@ -61,6 +61,9 @@ const createStripeProvider = describeProvider<
 >({
     name: 'stripe',
     events: zodEvents(StripeEvents),
+    features: {
+        requiresSigningSecret: true,
+    },
     setup: ({ apiKey, config, webhookSecret }) => {
         const stripe = new Stripe(apiKey, config)
         return okAsync({ stripe, webhookSecret })
@@ -82,7 +85,26 @@ const createStripeProvider = describeProvider<
                 url,
             },
         })
-        return ResultAsync.fromPromise(p, toProviderError).map(() => {})
+        return ResultAsync.fromPromise(p, toProviderError).andThen((dest) => {
+            if (!dest.webhook_endpoint?.signing_secret) {
+                return err({
+                    name: 'InvalidResponseError',
+                    message:
+                        'received invalid response from server: no signing secret in response',
+                } satisfies InvalidResponseError)
+            }
+            const handle = createEndpointHandle(dest.id)
+            if (handle.isErr()) {
+                return err({
+                    name: 'InvalidResponseError',
+                    message: `received invalid response from server: invalid destination id: ${dest.id}`,
+                } satisfies InvalidResponseError)
+            }
+            return ok({
+                handle: handle.value,
+                signingSecret: dest.webhook_endpoint.signing_secret,
+            })
+        })
     },
     readEndpoint: ({ handle, providerState: { stripe } }) => {
         const p = stripe.v2.core.eventDestinations.retrieve(handle, {

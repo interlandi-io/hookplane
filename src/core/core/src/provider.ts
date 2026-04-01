@@ -248,20 +248,20 @@ type ProviderError =
 interface AuthError extends Error {
     name: 'AuthError'
     message: `authentication failed${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface RateLimitError extends Error {
     name: 'RateLimitError'
     message: `rate limited${'' | `: ${string}`}`
-    source: Error
+    source?: Error
     retryAfter?: number
 }
 
 interface NetworkError extends Error {
     name: 'NetworkError'
     message: `network request failed${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface TimeoutError extends Error {
@@ -273,7 +273,7 @@ interface TimeoutError extends Error {
 interface NotFoundError extends Error {
     name: 'NotFoundError'
     message: `resource not found${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface AlreadyExistsError extends Error {
@@ -285,32 +285,32 @@ interface AlreadyExistsError extends Error {
 interface InvalidResponseError extends Error {
     name: 'InvalidResponseError'
     message: `received invalid response from server${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface ServerError extends Error {
     name: 'ServerError'
     message: `server error${'' | `: ${string}`}`
-    source: Error
+    source?: Error
     statusCode: number
 }
 
 interface RequestSignatureValidationError extends Error {
     name: 'RequestSignatureValidationError'
     message: `failed to validate request signature${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface RequestPayloadSchemaValidationError extends Error {
     name: 'RequestPayloadSchemaValidationError'
     message: `failed to validate request payload schema${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface UnknownError extends Error {
     name: 'UnknownError'
     message: `an error occurred: ${string}`
-    source: Error
+    source?: Error
 }
 
 type EndpointState<P extends Provider> = {
