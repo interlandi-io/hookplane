@@ -1,6 +1,11 @@
 import z from 'zod'
 import { okAsync, ResultAsync } from 'neverthrow'
-import { createRelativeUrl, describeProvider, zodEvents } from '.'
+import {
+    createEndpointHandle,
+    createRelativeUrl,
+    describeProvider,
+    zodEvents,
+} from '.'
 
 type ProviderEvent =
     | 'checkout.started'
@@ -32,7 +37,9 @@ const Provider = describeProvider<
     }),
     setup: () => okAsync({}),
     createEndpoint: () => {
-        return okAsync()
+        return okAsync({
+            handle: createEndpointHandle('handle-0')._unsafeUnwrap(),
+        })
     },
     readEndpoint: () => {
         return okAsync({
@@ -89,7 +96,11 @@ describe('provider', () => {
                 }),
                 setup: () => okAsync({}),
                 createEndpoint: () => {
-                    return okAsync()
+                    return okAsync({
+                        handle: createEndpointHandle(
+                            'handle-0',
+                        )._unsafeUnwrap(),
+                    })
                 },
                 readEndpoint: () => {
                     return okAsync({

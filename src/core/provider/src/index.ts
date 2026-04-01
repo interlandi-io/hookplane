@@ -2,14 +2,6 @@ import {
     Provider,
     ProviderFeatures,
     EventDefinition,
-    EndpointIndex,
-    EndpointState,
-    CreateEndpointParams,
-    ReadEndpointParams,
-    UpdateEndpointParams,
-    DeleteEndpointParams,
-    IndexEndpointsParams,
-    ValidateRequestSignatureParams,
     ProviderError,
     RequestPayloadSchemaValidationError,
 } from '@hookplane/core'
@@ -77,59 +69,47 @@ type ProviderDescriptor<
         providerConfig: TProviderConfig,
     ): ResultAsync<TProviderState, ProviderError>
 
-    createEndpoint(
-        params: CreateEndpointParams<
-            TProviderState,
-            TProviderConfig,
-            TEventType,
-            TEndpointConfig
-        >,
-    ): ResultAsync<void, ProviderError>
+    createEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['createEndpoint']
 
-    readEndpoint(
-        params: ReadEndpointParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<
-        EndpointState<
-            Provider<
-                TEventType,
-                TProviderConfig,
-                TEndpointConfig,
-                TProviderState
-            >
-        >,
-        ProviderError
-    >
+    readEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['readEndpoint']
 
-    updateEndpoint(
-        params: UpdateEndpointParams<
-            TProviderState,
-            TProviderConfig,
-            TEndpointConfig,
-            TEventType
-        >,
-    ): ResultAsync<void, ProviderError>
+    updateEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['updateEndpoint']
 
-    deleteEndpoint(
-        params: DeleteEndpointParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<void, ProviderError>
+    deleteEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['deleteEndpoint']
 
-    indexEndpoints(
-        params: IndexEndpointsParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<
-        EndpointIndex<
-            Provider<
-                TEventType,
-                TProviderConfig,
-                TEndpointConfig,
-                TProviderState
-            >
-        >,
-        ProviderError
-    >
+    indexEndpoints: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['indexEndpoints']
 
-    validateRequestSignature?(
-        params: ValidateRequestSignatureParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<void, ProviderError>
+    validateRequestSignature?: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['validateRequestSignature']
 }
 
 export type ProviderDescriptionError = ProviderFeaturesMismatchError
