@@ -60,6 +60,12 @@ type StepResult =
     | { kind: 'delete' }
     | { kind: 'update' }
 
+/**
+ * Strategy for executing a plan.
+ * @param plan - The plan to execute
+ * @param stepStates - The initial set of step states.
+ * @param dispatch- The dispatch function to use.
+ */
 type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
     stepStates: Map<StepId, StepState>,
@@ -217,6 +223,8 @@ const parallelExecution =
         )) {
             for (const [stepId, step] of providerPlan) {
                 const currentState = stepStates.get(stepId)
+                // TODO: Currently, this just skips steps already in flight.
+                // Maybe we want to do something with this later.
                 if (
                     currentState?.status == 'inFlight' ||
                     currentState?.status == 'success'
