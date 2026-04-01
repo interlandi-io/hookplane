@@ -64,7 +64,7 @@ export type StepResult =
  * Strategy for executing a plan.
  * @param plan - The plan to execute
  * @param stepStates - The initial set of step states.
- * @param dispatch- The dispatch function to use.
+ * @param dispatch - The dispatch function to use.
  */
 export type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
