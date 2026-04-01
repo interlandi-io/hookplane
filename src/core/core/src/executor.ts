@@ -9,7 +9,12 @@
  */
 import { ok, err, Result, ResultAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan'
-import { Provider, composeEndpointUrl, BaseUrl } from './provider'
+import {
+    Provider,
+    composeEndpointUrl,
+    BaseUrl,
+    CreateEndpointReturn,
+} from './provider'
 import { ProviderSet } from './provider-set'
 
 /**
@@ -21,7 +26,7 @@ import { ProviderSet } from './provider-set'
  * executor.execute()
  * ```
  */
-interface Executor<P extends ProviderSet> {
+export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
@@ -32,7 +37,7 @@ interface Executor<P extends ProviderSet> {
     execute(): void
 }
 
-type ExecutorState<P extends ProviderSet> = {
+export type ExecutorState<P extends ProviderSet> = {
     plan: Plan<P>
     stepStates: Map<StepId, StepState>
     dispatchFn: DispatchFn<P[keyof P]>
@@ -41,13 +46,27 @@ type ExecutorState<P extends ProviderSet> = {
 /**
  * The status of a step during execution.
  */
-type StepState =
+export type StepState =
     | { status: 'pending' }
     | { status: 'inFlight' }
-    | { status: 'success' }
+    | { status: 'success'; result: StepResult }
     | { status: 'failure'; error: DispatchError }
 
-type ExecuteFn<P extends ProviderSet> = (
+/**
+ * The result of a step completed successfully.
+ */
+export type StepResult =
+    | { kind: 'create'; value: CreateEndpointReturn }
+    | { kind: 'delete' }
+    | { kind: 'update' }
+
+/**
+ * Strategy for executing a plan.
+ * @param plan - The plan to execute
+ * @param stepStates - The initial set of step states.
+ * @param dispatch - The dispatch function to use.
+ */
+export type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
     stepStates: Map<StepId, StepState>,
     dispatch: DispatchFn<P[keyof P]>,
@@ -59,49 +78,49 @@ type ExecuteFn<P extends ProviderSet> = (
  * @param stepId - The step's unique ID
  * @param step - The step to execute (create, delete, or update)
  */
-type DispatchFn<P extends Provider> = (
+export type DispatchFn<P extends Provider> = (
     provider: P,
     stepId: StepId,
     step: Step<P>,
-) => ResultAsync<void, DispatchError>
+) => ResultAsync<StepResult, DispatchError>
 
-type ExecutorError = EmptyPlanError
+export type ExecutorError = EmptyPlanError
 
 /**
  * Returned when creating an executor for an empty plan.
  */
-interface EmptyPlanError extends Error {
+export interface EmptyPlanError extends Error {
     name: 'EmptyPlanError'
     message: 'attempted to create Executor for an empty plan'
 }
 
-type DispatchError =
+export type DispatchError =
     | InvalidStepIdError
     | CreateError
     | DeleteError
     | UpdateError
 
-interface InvalidStepIdError extends Error {
+export interface InvalidStepIdError extends Error {
     name: 'InvalidStepIdError'
     message: 'invalid step id'
     stepId: StepId
 }
 
-interface CreateError extends Error {
+export interface CreateError extends Error {
     name: 'CreateError'
     message: 'failed to create endpoint'
     stepId: StepId
     source: Error
 }
 
-interface DeleteError extends Error {
+export interface DeleteError extends Error {
     name: 'DeleteError'
     message: 'failed to delete endpoint'
     stepId: StepId
     source: Error
 }
 
-interface UpdateError extends Error {
+export interface UpdateError extends Error {
     name: 'UpdateError'
     message: 'failed to update endpoint'
     stepId: StepId
@@ -152,7 +171,7 @@ interface UpdateError extends Error {
  * @param executeFn - Strategy like `parallelExecution()`
  * @param dispatchFn - Like `defaultDispatch(plan.baseUrl)`
  */
-function createExecutor<P extends ProviderSet>(
+export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
     executeFn: ExecuteFn<P>,
     dispatchFn: DispatchFn<P[keyof P]>,
@@ -190,7 +209,7 @@ function createExecutor<P extends ProviderSet>(
  * const executor = createExecutor(plan, parallelExecution(), dispatch)
  * ```
  */
-const parallelExecution =
+export const parallelExecution =
     <P extends ProviderSet>() =>
     (
         plan: Plan<P>,
@@ -204,6 +223,8 @@ const parallelExecution =
         )) {
             for (const [stepId, step] of providerPlan) {
                 const currentState = stepStates.get(stepId)
+                // TODO: Currently, this just skips steps already in flight.
+                // Maybe we want to do something with this later.
                 if (
                     currentState?.status == 'inFlight' ||
                     currentState?.status == 'success'
@@ -218,8 +239,8 @@ const parallelExecution =
                     stepId,
                     step as Step<P[keyof P]>,
                 ).match(
-                    () => {
-                        stepStates.set(stepId, { status: 'success' })
+                    (result) => {
+                        stepStates.set(stepId, { status: 'success', result })
                     },
                     (error) => {
                         stepStates.set(stepId, { status: 'failure', error })
@@ -246,13 +267,13 @@ const parallelExecution =
  * const dispatch = defaultDispatch(plan.baseUrl)
  * ```
  */
-const defaultDispatch =
+export const defaultDispatch =
     <P extends ProviderSet>(baseUrl: BaseUrl) =>
     <K extends keyof P>(
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,
-    ): ResultAsync<void, DispatchError> => {
+    ): ResultAsync<StepResult, DispatchError> => {
         switch (step.kind) {
             case 'create':
                 return provider
@@ -263,7 +284,13 @@ const defaultDispatch =
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
-                    .map(() => {})
+                    .map(
+                        (ret) =>
+                            ({
+                                kind: 'create',
+                                value: ret,
+                            }) satisfies StepResult,
+                    )
                     .mapErr(
                         (error) =>
                             ({
@@ -281,7 +308,7 @@ const defaultDispatch =
                         providerConfig: provider.config,
                         handle: step.handle,
                     })
-                    .map(() => {})
+                    .map(() => ({ kind: 'delete' }) satisfies StepResult)
                     .mapErr(
                         (error) =>
                             ({
@@ -302,7 +329,7 @@ const defaultDispatch =
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
-                    .map(() => {})
+                    .map(() => ({ kind: 'update' }) satisfies StepResult)
                     .mapErr(
                         (error) =>
                             ({
@@ -314,5 +341,3 @@ const defaultDispatch =
                     )
         }
     }
-
-export { type Executor, createExecutor, parallelExecution, defaultDispatch }

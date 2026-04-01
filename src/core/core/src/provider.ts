@@ -49,6 +49,11 @@ interface Provider<
     readonly state: TProviderState
 
     /**
+     * The features of the provider e.g signing secret requirements.
+     */
+    readonly features?: ProviderFeatures
+
+    /**
      * A mapping of each event a Provider provides to its definition.
      */
     readonly events: Record<TEventType, EventDefinition<unknown>>
@@ -74,7 +79,7 @@ interface Provider<
             TEventType,
             TEndpointConfig
         >,
-    ): ResultAsync<void, ProviderError>
+    ): ResultAsync<CreateEndpointReturn, ProviderError>
 
     /**
      * Get an Endpoint from the Provider.
@@ -134,6 +139,10 @@ type EndpointOperationParams<TProviderState, TProviderConfig> = {
      * The `ProviderConfig` of the `Provider`
      */
     providerConfig: TProviderConfig
+}
+
+type ProviderFeatures = {
+    requiresSigningSecret?: boolean
 }
 
 type CreateEndpointParams<S, C, TEventType, TEndpointConfig> =
@@ -210,6 +219,19 @@ type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
     headers: Record<string, string>
 }
 
+type CreateEndpointReturn = {
+    /**
+     * @see EndpointHandle
+     */
+    handle: EndpointHandle
+
+    /**
+     * The signing secret for the created endpoint.
+     * Must be present if `Provider.features.requiresSigningSecret` is `true`
+     */
+    signingSecret?: string
+}
+
 type ProviderError =
     | AuthError
     | RateLimitError
@@ -226,20 +248,20 @@ type ProviderError =
 interface AuthError extends Error {
     name: 'AuthError'
     message: `authentication failed${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface RateLimitError extends Error {
     name: 'RateLimitError'
     message: `rate limited${'' | `: ${string}`}`
-    source: Error
+    source?: Error
     retryAfter?: number
 }
 
 interface NetworkError extends Error {
     name: 'NetworkError'
     message: `network request failed${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface TimeoutError extends Error {
@@ -251,7 +273,7 @@ interface TimeoutError extends Error {
 interface NotFoundError extends Error {
     name: 'NotFoundError'
     message: `resource not found${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface AlreadyExistsError extends Error {
@@ -263,32 +285,32 @@ interface AlreadyExistsError extends Error {
 interface InvalidResponseError extends Error {
     name: 'InvalidResponseError'
     message: `received invalid response from server${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface ServerError extends Error {
     name: 'ServerError'
     message: `server error${'' | `: ${string}`}`
-    source: Error
+    source?: Error
     statusCode: number
 }
 
 interface RequestSignatureValidationError extends Error {
     name: 'RequestSignatureValidationError'
     message: `failed to validate request signature${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface RequestPayloadSchemaValidationError extends Error {
     name: 'RequestPayloadSchemaValidationError'
     message: `failed to validate request payload schema${'' | `: ${string}`}`
-    source: Error
+    source?: Error
 }
 
 interface UnknownError extends Error {
     name: 'UnknownError'
     message: `an error occurred: ${string}`
-    source: Error
+    source?: Error
 }
 
 type EndpointState<P extends Provider> = {
@@ -356,6 +378,7 @@ type PayloadOf<E> = E extends EventDefinition<infer T> ? T : never
 
 export {
     type Provider,
+    type ProviderFeatures,
     type EndpointState,
     type BaseUrl,
     type RelativeUrl,
@@ -366,6 +389,7 @@ export {
     type DeleteEndpointParams,
     type IndexEndpointsParams,
     type ValidateRequestSignatureParams,
+    type CreateEndpointReturn,
     type EndpointHandle,
     type EndpointIndex,
     type EventDefinition,

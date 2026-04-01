@@ -11,7 +11,9 @@ const TestProvider = (
     events: {},
     state: {},
     setup: () => okAsync({}),
-    createEndpoint: () => okAsync(undefined),
+    createEndpoint: () => {
+        throw new Error('Function not implemented.')
+    },
     readEndpoint: () =>
         okAsync({
             relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),

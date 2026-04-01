@@ -1,6 +1,11 @@
 import z from 'zod'
 import { okAsync, ResultAsync } from 'neverthrow'
-import { createRelativeUrl, describeProvider, zodEvents } from '.'
+import {
+    createEndpointHandle,
+    createRelativeUrl,
+    describeProvider,
+    zodEvents,
+} from '.'
 
 type ProviderEvent =
     | 'checkout.started'
@@ -32,7 +37,9 @@ const Provider = describeProvider<
     }),
     setup: () => okAsync({}),
     createEndpoint: () => {
-        return okAsync()
+        return okAsync({
+            handle: createEndpointHandle('handle-0')._unsafeUnwrap(),
+        })
     },
     readEndpoint: () => {
         return okAsync({
@@ -68,5 +75,60 @@ describe('provider', () => {
         const data = event.mock!()
         const valid = event.parse!(data)
         expect(valid.isOk()).toBe(true)
+    })
+
+    it('throws when `features.requiresSigningSecret` is `true`, but `validateRequestSignature` is not defined', () => {
+        const f = () => {
+            describeProvider<
+                ProviderEvent,
+                ProviderParams,
+                EventParams,
+                ProviderState
+            >({
+                name: 'Provider',
+                features: {
+                    requiresSigningSecret: true,
+                },
+                events: zodEvents({
+                    'checkout.started': z.object({ userId: z.string() }),
+                    'checkout.completed': z.object({ userId: z.string() }),
+                    'checkout.abandoned': z.object({ userId: z.string() }),
+                }),
+                setup: () => okAsync({}),
+                createEndpoint: () => {
+                    return okAsync({
+                        handle: createEndpointHandle(
+                            'handle-0',
+                        )._unsafeUnwrap(),
+                    })
+                },
+                readEndpoint: () => {
+                    return okAsync({
+                        relativeUrl:
+                            createRelativeUrl('/hooks')._unsafeUnwrap(),
+                        events: [],
+                        config: {
+                            fields: [],
+                        },
+                    })
+                },
+                updateEndpoint: () => {
+                    return okAsync()
+                },
+                deleteEndpoint: () => {
+                    return okAsync()
+                },
+                indexEndpoints: () => {
+                    return ResultAsync.fromSafePromise(
+                        Promise.resolve(new Map()),
+                    )
+                },
+            })
+        }
+        expect(f).toThrow({
+            name: 'ProviderFeaturesMismatchError',
+            message:
+                'features.requiresSigningSecret is true, but validateRequestSignature is not defined',
+        })
     })
 })

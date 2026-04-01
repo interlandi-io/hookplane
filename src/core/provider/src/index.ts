@@ -1,14 +1,7 @@
 import {
     Provider,
+    ProviderFeatures,
     EventDefinition,
-    EndpointIndex,
-    EndpointState,
-    CreateEndpointParams,
-    ReadEndpointParams,
-    UpdateEndpointParams,
-    DeleteEndpointParams,
-    IndexEndpointsParams,
-    ValidateRequestSignatureParams,
     ProviderError,
     RequestPayloadSchemaValidationError,
 } from '@hookplane/core'
@@ -70,64 +63,60 @@ type ProviderDescriptor<
 > = {
     readonly name: string
     readonly events: Record<TEventType, EventDefinition<unknown>>
+    readonly features?: ProviderFeatures
 
     setup(
         providerConfig: TProviderConfig,
     ): ResultAsync<TProviderState, ProviderError>
 
-    createEndpoint(
-        params: CreateEndpointParams<
-            TProviderState,
-            TProviderConfig,
-            TEventType,
-            TEndpointConfig
-        >,
-    ): ResultAsync<void, ProviderError>
+    createEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['createEndpoint']
 
-    readEndpoint(
-        params: ReadEndpointParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<
-        EndpointState<
-            Provider<
-                TEventType,
-                TProviderConfig,
-                TEndpointConfig,
-                TProviderState
-            >
-        >,
-        ProviderError
-    >
+    readEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['readEndpoint']
 
-    updateEndpoint(
-        params: UpdateEndpointParams<
-            TProviderState,
-            TProviderConfig,
-            TEndpointConfig,
-            TEventType
-        >,
-    ): ResultAsync<void, ProviderError>
+    updateEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['updateEndpoint']
 
-    deleteEndpoint(
-        params: DeleteEndpointParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<void, ProviderError>
+    deleteEndpoint: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['deleteEndpoint']
 
-    indexEndpoints(
-        params: IndexEndpointsParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<
-        EndpointIndex<
-            Provider<
-                TEventType,
-                TProviderConfig,
-                TEndpointConfig,
-                TProviderState
-            >
-        >,
-        ProviderError
-    >
+    indexEndpoints: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['indexEndpoints']
 
-    validateRequestSignature?(
-        params: ValidateRequestSignatureParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<void, ProviderError>
+    validateRequestSignature?: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['validateRequestSignature']
+}
+
+export type ProviderDescriptionError = ProviderFeaturesMismatchError
+
+export interface ProviderFeaturesMismatchError extends Error {
+    name: 'ProviderFeaturesMismatchError'
+    message: string
 }
 
 /**
@@ -145,6 +134,10 @@ type ProviderDescriptor<
  *   indexEndpoints: async ({ providerConfig }) => { ... },
  *   // ... other methods
  * })
+ *
+ * @throws `ProviderDescriptionError`
+ * @throws `ProviderFeatureMismatchError`
+ *  - if `features.requiresSigningSecret` is `true`, but `validateRequestSignature` is not defined
  *
  * const provider = myProvider({ apiKey: 'xxx' })
  * ```
@@ -168,6 +161,18 @@ function describeProvider<
     ProviderError
 > {
     const { events, ..._desc } = desc
+
+    if (
+        desc.features?.requiresSigningSecret &&
+        desc.validateRequestSignature === undefined
+    ) {
+        // We throw instead of using neverthrow b/c this touches the public API boundary.
+        throw {
+            name: 'ProviderFeaturesMismatchError',
+            message:
+                'features.requiresSigningSecret is true, but validateRequestSignature is not defined',
+        } satisfies ProviderFeaturesMismatchError
+    }
 
     return (config: TProviderConfig) =>
         desc.setup(config).map(
