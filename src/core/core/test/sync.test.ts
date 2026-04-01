@@ -37,7 +37,9 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
             events,
             config: endpointConfig,
         })
-        return okAsync()
+        return okAsync({
+            handle,
+        })
     },
     readEndpoint() {
         throw ''

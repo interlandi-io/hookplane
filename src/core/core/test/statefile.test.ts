@@ -27,7 +27,9 @@ function createMockProvider(name: string, events: string[]): Provider {
         state: {},
         events: eventDefs as Provider['events'],
         setup: () => okAsync({}),
-        createEndpoint: () => okAsync(),
+        createEndpoint: () => {
+            throw new Error('Function not implemented.')
+        },
         readEndpoint: () => {
             return okAsync({
                 relativeUrl: createRelativeUrl('/webhook')._unsafeUnwrap(),

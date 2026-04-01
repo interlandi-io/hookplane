@@ -79,7 +79,7 @@ interface Provider<
             TEventType,
             TEndpointConfig
         >,
-    ): ResultAsync<void, ProviderError>
+    ): ResultAsync<CreateEndpointReturn, ProviderError>
 
     /**
      * Get an Endpoint from the Provider.
@@ -219,8 +219,16 @@ type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
     headers: Record<string, string>
 }
 
-type CreateEndpointResponse = {
-    endpointHandle: EndpointHandle
+type CreateEndpointReturn = {
+    /**
+     * @see EndpointHandle
+     */
+    handle: EndpointHandle
+
+    /**
+     * The signing secret for the created endpoint.
+     * Must be present if `Provider.features.requiresSigningSecret` is `true`
+     */
     signingSecret?: string
 }
 
@@ -381,7 +389,7 @@ export {
     type DeleteEndpointParams,
     type IndexEndpointsParams,
     type ValidateRequestSignatureParams,
-    type CreateEndpointResponse,
+    type CreateEndpointReturn,
     type EndpointHandle,
     type EndpointIndex,
     type EventDefinition,

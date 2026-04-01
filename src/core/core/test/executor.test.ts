@@ -41,7 +41,9 @@ const MockProvider: Provider<
             `handle-${handleCounter++}`,
         )._unsafeUnwrap()
         endpoints.set(handle, { url, events, config: endpointConfig })
-        return okAsync()
+        return okAsync({
+            handle,
+        })
     },
     readEndpoint({ handle }) {
         const endpoint = endpoints.get(handle)
