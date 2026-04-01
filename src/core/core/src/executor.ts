@@ -9,7 +9,12 @@
  */
 import { ok, err, Result, ResultAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan'
-import { Provider, composeEndpointUrl, BaseUrl } from './provider'
+import {
+    Provider,
+    composeEndpointUrl,
+    BaseUrl,
+    CreateEndpointReturn,
+} from './provider'
 import { ProviderSet } from './provider-set'
 
 /**
@@ -44,8 +49,16 @@ type ExecutorState<P extends ProviderSet> = {
 type StepState =
     | { status: 'pending' }
     | { status: 'inFlight' }
-    | { status: 'success' }
+    | { status: 'success'; result: StepResult }
     | { status: 'failure'; error: DispatchError }
+
+/**
+ * The result of a step completed successfully.
+ */
+type StepResult =
+    | { kind: 'create'; value: CreateEndpointReturn }
+    | { kind: 'delete' }
+    | { kind: 'update' }
 
 type ExecuteFn<P extends ProviderSet> = (
     plan: Plan<P>,
@@ -63,7 +76,7 @@ type DispatchFn<P extends Provider> = (
     provider: P,
     stepId: StepId,
     step: Step<P>,
-) => ResultAsync<void, DispatchError>
+) => ResultAsync<StepResult, DispatchError>
 
 type ExecutorError = EmptyPlanError
 
@@ -218,8 +231,8 @@ const parallelExecution =
                     stepId,
                     step as Step<P[keyof P]>,
                 ).match(
-                    () => {
-                        stepStates.set(stepId, { status: 'success' })
+                    (result) => {
+                        stepStates.set(stepId, { status: 'success', result })
                     },
                     (error) => {
                         stepStates.set(stepId, { status: 'failure', error })
@@ -252,7 +265,7 @@ const defaultDispatch =
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,
-    ): ResultAsync<void, DispatchError> => {
+    ): ResultAsync<StepResult, DispatchError> => {
         switch (step.kind) {
             case 'create':
                 return provider
@@ -263,7 +276,13 @@ const defaultDispatch =
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
-                    .map(() => {})
+                    .map(
+                        (ret) =>
+                            ({
+                                kind: 'create',
+                                value: ret,
+                            }) satisfies StepResult,
+                    )
                     .mapErr(
                         (error) =>
                             ({
@@ -281,7 +300,7 @@ const defaultDispatch =
                         providerConfig: provider.config,
                         handle: step.handle,
                     })
-                    .map(() => {})
+                    .map(() => ({ kind: 'delete' }) satisfies StepResult)
                     .mapErr(
                         (error) =>
                             ({
@@ -302,7 +321,7 @@ const defaultDispatch =
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
-                    .map(() => {})
+                    .map(() => ({ kind: 'update' }) satisfies StepResult)
                     .mapErr(
                         (error) =>
                             ({
