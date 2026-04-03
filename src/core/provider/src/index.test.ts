@@ -1,11 +1,16 @@
 import z from 'zod'
-import { okAsync, ResultAsync } from 'neverthrow'
+import { errAsync, ok, okAsync, ResultAsync } from 'neverthrow'
 import {
     createEndpointHandle,
     createRelativeUrl,
     describeProvider,
-    zodEvents,
+    EndpointHandle,
+    EndpointUrl,
+    ProviderError,
 } from '.'
+import {
+    zodEvents
+} from './zod'
 
 type ProviderEvent =
     | 'checkout.started'
@@ -59,25 +64,51 @@ const Provider = describeProvider<
     indexEndpoints: () => {
         return ResultAsync.fromSafePromise(Promise.resolve(new Map()))
     },
+    processRequest: ({ request: req }) => {
+        const event = req.headers.get('event_type')
+        return event ? okAsync({
+            event: event as ProviderEvent,
+            data: {},
+        }) : errAsync({} as ProviderError)
+    },
+    mockRequest: ({ url, event }) => {
+        const request = new Request(url, {
+            headers: {
+                'event_type': event,
+            }
+        })
+        return ok({
+            request
+        })
+    },
 })
 
 describe('provider', () => {
     it('mocks', async () => {
-        const provider = await Provider({ slug: '', apiKey: '' })
-        expect(provider.isOk()).toBe(true)
+        const result = await Provider({ slug: '', apiKey: '' })
+        expect(result.isOk()).toBe(true)
+        const provider = result._unsafeUnwrap()
 
-        const event = provider._unsafeUnwrap()!.events['checkout.started']
-        expect(event).toBeDefined()
+        expect(provider.processRequest).toBeDefined()
+        expect(provider.mockRequest).toBeDefined()
 
-        expect(event.mock).toBeDefined()
-        expect(event.parse).toBeDefined()
-
-        const data = event.mock!()
-        const valid = event.parse!(data)
-        expect(valid.isOk()).toBe(true)
+        const valid = provider.mockRequest!({
+            url: 'https://example.com/hooks' as EndpointUrl,
+            event: 'checkout.abandoned',
+            providerState: provider.state,
+            providerConfig: provider.config,
+        })._unsafeUnwrap().request
+        const processed = await provider.processRequest!({ 
+            request: valid,
+            handle: '' as EndpointHandle,
+            providerState: provider.state,
+            providerConfig: provider.config,
+        })
+        expect(processed.isOk()).toBe(true)
+        expect(processed._unsafeUnwrap().event).toEqual('checkout.abandoned')
     })
 
-    it('throws when `features.requiresSigningSecret` is `true`, but `validateRequestSignature` is not defined', () => {
+    it('throws when `features.requiresSigningSecret` is `true`, but `processRequest` is not defined', () => {
         const f = () => {
             describeProvider<
                 ProviderEvent,
@@ -128,7 +159,7 @@ describe('provider', () => {
         expect(f).toThrow({
             name: 'ProviderFeaturesMismatchError',
             message:
-                'features.requiresSigningSecret is true, but validateRequestSignature is not defined',
+                'features.requiresSigningSecret is true, but processRequest is not defined',
         })
     })
 })
