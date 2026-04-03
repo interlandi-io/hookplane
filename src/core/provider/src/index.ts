@@ -159,6 +159,7 @@ export type {
     EndpointState,
     EndpointUrl,
     EndpointIndex,
+    PayloadOf,
     BaseUrl,
     RelativeUrl,
     EventDefinition,

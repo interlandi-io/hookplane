@@ -79,6 +79,7 @@ const createStripeProvider = describeProvider<
             type: 'webhook_endpoint',
             event_payload: endpointConfig.eventPayload as 'thin' | 'snapshot',
             enabled_events: events,
+            include: ['webhook_endpoint.signing_secret'],
             webhook_endpoint: {
                 url,
             },
@@ -180,8 +181,9 @@ const createStripeProvider = describeProvider<
                     )
                 }
                 const pathname = new URL(endpointUrl).pathname
+                const relativeUrl = createRelativeUrl(pathname)._unsafeUnwrap() // Throw b/c in fromPromise
                 index.set(createEndpointHandle(dest.id), {
-                    relativeUrl: createRelativeUrl(pathname),
+                    relativeUrl,
                     events: dest.enabled_events as StripeEvent[],
                     config: {
                         name: dest.name,
@@ -244,7 +246,7 @@ function getInvalidEvents(events: string[]): string[] {
             invalid.push(event)
         }
     }
-    return invalid
+    return []
 }
 
 export { createStripeProvider }

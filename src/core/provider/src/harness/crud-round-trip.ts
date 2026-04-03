@@ -20,7 +20,7 @@ export function crudRoundTrip<
         testBaseUrl,
         testRelativeUrl,
     )._unsafeUnwrap()
-    const testEvents = Object.keys(provider.events)
+    const testEvents = Array.from(Object.keys(provider.events))
 
     const updatedRelativeUrl =
         createRelativeUrl('/updated-webhook')._unsafeUnwrap()
@@ -35,6 +35,7 @@ export function crudRoundTrip<
             providerConfig: provider.config,
         })
         if (logResults) {
+            console.log('Step 1')
             console.log(indexResult)
         }
         expect(indexResult.isOk()).toBe(true)
@@ -51,9 +52,12 @@ export function crudRoundTrip<
             endpointConfig: testConfig,
         })
         if (logResults) {
+            console.log('Step 2')
             console.log(createResult)
         }
         expect(createResult.isOk()).toBe(true)
+        const handle = createResult._unsafeUnwrap().handle
+        createdHandle = handle
     })
 
     it('3) Index returns a single endpoint', async () => {
@@ -62,6 +66,7 @@ export function crudRoundTrip<
             providerConfig: provider.config,
         })
         if (logResults) {
+            console.log('Step 3')
             console.log(indexResult)
         }
         expect(indexResult.isOk()).toBe(true)
@@ -70,13 +75,11 @@ export function crudRoundTrip<
         expect(index.size).toBe(1)
         const entries = Array.from(index.entries())
         const firstEntry = entries[0]!
-        const [handle, state] = firstEntry
+        const [, state] = firstEntry
 
         expect(state.relativeUrl).toBe(testRelativeUrl)
         expect(state.events).toEqual(testEvents)
         expect(state.config).toEqual(testConfig)
-
-        createdHandle = handle
     })
 
     it('4) Reads the existing endpoint correctly', async () => {
@@ -86,6 +89,7 @@ export function crudRoundTrip<
             handle: createdHandle,
         })
         if (logResults) {
+            console.log('Step 4')
             console.log(readResult)
         }
         expect(readResult.isOk()).toBe(true)
@@ -105,6 +109,7 @@ export function crudRoundTrip<
             endpointConfig: testConfig,
         })
         if (logResults) {
+            console.log('Step 5')
             console.log(updateResult)
         }
         expect(updateResult.isOk()).toBe(true)
@@ -117,6 +122,7 @@ export function crudRoundTrip<
             handle: createdHandle,
         })
         if (logResults) {
+            console.log('Step 6')
             console.log(readResult)
         }
         expect(readResult.isOk()).toBe(true)
@@ -133,6 +139,7 @@ export function crudRoundTrip<
             handle: createdHandle,
         })
         if (logResults) {
+            console.log('Step 7')
             console.log(deleteResult)
         }
         expect(deleteResult.isOk()).toBe(true)
@@ -144,6 +151,7 @@ export function crudRoundTrip<
             providerConfig: provider.config,
         })
         if (logResults) {
+            console.log('Step 8')
             console.log(indexResult)
         }
         expect(indexResult.isOk()).toBe(true)
