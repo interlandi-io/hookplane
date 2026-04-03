@@ -1,21 +1,11 @@
 import { EventDefinition } from '@hookplane/provider'
 import Stripe from 'stripe'
 
-export type StripeEvent = Exclude<Stripe.Event.Type, DeprecatedEvents>
+export type StripeEvent = Stripe.Event.Type
 export type ObjectOf<E extends StripeEvent> = Extract<
     Stripe.Event,
     { type: E }
 >['data']['object']
-
-type DeprecatedEvents =
-    | 'customer.card.created'
-    | 'customer.bank_account.created'
-    | 'customer.card.deleted'
-    | 'customer.bank_account.deleted'
-    | 'customer.card.updated'
-    | 'customer.bank_account.updated'
-    | 'payment_method.card_automatically_updated'
-    | 'transfer.canceled'
 
 // Generated using ts_ls 'Generate missing properties' code action and vim magic
 export const StripeEvents: {
