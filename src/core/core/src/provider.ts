@@ -118,12 +118,26 @@ interface Provider<
     ): ResultAsync<EndpointIndex<this>, ProviderError>
 
     /**
-     * Validate the cryptographic signature of a request.
-     * @returns void, or more importantly, a possible `RequestSignatureValidationError`
+     * Performs any or all of the following:
+     * 1) Validate the schema of an incoming request.
+     * 2) Validate the cryptographic signature of an incoming request.
+     * 3) Extract necessary data from the request.
+     *
+     * @returns a `ProcessRequestReturn` if both the schema and request
+     * validation are scucessful, else an error.
      */
-    validateRequestSignature?(
-        params: ValidateRequestSignatureParams<TProviderState, TProviderConfig>,
-    ): ResultAsync<void, ProviderError>
+    processRequest?(
+        params: ProcessRequestParams<TProviderState, TProviderConfig>,
+    ): ResultAsync<ProcessRequestReturn<TEventType>, ProviderError>
+
+    /**
+     * Generates a mock request with a valid schema & signature for an event.
+     *
+     * @returns a `MockRequestReturn`
+     */
+    mockRequest?<TEventType>(
+        params: MockRequestParams<TProviderState, TProviderConfig, TEventType>
+    ): Result<MockRequestReturn, ProviderError>
 }
 
 /**
@@ -202,7 +216,7 @@ type DeleteEndpointParams<S, C> = EndpointOperationParams<S, C> & {
 
 type IndexEndpointsParams<S, C> = EndpointOperationParams<S, C>
 
-type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
+type ProcessRequestParams<S, C> = EndpointOperationParams<S, C> & {
     /**
      * @see `EndpointHandle`
      */
@@ -217,6 +231,25 @@ type ValidateRequestSignatureParams<S, C> = EndpointOperationParams<S, C> & {
      * The request headers.
      */
     headers: Record<string, string>
+
+    /**
+     * The signing secret for this endpoint.
+     * Will be defined if `provider.features.requiresSigningSecret` is true.
+     */
+    signingSecret?: string
+}
+
+type MockRequestParams<S, C, TEventType> = EndpointOperationParams<S, C> & {
+    /**
+     * The event to mock.
+     */
+    event: TEventType
+
+    /**
+     * The signing secret for this endpoint.
+     * Will be defined if `provider.features.requiresSigningSecret` is true.
+     */
+    signingSecret?: string
 }
 
 type CreateEndpointReturn = {
@@ -231,6 +264,23 @@ type CreateEndpointReturn = {
      */
     signingSecret?: string
 }
+
+type ProcessRequestReturn<TEventType> = {
+    /**
+     * The event type of the incoming request.
+     */
+    event: TEventType 
+
+    /**
+     * The validated data of the incoming request.
+     */
+    data: unknown
+}
+
+type MockRequestReturn = {
+    request: Request
+}
+
 
 type ProviderError =
     | AuthError
@@ -330,17 +380,7 @@ type EndpointIndex<P extends Provider> = Map<EndpointHandle, EndpointState<P>>
  * @generic T Event payload type
  */
 type EventDefinition<T> = {
-    /**
-     * Parse raw payload data into the event type.
-     * @returns The parsed payload, or an Error if validation fails.
-     */
-    parse?: (data: unknown) => Result<T, RequestPayloadSchemaValidationError>
-
-    /**
-     * Generate a mock payload for this event.
-     * @returns A mock payload matching the event type.
-     */
-    mock?: () => T
+    __phantom?: T,
 }
 
 /**
@@ -388,8 +428,9 @@ export {
     type UpdateEndpointParams,
     type DeleteEndpointParams,
     type IndexEndpointsParams,
-    type ValidateRequestSignatureParams,
+    type ProcessRequestParams,
     type CreateEndpointReturn,
+    type ProcessRequestReturn,
     type EndpointHandle,
     type EndpointIndex,
     type EventDefinition,
