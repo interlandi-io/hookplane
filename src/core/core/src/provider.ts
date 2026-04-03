@@ -136,7 +136,7 @@ interface Provider<
      * @returns a `MockRequestReturn`
      */
     mockRequest?(
-        params: MockRequestParams<TProviderState, TProviderConfig, TEventType>
+        params: MockRequestParams<TProviderState, TProviderConfig, TEventType>,
     ): Result<MockRequestReturn, ProviderError>
 }
 
@@ -225,7 +225,7 @@ type ProcessRequestParams<S, C> = EndpointOperationParams<S, C> & {
     /**
      * The raw request.
      */
-    request: Request 
+    request: Request
 
     /**
      * The signing secret for this endpoint.
@@ -269,7 +269,7 @@ type ProcessRequestReturn<TEventType> = {
     /**
      * The event type of the incoming request.
      */
-    event: TEventType 
+    event: TEventType
 
     /**
      * The validated data of the incoming request.
@@ -280,7 +280,6 @@ type ProcessRequestReturn<TEventType> = {
 type MockRequestReturn = {
     request: Request
 }
-
 
 type ProviderError =
     | AuthError
@@ -380,7 +379,7 @@ type EndpointIndex<P extends Provider> = Map<EndpointHandle, EndpointState<P>>
  * @generic T Event payload type
  */
 type EventDefinition<T> = {
-    __phantom?: T,
+    __phantom?: T
 }
 
 /**

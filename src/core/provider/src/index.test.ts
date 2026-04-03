@@ -8,9 +8,7 @@ import {
     EndpointUrl,
     ProviderError,
 } from '.'
-import {
-    zodEvents
-} from './zod'
+import { zodEvents } from './zod'
 
 type ProviderEvent =
     | 'checkout.started'
@@ -66,19 +64,21 @@ const Provider = describeProvider<
     },
     processRequest: ({ request: req }) => {
         const event = req.headers.get('event_type')
-        return event ? okAsync({
-            event: event as ProviderEvent,
-            data: {},
-        }) : errAsync({} as ProviderError)
+        return event
+            ? okAsync({
+                  event: event as ProviderEvent,
+                  data: {},
+              })
+            : errAsync({} as ProviderError)
     },
     mockRequest: ({ url, event }) => {
         const request = new Request(url, {
             headers: {
-                'event_type': event,
-            }
+                event_type: event,
+            },
         })
         return ok({
-            request
+            request,
         })
     },
 })
@@ -98,7 +98,7 @@ describe('provider', () => {
             providerState: provider.state,
             providerConfig: provider.config,
         })._unsafeUnwrap().request
-        const processed = await provider.processRequest!({ 
+        const processed = await provider.processRequest!({
             request: valid,
             handle: '' as EndpointHandle,
             providerState: provider.state,

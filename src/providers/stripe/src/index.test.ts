@@ -6,7 +6,6 @@ const apiKey = process.env['STRIPE_API_KEY']!
 describe.skip('CRUD Round Trip: Stripe', async () => {
     const Stripe = await createStripeProvider({
         apiKey,
-        webhookSecret: 'TODO',
     })
 
     crudRoundTrip(

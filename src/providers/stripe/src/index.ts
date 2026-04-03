@@ -1,12 +1,12 @@
 import {
     describeProvider,
-    zodEvents,
     createEndpointHandle,
     createRelativeUrl,
     ProviderError,
     UnknownError,
     RequestSignatureValidationError,
     InvalidResponseError,
+    ProcessRequestReturn,
 } from '@hookplane/provider'
 import { okAsync, errAsync, ResultAsync, err, ok } from 'neverthrow'
 import Stripe from 'stripe'
@@ -15,7 +15,6 @@ import { StripeEvents, type StripeEvent } from './events'
 type StripeProviderConfig = {
     apiKey: string
     config?: Stripe.StripeConfig
-    webhookSecret: string
 }
 
 type StripeEndpointConfig = {
@@ -27,7 +26,6 @@ type StripeEndpointConfig = {
 
 type StripeProviderState = {
     stripe: Stripe
-    webhookSecret: string
 }
 
 // TODO: map these to the actual Provider error types
@@ -60,13 +58,13 @@ const createStripeProvider = describeProvider<
     StripeProviderState
 >({
     name: 'stripe',
-    events: zodEvents(StripeEvents),
+    events: StripeEvents,
     features: {
         requiresSigningSecret: true,
     },
-    setup: ({ apiKey, config, webhookSecret }) => {
+    setup: ({ apiKey, config }) => {
         const stripe = new Stripe(apiKey, config)
-        return okAsync({ stripe, webhookSecret })
+        return okAsync({ stripe })
     },
     createEndpoint: ({
         url,
@@ -197,13 +195,13 @@ const createStripeProvider = describeProvider<
             toProviderError,
         ).map(() => index)
     },
-    validateRequestSignature: ({
-        body,
-        headers,
+    processRequest: ({
+        request,
         handle,
-        providerState: { stripe, webhookSecret },
+        signingSecret,
+        providerState: { stripe },
     }) => {
-        const signature = headers['stripe-signature']
+        const signature = request.headers.get('stripe-signature')
         if (!signature) {
             return errAsync(
                 toSignatureError(
@@ -214,15 +212,28 @@ const createStripeProvider = describeProvider<
             )
         }
 
-        try {
-            stripe.webhooks.constructEvent(body, signature, webhookSecret)
-            return okAsync(undefined)
-        } catch (e) {
-            const error = e instanceof Error ? e : new Error(String(e))
-            return errAsync(
-                toSignatureError('invalid stripe signature', error, handle),
-            )
-        }
+        return ResultAsync.fromPromise(
+            (async () => {
+                const body = await request.text()
+                const event = stripe.webhooks.constructEvent(
+                    body,
+                    signature,
+                    signingSecret!,
+                )
+                return {
+                    event: event.type,
+                    data: event.object,
+                } satisfies ProcessRequestReturn<StripeEvent>
+            })(),
+            (e) => {
+                const error = e instanceof Error ? e : new Error(String(e))
+                return toSignatureError(
+                    'invalid stripe signature',
+                    error,
+                    handle,
+                )
+            },
+        )
     },
 })
 
