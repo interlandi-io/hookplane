@@ -181,8 +181,9 @@ const createStripeProvider = describeProvider<
                     )
                 }
                 const pathname = new URL(endpointUrl).pathname
+                const endpointId = createEndpointHandle(dest.id)._unsafeUnwrap() // Throw b/c in fromPromise
                 const relativeUrl = createRelativeUrl(pathname)._unsafeUnwrap() // Throw b/c in fromPromise
-                index.set(createEndpointHandle(dest.id), {
+                index.set(endpointId, {
                     relativeUrl,
                     events: dest.enabled_events as StripeEvent[],
                     config: {
