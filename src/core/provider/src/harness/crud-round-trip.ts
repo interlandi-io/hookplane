@@ -8,10 +8,16 @@ import {
     EndpointConfigOf,
 } from '@hookplane/core'
 
-export function crudRoundTrip<
+export async function crudRoundTrip<
     P extends Provider<string, unknown, C, unknown>,
     C,
->(provider: P, testConfig: EndpointConfigOf<P>, logResults: boolean = false) {
+>(
+    getProvider: () => Promise<Provider<string, unknown, C, unknown>>,
+    testConfig: EndpointConfigOf<P>,
+) {
+    // Use a getter so errors propagate
+    const provider = await getProvider()
+
     let createdHandle: EndpointHandle
 
     const testBaseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
@@ -34,10 +40,6 @@ export function crudRoundTrip<
             providerState: provider.state,
             providerConfig: provider.config,
         })
-        if (logResults) {
-            console.log('Step 1')
-            console.log(indexResult)
-        }
         expect(indexResult.isOk()).toBe(true)
         const index = indexResult._unsafeUnwrap()
         expect(index.size).toBe(0)
@@ -51,10 +53,6 @@ export function crudRoundTrip<
             events: testEvents,
             endpointConfig: testConfig,
         })
-        if (logResults) {
-            console.log('Step 2')
-            console.log(createResult)
-        }
         expect(createResult.isOk()).toBe(true)
         const handle = createResult._unsafeUnwrap().handle
         createdHandle = handle
@@ -65,10 +63,6 @@ export function crudRoundTrip<
             providerState: provider.state,
             providerConfig: provider.config,
         })
-        if (logResults) {
-            console.log('Step 3')
-            console.log(indexResult)
-        }
         expect(indexResult.isOk()).toBe(true)
         const index = indexResult._unsafeUnwrap()
 
@@ -88,10 +82,6 @@ export function crudRoundTrip<
             providerConfig: provider.config,
             handle: createdHandle,
         })
-        if (logResults) {
-            console.log('Step 4')
-            console.log(readResult)
-        }
         expect(readResult.isOk()).toBe(true)
         const state = readResult._unsafeUnwrap()
         expect(testRelativeUrl).toBe(state.relativeUrl)
@@ -108,10 +98,6 @@ export function crudRoundTrip<
             events: testEvents,
             endpointConfig: testConfig,
         })
-        if (logResults) {
-            console.log('Step 5')
-            console.log(updateResult)
-        }
         expect(updateResult.isOk()).toBe(true)
     })
 
@@ -121,10 +107,6 @@ export function crudRoundTrip<
             providerConfig: provider.config,
             handle: createdHandle,
         })
-        if (logResults) {
-            console.log('Step 6')
-            console.log(readResult)
-        }
         expect(readResult.isOk()).toBe(true)
         const state = readResult._unsafeUnwrap()
         expect(updatedRelativeUrl).toBe(state.relativeUrl)
@@ -138,10 +120,6 @@ export function crudRoundTrip<
             providerConfig: provider.config,
             handle: createdHandle,
         })
-        if (logResults) {
-            console.log('Step 7')
-            console.log(deleteResult)
-        }
         expect(deleteResult.isOk()).toBe(true)
     })
 
@@ -150,10 +128,6 @@ export function crudRoundTrip<
             providerState: provider.state,
             providerConfig: provider.config,
         })
-        if (logResults) {
-            console.log('Step 8')
-            console.log(indexResult)
-        }
         expect(indexResult.isOk()).toBe(true)
         const index = indexResult._unsafeUnwrap()
         expect(index.size).toBe(0)
