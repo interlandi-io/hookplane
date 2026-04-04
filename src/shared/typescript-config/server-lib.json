@@ -4,6 +4,6 @@
     "compilerOptions": {
         "types": ["node", "vitest/globals"],
         "strictNullChecks": true,
-        "lib": ["DOM", "ESNext", "DOM.Iterable"]
+        "lib": ["DOM", "ESNext"]
     }
 }
