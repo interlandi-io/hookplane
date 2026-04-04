@@ -1,1005 +1,665 @@
-import z from 'zod'
+import { EventDefinition } from '@hookplane/provider'
+import Stripe from 'stripe'
 
-const id = z.string()
-const created = z.number().nonnegative()
-const apiVersion = z.string().nullish()
-const livemode = z.boolean()
-const pending_webhooks = z.int().nonnegative()
+export type StripeEvent = Stripe.Event.Type
+export type ObjectOf<E extends StripeEvent> = Extract<
+    Stripe.Event,
+    { type: E }
+>['data']['object']
 
-export const StripeEvents = {
-    'account.updated': z.any(),
-    'account.application.deauthorized': z.any(),
-    'account.external_account.created': z.any(),
-    'account.external_account.deleted': z.any(),
-    'account.external_account.updated': z.any(),
-    'application_fee.created': z.any(),
-    'application_fee.refunded': z.any(),
-    'application_fee.refund.updated': z.any(),
-    'balance.available': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('balance.available'),
-        data: z.object({
-            object: z.object({
-                available: z.array(
-                    z.object({
-                        amount: z.number(),
-                        currency: z.string(),
-                    }),
-                ),
-                livemode: z.boolean(),
-                object: z.literal('balance'),
-                pending: z.array(
-                    z.object({
-                        amount: z.number(),
-                        currency: z.string(),
-                    }),
-                ),
-            }),
-        }),
-    }),
-    'billing_portal.configuration.created': z.any(),
-    'billing_portal.configuration.updated': z.any(),
-    'billing_portal.session.created': z.any(),
-    'capability.updated': z.any(),
-    'charge.captured': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('charge.captured'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'charge.dispute.closed': z.any(),
-    'charge.dispute.created': z.any(),
-    'charge.dispute.funds_reinstated': z.any(),
-    'charge.dispute.funds_withdrawn': z.any(),
-    'charge.dispute.updated': z.any(),
-    'charge.expired': z.any(),
-    'charge.failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('charge.failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'charge.pending': z.any(),
-    'charge.refunded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('charge.refunded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'charge.succeeded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('charge.succeeded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'charge.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('charge.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'checkout.session.async_payment_failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('checkout.session.async_payment_failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'checkout.session.async_payment_succeeded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('checkout.session.async_payment_succeeded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'checkout.session.completed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('checkout.session.completed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'checkout.session.expired': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('checkout.session.expired'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'coupon.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('coupon.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'coupon.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('coupon.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'coupon.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('coupon.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'credit_note.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('credit_note.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'credit_note.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('credit_note.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'credit_note.voided': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('credit_note.voided'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.discount.created': z.any(),
-    'customer.discount.deleted': z.any(),
-    'customer.discount.updated': z.any(),
-    'customer.source.created': z.any(),
-    'customer.source.deleted': z.any(),
-    'customer.source.expiring': z.any(),
-    'customer.source.updated': z.any(),
-    'customer.subscription.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.subscription.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.subscription.paused': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.paused'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.subscription.pending_update_applied': z.any(),
-    'customer.subscription.pending_update_expired': z.any(),
-    'customer.subscription.resumed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.resumed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.subscription.trial_will_end': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.trial_will_end'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.subscription.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('customer.subscription.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'customer.tax_id.created': z.any(),
-    'customer.tax_id.deleted': z.any(),
-    'customer.tax_id.updated': z.any(),
-    'customer_cash_balance_transaction.created': z.any(),
-    'file.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('file.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'financial_connections.account.created': z.any(),
-    'financial_connections.account.deactivated': z.any(),
-    'financial_connections.account.disconnected': z.any(),
-    'financial_connections.account.reactivated': z.any(),
-    'financial_connections.account.refreshed_balance': z.any(),
-    'identity.verification_session.canceled': z.any(),
-    'identity.verification_session.created': z.any(),
-    'identity.verification_session.processing': z.any(),
-    'identity.verification_session.requires_input': z.any(),
-    'identity.verification_session.verified': z.any(),
-    'invoice.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.finalization_failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.finalization_failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.finalized': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.finalized'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.marked_uncollectible': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.marked_uncollectible'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.paid': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.paid'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.payment_action_required': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.payment_action_required'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.payment_failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.payment_failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.payment_succeeded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.payment_succeeded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.sent': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.sent'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.upcoming': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.upcoming'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoice.voided': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('invoice.voided'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'invoiceitem.created': z.any(),
-    'invoiceitem.deleted': z.any(),
-    'invoiceitem.updated': z.any(),
-    'issuing_authorization.created': z.any(),
-    'issuing_authorization.request': z.any(),
-    'issuing_authorization.updated': z.any(),
-    'issuing_card.created': z.any(),
-    'issuing_card.updated': z.any(),
-    'issuing_cardholder.created': z.any(),
-    'issuing_cardholder.updated': z.any(),
-    'issuing_dispute.closed': z.any(),
-    'issuing_dispute.created': z.any(),
-    'issuing_dispute.funds_reinstated': z.any(),
-    'issuing_dispute.submitted': z.any(),
-    'issuing_dispute.updated': z.any(),
-    'issuing_settlement.created': z.any(),
-    'issuing_settlement.updated': z.any(),
-    'issuing_transaction.created': z.any(),
-    'issuing_transaction.updated': z.any(),
-    'mandate.updated': z.any(),
-    'order.created': z.any(),
-    'order.payment_failed': z.any(),
-    'order.payment_succeeded': z.any(),
-    'order.updated': z.any(),
-    'order_return.created': z.any(),
-    'payment_intent.amount_capturable_updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.amount_capturable_updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.canceled': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.canceled'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.payment_failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.payment_failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.processing': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.processing'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.requires_action': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.requires_action'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_intent.succeeded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_intent.succeeded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_link.created': z.any(),
-    'payment_link.updated': z.any(),
-    'payment_method.attached': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_method.attached'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_method.automatically_updated': z.any(),
-    'payment_method.detached': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_method.detached'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payment_method.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payment_method.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payout.canceled': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payout.canceled'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payout.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payout.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payout.failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payout.failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payout.paid': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payout.paid'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'payout.reconciliation_completed': z.any(),
-    'payout.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('payout.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'person.created': z.any(),
-    'person.deleted': z.any(),
-    'person.updated': z.any(),
-    'plan.created': z.any(),
-    'plan.deleted': z.any(),
-    'plan.updated': z.any(),
-    'price.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('price.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'price.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('price.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'price.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('price.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'product.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('product.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'product.deleted': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('product.deleted'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'product.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('product.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'promotion_code.created': z.any(),
-    'promotion_code.updated': z.any(),
-    'quote.accepted': z.any(),
-    'quote.canceled': z.any(),
-    'quote.created': z.any(),
-    'quote.finalized': z.any(),
-    'quote.phase_ended': z.any(),
-    'quote.phase_started': z.any(),
-    'quote.expired': z.any(),
-    'quote.updated': z.any(),
-    'radar.early_fraud_warning.created': z.any(),
-    'radar.early_fraud_warning.updated': z.any(),
-    'refund.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('refund.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'refund.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('refund.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'reporting.report_run.failed': z.any(),
-    'reporting.report_run.succeeded': z.any(),
-    'review.closed': z.any(),
-    'review.opened': z.any(),
-    'setup_intent.canceled': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('setup_intent.canceled'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'setup_intent.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('setup_intent.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'setup_intent.requires_action': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('setup_intent.requires_action'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'setup_intent.setup_failed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('setup_intent.setup_failed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'setup_intent.succeeded': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('setup_intent.succeeded'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'sigma.scheduled_query_run.created': z.any(),
-    'sku.created': z.any(),
-    'sku.deleted': z.any(),
-    'sku.updated': z.any(),
-    'source.canceled': z.any(),
-    'source.chargeable': z.any(),
-    'source.failed': z.any(),
-    'source.mandate_notification': z.any(),
-    'source.refund_attributes_required': z.any(),
-    'source.transaction.created': z.any(),
-    'source.transaction.updated': z.any(),
-    'subscription_schedule.aborted': z.any(),
-    'subscription_schedule.canceled': z.any(),
-    'subscription_schedule.completed': z.any(),
-    'subscription_schedule.created': z.any(),
-    'subscription_schedule.expiring': z.any(),
-    'subscription_schedule.released': z.any(),
-    'subscription_schedule.updated': z.any(),
-    'tax.calculation.created': z.any(),
-    'tax.settings.updated': z.any(),
-    'terminal.reader.action_succeeded': z.any(),
-    'terminal.reader.action_failed': z.any(),
-    'terminal.connection_token.created': z.any(),
-    'test_helpers.test_clock.advancing': z.any(),
-    'test_helpers.test_clock.created': z.any(),
-    'test_helpers.test_clock.deleted': z.any(),
-    'test_helpers.test_clock.idle': z.any(),
-    'topup.created': z.any(),
-    'topup.failed': z.any(),
-    'topup.reversed': z.any(),
-    'topup.succeeded': z.any(),
-    'transfer.created': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('transfer.created'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'transfer.reversed': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('transfer.reversed'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'transfer.updated': z.object({
-        id,
-        object: z.literal('event'),
-        api_version: apiVersion,
-        created,
-        livemode,
-        pending_webhooks,
-        type: z.literal('transfer.updated'),
-        data: z.object({
-            object: z.any(),
-        }),
-    }),
-    'treasury.credit_reversal.created': z.any(),
-    'treasury.credit_reversal.posted': z.any(),
-    'treasury.debit_reversal.completed': z.any(),
-    'treasury.debit_reversal.created': z.any(),
-    'treasury.debit_reversal.initial_credit_granted': z.any(),
-    'treasury.financial_account.created': z.any(),
-    'treasury.financial_account.closed': z.any(),
-    'treasury.financial_account.features_status_updated': z.any(),
-    'treasury.inbound_transfer.canceled': z.any(),
-    'treasury.inbound_transfer.created': z.any(),
-    'treasury.inbound_transfer.failed': z.any(),
-    'treasury.inbound_transfer.succeeded': z.any(),
-    'treasury.outbound_account_credit_reversed': z.any(),
-    'treasury.outbound_account_credits.canceled': z.any(),
-    'treasury.outbound_account_credits.created': z.any(),
-    'treasury.outbound_account_credits.failed': z.any(),
-    'treasury.outbound_account_debit_reversed': z.any(),
-    'treasury.outbound_account_debits.canceled': z.any(),
-    'treasury.outbound_account_debits.created': z.any(),
-    'treasury.outbound_account_debits.failed': z.any(),
-    'treasury.outbound_payment.canceled': z.any(),
-    'treasury.outbound_payment.created': z.any(),
-    'treasury.outbound_payment.expected_arrival_date_updated': z.any(),
-    'treasury.outbound_payment.failed': z.any(),
-    'treasury.outbound_payment.posted': z.any(),
-    'treasury.outbound_payment.returned': z.any(),
+// Generated using ts_ls 'Generate missing properties' code action and vim magic
+export const StripeEvents: {
+    [K in StripeEvent]: EventDefinition<ObjectOf<K>>
+} = {
+    'account.application.authorized': {} as EventDefinition<
+        ObjectOf<'account.application.authorized'>
+    >,
+    'account.application.deauthorized': {} as EventDefinition<
+        ObjectOf<'account.application.deauthorized'>
+    >,
+    'account.external_account.created': {} as EventDefinition<
+        ObjectOf<'account.external_account.created'>
+    >,
+    'account.external_account.deleted': {} as EventDefinition<
+        ObjectOf<'account.external_account.deleted'>
+    >,
+    'account.external_account.updated': {} as EventDefinition<
+        ObjectOf<'account.external_account.updated'>
+    >,
+    'account.updated': {} as EventDefinition<ObjectOf<'account.updated'>>,
+    'application_fee.created': {} as EventDefinition<
+        ObjectOf<'application_fee.created'>
+    >,
+    'application_fee.refund.updated': {} as EventDefinition<
+        ObjectOf<'application_fee.refund.updated'>
+    >,
+    'application_fee.refunded': {} as EventDefinition<
+        ObjectOf<'application_fee.refunded'>
+    >,
+    'balance.available': {} as EventDefinition<ObjectOf<'balance.available'>>,
+    'balance_settings.updated': {} as EventDefinition<
+        ObjectOf<'balance_settings.updated'>
+    >,
+    'billing.alert.triggered': {} as EventDefinition<
+        ObjectOf<'billing.alert.triggered'>
+    >,
+    'billing.credit_grant.created': {} as EventDefinition<
+        ObjectOf<'billing.credit_grant.created'>
+    >,
+    'billing_portal.configuration.created': {} as EventDefinition<
+        ObjectOf<'billing_portal.configuration.created'>
+    >,
+    'billing_portal.configuration.updated': {} as EventDefinition<
+        ObjectOf<'billing_portal.configuration.updated'>
+    >,
+    'billing_portal.session.created': {} as EventDefinition<
+        ObjectOf<'billing_portal.session.created'>
+    >,
+    'capability.updated': {} as EventDefinition<ObjectOf<'capability.updated'>>,
+    'cash_balance.funds_available': {} as EventDefinition<
+        ObjectOf<'cash_balance.funds_available'>
+    >,
+    'charge.captured': {} as EventDefinition<ObjectOf<'charge.captured'>>,
+    'charge.dispute.closed': {} as EventDefinition<
+        ObjectOf<'charge.dispute.closed'>
+    >,
+    'charge.dispute.created': {} as EventDefinition<
+        ObjectOf<'charge.dispute.created'>
+    >,
+    'charge.dispute.funds_reinstated': {} as EventDefinition<
+        ObjectOf<'charge.dispute.funds_reinstated'>
+    >,
+    'charge.dispute.funds_withdrawn': {} as EventDefinition<
+        ObjectOf<'charge.dispute.funds_withdrawn'>
+    >,
+    'charge.dispute.updated': {} as EventDefinition<
+        ObjectOf<'charge.dispute.updated'>
+    >,
+    'charge.expired': {} as EventDefinition<ObjectOf<'charge.expired'>>,
+    'charge.failed': {} as EventDefinition<ObjectOf<'charge.failed'>>,
+    'charge.pending': {} as EventDefinition<ObjectOf<'charge.pending'>>,
+    'charge.refund.updated': {} as EventDefinition<
+        ObjectOf<'charge.refund.updated'>
+    >,
+    'charge.refunded': {} as EventDefinition<ObjectOf<'charge.refunded'>>,
+    'charge.succeeded': {} as EventDefinition<ObjectOf<'charge.succeeded'>>,
+    'charge.updated': {} as EventDefinition<ObjectOf<'charge.updated'>>,
+    'checkout.session.async_payment_failed': {} as EventDefinition<
+        ObjectOf<'checkout.session.async_payment_failed'>
+    >,
+    'checkout.session.async_payment_succeeded': {} as EventDefinition<
+        ObjectOf<'checkout.session.async_payment_succeeded'>
+    >,
+    'checkout.session.completed': {} as EventDefinition<
+        ObjectOf<'checkout.session.completed'>
+    >,
+    'checkout.session.expired': {} as EventDefinition<
+        ObjectOf<'checkout.session.expired'>
+    >,
+    'climate.order.canceled': {} as EventDefinition<
+        ObjectOf<'climate.order.canceled'>
+    >,
+    'climate.order.created': {} as EventDefinition<
+        ObjectOf<'climate.order.created'>
+    >,
+    'climate.order.delayed': {} as EventDefinition<
+        ObjectOf<'climate.order.delayed'>
+    >,
+    'climate.order.delivered': {} as EventDefinition<
+        ObjectOf<'climate.order.delivered'>
+    >,
+    'climate.order.product_substituted': {} as EventDefinition<
+        ObjectOf<'climate.order.product_substituted'>
+    >,
+    'climate.product.created': {} as EventDefinition<
+        ObjectOf<'climate.product.created'>
+    >,
+    'climate.product.pricing_updated': {} as EventDefinition<
+        ObjectOf<'climate.product.pricing_updated'>
+    >,
+    'coupon.created': {} as EventDefinition<ObjectOf<'coupon.created'>>,
+    'coupon.deleted': {} as EventDefinition<ObjectOf<'coupon.deleted'>>,
+    'coupon.updated': {} as EventDefinition<ObjectOf<'coupon.updated'>>,
+    'credit_note.created': {} as EventDefinition<
+        ObjectOf<'credit_note.created'>
+    >,
+    'credit_note.updated': {} as EventDefinition<
+        ObjectOf<'credit_note.updated'>
+    >,
+    'credit_note.voided': {} as EventDefinition<ObjectOf<'credit_note.voided'>>,
+    'customer.created': {} as EventDefinition<ObjectOf<'customer.created'>>,
+    'customer.deleted': {} as EventDefinition<ObjectOf<'customer.deleted'>>,
+    'customer.discount.created': {} as EventDefinition<
+        ObjectOf<'customer.discount.created'>
+    >,
+    'customer.discount.deleted': {} as EventDefinition<
+        ObjectOf<'customer.discount.deleted'>
+    >,
+    'customer.discount.updated': {} as EventDefinition<
+        ObjectOf<'customer.discount.updated'>
+    >,
+    'customer.source.created': {} as EventDefinition<
+        ObjectOf<'customer.source.created'>
+    >,
+    'customer.source.deleted': {} as EventDefinition<
+        ObjectOf<'customer.source.deleted'>
+    >,
+    'customer.source.expiring': {} as EventDefinition<
+        ObjectOf<'customer.source.expiring'>
+    >,
+    'customer.source.updated': {} as EventDefinition<
+        ObjectOf<'customer.source.updated'>
+    >,
+    'customer.subscription.created': {} as EventDefinition<
+        ObjectOf<'customer.subscription.created'>
+    >,
+    'customer.subscription.deleted': {} as EventDefinition<
+        ObjectOf<'customer.subscription.deleted'>
+    >,
+    'customer.subscription.paused': {} as EventDefinition<
+        ObjectOf<'customer.subscription.paused'>
+    >,
+    'customer.subscription.pending_update_applied': {} as EventDefinition<
+        ObjectOf<'customer.subscription.pending_update_applied'>
+    >,
+    'customer.subscription.pending_update_expired': {} as EventDefinition<
+        ObjectOf<'customer.subscription.pending_update_expired'>
+    >,
+    'customer.subscription.resumed': {} as EventDefinition<
+        ObjectOf<'customer.subscription.resumed'>
+    >,
+    'customer.subscription.trial_will_end': {} as EventDefinition<
+        ObjectOf<'customer.subscription.trial_will_end'>
+    >,
+    'customer.subscription.updated': {} as EventDefinition<
+        ObjectOf<'customer.subscription.updated'>
+    >,
+    'customer.tax_id.created': {} as EventDefinition<
+        ObjectOf<'customer.tax_id.created'>
+    >,
+    'customer.tax_id.deleted': {} as EventDefinition<
+        ObjectOf<'customer.tax_id.deleted'>
+    >,
+    'customer.tax_id.updated': {} as EventDefinition<
+        ObjectOf<'customer.tax_id.updated'>
+    >,
+    'customer.updated': {} as EventDefinition<ObjectOf<'customer.updated'>>,
+    'customer_cash_balance_transaction.created': {} as EventDefinition<
+        ObjectOf<'customer_cash_balance_transaction.created'>
+    >,
+    'entitlements.active_entitlement_summary.updated': {} as EventDefinition<
+        ObjectOf<'entitlements.active_entitlement_summary.updated'>
+    >,
+    'file.created': {} as EventDefinition<ObjectOf<'file.created'>>,
+    'financial_connections.account.account_numbers_updated':
+        {} as EventDefinition<
+            ObjectOf<'financial_connections.account.account_numbers_updated'>
+        >,
+    'financial_connections.account.created': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.created'>
+    >,
+    'financial_connections.account.deactivated': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.deactivated'>
+    >,
+    'financial_connections.account.disconnected': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.disconnected'>
+    >,
+    'financial_connections.account.reactivated': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.reactivated'>
+    >,
+    'financial_connections.account.refreshed_balance': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.refreshed_balance'>
+    >,
+    'financial_connections.account.refreshed_ownership': {} as EventDefinition<
+        ObjectOf<'financial_connections.account.refreshed_ownership'>
+    >,
+    'financial_connections.account.refreshed_transactions':
+        {} as EventDefinition<
+            ObjectOf<'financial_connections.account.refreshed_transactions'>
+        >,
+    'financial_connections.account.upcoming_account_number_expiry':
+        {} as EventDefinition<
+            ObjectOf<'financial_connections.account.upcoming_account_number_expiry'>
+        >,
+    'identity.verification_session.canceled': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.canceled'>
+    >,
+    'identity.verification_session.created': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.created'>
+    >,
+    'identity.verification_session.processing': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.processing'>
+    >,
+    'identity.verification_session.redacted': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.redacted'>
+    >,
+    'identity.verification_session.requires_input': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.requires_input'>
+    >,
+    'identity.verification_session.verified': {} as EventDefinition<
+        ObjectOf<'identity.verification_session.verified'>
+    >,
+    'invoice.created': {} as EventDefinition<ObjectOf<'invoice.created'>>,
+    'invoice.deleted': {} as EventDefinition<ObjectOf<'invoice.deleted'>>,
+    'invoice.finalization_failed': {} as EventDefinition<
+        ObjectOf<'invoice.finalization_failed'>
+    >,
+    'invoice.finalized': {} as EventDefinition<ObjectOf<'invoice.finalized'>>,
+    'invoice.marked_uncollectible': {} as EventDefinition<
+        ObjectOf<'invoice.marked_uncollectible'>
+    >,
+    'invoice.overdue': {} as EventDefinition<ObjectOf<'invoice.overdue'>>,
+    'invoice.overpaid': {} as EventDefinition<ObjectOf<'invoice.overpaid'>>,
+    'invoice.paid': {} as EventDefinition<ObjectOf<'invoice.paid'>>,
+    'invoice.payment_action_required': {} as EventDefinition<
+        ObjectOf<'invoice.payment_action_required'>
+    >,
+    'invoice.payment_attempt_required': {} as EventDefinition<
+        ObjectOf<'invoice.payment_attempt_required'>
+    >,
+    'invoice.payment_failed': {} as EventDefinition<
+        ObjectOf<'invoice.payment_failed'>
+    >,
+    'invoice.payment_succeeded': {} as EventDefinition<
+        ObjectOf<'invoice.payment_succeeded'>
+    >,
+    'invoice.sent': {} as EventDefinition<ObjectOf<'invoice.sent'>>,
+    'invoice.upcoming': {} as EventDefinition<ObjectOf<'invoice.upcoming'>>,
+    'invoice.updated': {} as EventDefinition<ObjectOf<'invoice.updated'>>,
+    'invoice.voided': {} as EventDefinition<ObjectOf<'invoice.voided'>>,
+    'invoice.will_be_due': {} as EventDefinition<
+        ObjectOf<'invoice.will_be_due'>
+    >,
+    'invoice_payment.paid': {} as EventDefinition<
+        ObjectOf<'invoice_payment.paid'>
+    >,
+    'invoiceitem.created': {} as EventDefinition<
+        ObjectOf<'invoiceitem.created'>
+    >,
+    'invoiceitem.deleted': {} as EventDefinition<
+        ObjectOf<'invoiceitem.deleted'>
+    >,
+    'issuing_authorization.created': {} as EventDefinition<
+        ObjectOf<'issuing_authorization.created'>
+    >,
+    'issuing_authorization.request': {} as EventDefinition<
+        ObjectOf<'issuing_authorization.request'>
+    >,
+    'issuing_authorization.updated': {} as EventDefinition<
+        ObjectOf<'issuing_authorization.updated'>
+    >,
+    'issuing_card.created': {} as EventDefinition<
+        ObjectOf<'issuing_card.created'>
+    >,
+    'issuing_card.updated': {} as EventDefinition<
+        ObjectOf<'issuing_card.updated'>
+    >,
+    'issuing_cardholder.created': {} as EventDefinition<
+        ObjectOf<'issuing_cardholder.created'>
+    >,
+    'issuing_cardholder.updated': {} as EventDefinition<
+        ObjectOf<'issuing_cardholder.updated'>
+    >,
+    'issuing_dispute.closed': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.closed'>
+    >,
+    'issuing_dispute.created': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.created'>
+    >,
+    'issuing_dispute.funds_reinstated': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.funds_reinstated'>
+    >,
+    'issuing_dispute.funds_rescinded': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.funds_rescinded'>
+    >,
+    'issuing_dispute.submitted': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.submitted'>
+    >,
+    'issuing_dispute.updated': {} as EventDefinition<
+        ObjectOf<'issuing_dispute.updated'>
+    >,
+    'issuing_personalization_design.activated': {} as EventDefinition<
+        ObjectOf<'issuing_personalization_design.activated'>
+    >,
+    'issuing_personalization_design.deactivated': {} as EventDefinition<
+        ObjectOf<'issuing_personalization_design.deactivated'>
+    >,
+    'issuing_personalization_design.rejected': {} as EventDefinition<
+        ObjectOf<'issuing_personalization_design.rejected'>
+    >,
+    'issuing_personalization_design.updated': {} as EventDefinition<
+        ObjectOf<'issuing_personalization_design.updated'>
+    >,
+    'issuing_token.created': {} as EventDefinition<
+        ObjectOf<'issuing_token.created'>
+    >,
+    'issuing_token.updated': {} as EventDefinition<
+        ObjectOf<'issuing_token.updated'>
+    >,
+    'issuing_transaction.created': {} as EventDefinition<
+        ObjectOf<'issuing_transaction.created'>
+    >,
+    'issuing_transaction.purchase_details_receipt_updated':
+        {} as EventDefinition<
+            ObjectOf<'issuing_transaction.purchase_details_receipt_updated'>
+        >,
+    'issuing_transaction.updated': {} as EventDefinition<
+        ObjectOf<'issuing_transaction.updated'>
+    >,
+    'mandate.updated': {} as EventDefinition<ObjectOf<'mandate.updated'>>,
+    'payment_intent.amount_capturable_updated': {} as EventDefinition<
+        ObjectOf<'payment_intent.amount_capturable_updated'>
+    >,
+    'payment_intent.canceled': {} as EventDefinition<
+        ObjectOf<'payment_intent.canceled'>
+    >,
+    'payment_intent.created': {} as EventDefinition<
+        ObjectOf<'payment_intent.created'>
+    >,
+    'payment_intent.partially_funded': {} as EventDefinition<
+        ObjectOf<'payment_intent.partially_funded'>
+    >,
+    'payment_intent.payment_failed': {} as EventDefinition<
+        ObjectOf<'payment_intent.payment_failed'>
+    >,
+    'payment_intent.processing': {} as EventDefinition<
+        ObjectOf<'payment_intent.processing'>
+    >,
+    'payment_intent.requires_action': {} as EventDefinition<
+        ObjectOf<'payment_intent.requires_action'>
+    >,
+    'payment_intent.succeeded': {} as EventDefinition<
+        ObjectOf<'payment_intent.succeeded'>
+    >,
+    'payment_link.created': {} as EventDefinition<
+        ObjectOf<'payment_link.created'>
+    >,
+    'payment_link.updated': {} as EventDefinition<
+        ObjectOf<'payment_link.updated'>
+    >,
+    'payment_method.attached': {} as EventDefinition<
+        ObjectOf<'payment_method.attached'>
+    >,
+    'payment_method.automatically_updated': {} as EventDefinition<
+        ObjectOf<'payment_method.automatically_updated'>
+    >,
+    'payment_method.detached': {} as EventDefinition<
+        ObjectOf<'payment_method.detached'>
+    >,
+    'payment_method.updated': {} as EventDefinition<
+        ObjectOf<'payment_method.updated'>
+    >,
+    'payout.canceled': {} as EventDefinition<ObjectOf<'payout.canceled'>>,
+    'payout.created': {} as EventDefinition<ObjectOf<'payout.created'>>,
+    'payout.failed': {} as EventDefinition<ObjectOf<'payout.failed'>>,
+    'payout.paid': {} as EventDefinition<ObjectOf<'payout.paid'>>,
+    'payout.reconciliation_completed': {} as EventDefinition<
+        ObjectOf<'payout.reconciliation_completed'>
+    >,
+    'payout.updated': {} as EventDefinition<ObjectOf<'payout.updated'>>,
+    'person.created': {} as EventDefinition<ObjectOf<'person.created'>>,
+    'person.deleted': {} as EventDefinition<ObjectOf<'person.deleted'>>,
+    'person.updated': {} as EventDefinition<ObjectOf<'person.updated'>>,
+    'plan.created': {} as EventDefinition<ObjectOf<'plan.created'>>,
+    'plan.deleted': {} as EventDefinition<ObjectOf<'plan.deleted'>>,
+    'plan.updated': {} as EventDefinition<ObjectOf<'plan.updated'>>,
+    'price.created': {} as EventDefinition<ObjectOf<'price.created'>>,
+    'price.deleted': {} as EventDefinition<ObjectOf<'price.deleted'>>,
+    'price.updated': {} as EventDefinition<ObjectOf<'price.updated'>>,
+    'product.created': {} as EventDefinition<ObjectOf<'product.created'>>,
+    'product.deleted': {} as EventDefinition<ObjectOf<'product.deleted'>>,
+    'product.updated': {} as EventDefinition<ObjectOf<'product.updated'>>,
+    'promotion_code.created': {} as EventDefinition<
+        ObjectOf<'promotion_code.created'>
+    >,
+    'promotion_code.updated': {} as EventDefinition<
+        ObjectOf<'promotion_code.updated'>
+    >,
+    'quote.accepted': {} as EventDefinition<ObjectOf<'quote.accepted'>>,
+    'quote.canceled': {} as EventDefinition<ObjectOf<'quote.canceled'>>,
+    'quote.created': {} as EventDefinition<ObjectOf<'quote.created'>>,
+    'quote.finalized': {} as EventDefinition<ObjectOf<'quote.finalized'>>,
+    'radar.early_fraud_warning.created': {} as EventDefinition<
+        ObjectOf<'radar.early_fraud_warning.created'>
+    >,
+    'radar.early_fraud_warning.updated': {} as EventDefinition<
+        ObjectOf<'radar.early_fraud_warning.updated'>
+    >,
+    'refund.created': {} as EventDefinition<ObjectOf<'refund.created'>>,
+    'refund.failed': {} as EventDefinition<ObjectOf<'refund.failed'>>,
+    'refund.updated': {} as EventDefinition<ObjectOf<'refund.updated'>>,
+    'reporting.report_run.failed': {} as EventDefinition<
+        ObjectOf<'reporting.report_run.failed'>
+    >,
+    'reporting.report_run.succeeded': {} as EventDefinition<
+        ObjectOf<'reporting.report_run.succeeded'>
+    >,
+    'reporting.report_type.updated': {} as EventDefinition<
+        ObjectOf<'reporting.report_type.updated'>
+    >,
+    'reserve.hold.created': {} as EventDefinition<
+        ObjectOf<'reserve.hold.created'>
+    >,
+    'reserve.hold.updated': {} as EventDefinition<
+        ObjectOf<'reserve.hold.updated'>
+    >,
+    'reserve.plan.created': {} as EventDefinition<
+        ObjectOf<'reserve.plan.created'>
+    >,
+    'reserve.plan.disabled': {} as EventDefinition<
+        ObjectOf<'reserve.plan.disabled'>
+    >,
+    'reserve.plan.expired': {} as EventDefinition<
+        ObjectOf<'reserve.plan.expired'>
+    >,
+    'reserve.plan.updated': {} as EventDefinition<
+        ObjectOf<'reserve.plan.updated'>
+    >,
+    'reserve.release.created': {} as EventDefinition<
+        ObjectOf<'reserve.release.created'>
+    >,
+    'review.closed': {} as EventDefinition<ObjectOf<'review.closed'>>,
+    'review.opened': {} as EventDefinition<ObjectOf<'review.opened'>>,
+    'setup_intent.canceled': {} as EventDefinition<
+        ObjectOf<'setup_intent.canceled'>
+    >,
+    'setup_intent.created': {} as EventDefinition<
+        ObjectOf<'setup_intent.created'>
+    >,
+    'setup_intent.requires_action': {} as EventDefinition<
+        ObjectOf<'setup_intent.requires_action'>
+    >,
+    'setup_intent.setup_failed': {} as EventDefinition<
+        ObjectOf<'setup_intent.setup_failed'>
+    >,
+    'setup_intent.succeeded': {} as EventDefinition<
+        ObjectOf<'setup_intent.succeeded'>
+    >,
+    'sigma.scheduled_query_run.created': {} as EventDefinition<
+        ObjectOf<'sigma.scheduled_query_run.created'>
+    >,
+    'source.canceled': {} as EventDefinition<ObjectOf<'source.canceled'>>,
+    'source.chargeable': {} as EventDefinition<ObjectOf<'source.chargeable'>>,
+    'source.failed': {} as EventDefinition<ObjectOf<'source.failed'>>,
+    'source.mandate_notification': {} as EventDefinition<
+        ObjectOf<'source.mandate_notification'>
+    >,
+    'source.refund_attributes_required': {} as EventDefinition<
+        ObjectOf<'source.refund_attributes_required'>
+    >,
+    'source.transaction.created': {} as EventDefinition<
+        ObjectOf<'source.transaction.created'>
+    >,
+    'source.transaction.updated': {} as EventDefinition<
+        ObjectOf<'source.transaction.updated'>
+    >,
+    'subscription_schedule.aborted': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.aborted'>
+    >,
+    'subscription_schedule.canceled': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.canceled'>
+    >,
+    'subscription_schedule.completed': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.completed'>
+    >,
+    'subscription_schedule.created': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.created'>
+    >,
+    'subscription_schedule.expiring': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.expiring'>
+    >,
+    'subscription_schedule.released': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.released'>
+    >,
+    'subscription_schedule.updated': {} as EventDefinition<
+        ObjectOf<'subscription_schedule.updated'>
+    >,
+    'tax.settings.updated': {} as EventDefinition<
+        ObjectOf<'tax.settings.updated'>
+    >,
+    'tax_rate.created': {} as EventDefinition<ObjectOf<'tax_rate.created'>>,
+    'tax_rate.updated': {} as EventDefinition<ObjectOf<'tax_rate.updated'>>,
+    'terminal.reader.action_failed': {} as EventDefinition<
+        ObjectOf<'terminal.reader.action_failed'>
+    >,
+    'terminal.reader.action_succeeded': {} as EventDefinition<
+        ObjectOf<'terminal.reader.action_succeeded'>
+    >,
+    'terminal.reader.action_updated': {} as EventDefinition<
+        ObjectOf<'terminal.reader.action_updated'>
+    >,
+    'test_helpers.test_clock.advancing': {} as EventDefinition<
+        ObjectOf<'test_helpers.test_clock.advancing'>
+    >,
+    'test_helpers.test_clock.created': {} as EventDefinition<
+        ObjectOf<'test_helpers.test_clock.created'>
+    >,
+    'test_helpers.test_clock.deleted': {} as EventDefinition<
+        ObjectOf<'test_helpers.test_clock.deleted'>
+    >,
+    'test_helpers.test_clock.internal_failure': {} as EventDefinition<
+        ObjectOf<'test_helpers.test_clock.internal_failure'>
+    >,
+    'test_helpers.test_clock.ready': {} as EventDefinition<
+        ObjectOf<'test_helpers.test_clock.ready'>
+    >,
+    'topup.canceled': {} as EventDefinition<ObjectOf<'topup.canceled'>>,
+    'topup.created': {} as EventDefinition<ObjectOf<'topup.created'>>,
+    'topup.failed': {} as EventDefinition<ObjectOf<'topup.failed'>>,
+    'topup.reversed': {} as EventDefinition<ObjectOf<'topup.reversed'>>,
+    'topup.succeeded': {} as EventDefinition<ObjectOf<'topup.succeeded'>>,
+    'transfer.created': {} as EventDefinition<ObjectOf<'transfer.created'>>,
+    'transfer.reversed': {} as EventDefinition<ObjectOf<'transfer.reversed'>>,
+    'transfer.updated': {} as EventDefinition<ObjectOf<'transfer.updated'>>,
+    'treasury.credit_reversal.created': {} as EventDefinition<
+        ObjectOf<'treasury.credit_reversal.created'>
+    >,
+    'treasury.credit_reversal.posted': {} as EventDefinition<
+        ObjectOf<'treasury.credit_reversal.posted'>
+    >,
+    'treasury.debit_reversal.completed': {} as EventDefinition<
+        ObjectOf<'treasury.debit_reversal.completed'>
+    >,
+    'treasury.debit_reversal.created': {} as EventDefinition<
+        ObjectOf<'treasury.debit_reversal.created'>
+    >,
+    'treasury.debit_reversal.initial_credit_granted': {} as EventDefinition<
+        ObjectOf<'treasury.debit_reversal.initial_credit_granted'>
+    >,
+    'treasury.financial_account.closed': {} as EventDefinition<
+        ObjectOf<'treasury.financial_account.closed'>
+    >,
+    'treasury.financial_account.created': {} as EventDefinition<
+        ObjectOf<'treasury.financial_account.created'>
+    >,
+    'treasury.financial_account.features_status_updated': {} as EventDefinition<
+        ObjectOf<'treasury.financial_account.features_status_updated'>
+    >,
+    'treasury.inbound_transfer.canceled': {} as EventDefinition<
+        ObjectOf<'treasury.inbound_transfer.canceled'>
+    >,
+    'treasury.inbound_transfer.created': {} as EventDefinition<
+        ObjectOf<'treasury.inbound_transfer.created'>
+    >,
+    'treasury.inbound_transfer.failed': {} as EventDefinition<
+        ObjectOf<'treasury.inbound_transfer.failed'>
+    >,
+    'treasury.inbound_transfer.succeeded': {} as EventDefinition<
+        ObjectOf<'treasury.inbound_transfer.succeeded'>
+    >,
+    'treasury.outbound_payment.canceled': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.canceled'>
+    >,
+    'treasury.outbound_payment.created': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.created'>
+    >,
+    'treasury.outbound_payment.expected_arrival_date_updated':
+        {} as EventDefinition<
+            ObjectOf<'treasury.outbound_payment.expected_arrival_date_updated'>
+        >,
+    'treasury.outbound_payment.failed': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.failed'>
+    >,
+    'treasury.outbound_payment.posted': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.posted'>
+    >,
+    'treasury.outbound_payment.returned': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.returned'>
+    >,
+    'treasury.outbound_payment.tracking_details_updated': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_payment.tracking_details_updated'>
+    >,
+    'treasury.outbound_transfer.canceled': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_transfer.canceled'>
+    >,
+    'treasury.outbound_transfer.created': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_transfer.created'>
+    >,
+    'treasury.outbound_transfer.expected_arrival_date_updated':
+        {} as EventDefinition<
+            ObjectOf<'treasury.outbound_transfer.expected_arrival_date_updated'>
+        >,
+    'treasury.outbound_transfer.failed': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_transfer.failed'>
+    >,
+    'treasury.outbound_transfer.posted': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_transfer.posted'>
+    >,
+    'treasury.outbound_transfer.returned': {} as EventDefinition<
+        ObjectOf<'treasury.outbound_transfer.returned'>
+    >,
+    'treasury.outbound_transfer.tracking_details_updated':
+        {} as EventDefinition<
+            ObjectOf<'treasury.outbound_transfer.tracking_details_updated'>
+        >,
+    'treasury.received_credit.created': {} as EventDefinition<
+        ObjectOf<'treasury.received_credit.created'>
+    >,
+    'treasury.received_credit.failed': {} as EventDefinition<
+        ObjectOf<'treasury.received_credit.failed'>
+    >,
+    'treasury.received_credit.succeeded': {} as EventDefinition<
+        ObjectOf<'treasury.received_credit.succeeded'>
+    >,
+    'treasury.received_debit.created': {} as EventDefinition<
+        ObjectOf<'treasury.received_debit.created'>
+    >,
+    'billing.credit_balance_transaction.created': {} as EventDefinition<
+        ObjectOf<'billing.credit_balance_transaction.created'>
+    >,
+    'billing.credit_grant.updated': {} as EventDefinition<
+        ObjectOf<'billing.credit_grant.updated'>
+    >,
+    'billing.meter.created': {} as EventDefinition<
+        ObjectOf<'billing.meter.created'>
+    >,
+    'billing.meter.deactivated': {} as EventDefinition<
+        ObjectOf<'billing.meter.deactivated'>
+    >,
+    'billing.meter.reactivated': {} as EventDefinition<
+        ObjectOf<'billing.meter.reactivated'>
+    >,
+    'billing.meter.updated': {} as EventDefinition<
+        ObjectOf<'billing.meter.updated'>
+    >,
 } as const
-
-export type StripeEvent = keyof typeof StripeEvents

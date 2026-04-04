@@ -3,54 +3,8 @@ import {
     ProviderFeatures,
     EventDefinition,
     ProviderError,
-    RequestPayloadSchemaValidationError,
 } from '@hookplane/core'
-import { ResultAsync, ok, err } from 'neverthrow'
-import * as z from 'zod'
-import { zocker } from 'zocker'
-
-/**
- * Creates an event definition with parse and mock methods from a Zod schema.
- */
-function zodEvent<T extends z.ZodTypeAny>(
-    schema: T,
-): EventDefinition<z.infer<T>> {
-    return {
-        parse: (data: unknown) => {
-            const result = schema.safeParse(data)
-            if (result.success) {
-                return ok(result.data)
-            }
-            return err({
-                name: 'RequestPayloadSchemaValidationError',
-                message: 'failed to validate request payload schema',
-                source: result.error,
-            } satisfies RequestPayloadSchemaValidationError)
-        },
-        mock: () => {
-            const data = zocker(schema).generate() as z.infer<T>
-            return data
-        },
-    }
-}
-
-/**
- * Creates a record of event definitions from a Zod schema record.
- */
-function zodEvents<T extends Record<string, z.ZodSchema>>(
-    events: T,
-): {
-    [K in keyof T]: EventDefinition<z.infer<T[K]>>
-} {
-    return Object.fromEntries(
-        Object.entries(events).map(([name, schema]) => [
-            name,
-            zodEvent(schema),
-        ]),
-    ) as {
-        [K in keyof T]: EventDefinition<z.infer<T[K]>>
-    }
-}
+import { ResultAsync } from 'neverthrow'
 
 /**
  * Provider descriptor - defines the events and methods for a provider.
@@ -104,12 +58,19 @@ type ProviderDescriptor<
         TProviderState
     >['indexEndpoints']
 
-    validateRequestSignature?: Provider<
+    processRequest?: Provider<
         TEventType,
         TProviderConfig,
         TEndpointConfig,
         TProviderState
-    >['validateRequestSignature']
+    >['processRequest']
+
+    mockRequest?: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['mockRequest']
 }
 
 export type ProviderDescriptionError = ProviderFeaturesMismatchError
@@ -164,13 +125,13 @@ function describeProvider<
 
     if (
         desc.features?.requiresSigningSecret &&
-        desc.validateRequestSignature === undefined
+        desc.processRequest === undefined
     ) {
         // We throw instead of using neverthrow b/c this touches the public API boundary.
         throw {
             name: 'ProviderFeaturesMismatchError',
             message:
-                'features.requiresSigningSecret is true, but validateRequestSignature is not defined',
+                'features.requiresSigningSecret is true, but processRequest is not defined',
         } satisfies ProviderFeaturesMismatchError
     }
 
@@ -191,18 +152,22 @@ function describeProvider<
         )
 }
 
-export { zodEvent, zodEvents, describeProvider }
+export { describeProvider }
 export type { Provider, ProviderDescriptor }
 export type {
     EndpointHandle,
     EndpointState,
     EndpointUrl,
     EndpointIndex,
+    PayloadOf,
     BaseUrl,
     RelativeUrl,
     EventDefinition,
     ProviderError,
-    ValidateRequestSignatureParams,
+    ProcessRequestParams,
+    ProcessRequestReturn,
+    MockRequestParams,
+    MockRequestReturn,
     AuthError,
     RateLimitError,
     NetworkError,
