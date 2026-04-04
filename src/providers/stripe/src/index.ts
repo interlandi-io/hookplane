@@ -225,7 +225,7 @@ const createStripeProvider = describeProvider<
                 )
                 return {
                     event: event.type,
-                    data: event.object,
+                    data: event.data.object,
                 } satisfies ProcessRequestReturn<StripeEvent>
             })(),
             (e) => {
