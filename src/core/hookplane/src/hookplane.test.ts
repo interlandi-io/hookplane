@@ -1,13 +1,13 @@
 // Just a sketch for now
-import { hookplane } from './hookplane'
+import { hookplane } from './hookplane.js'
 import { createStripeProvider, createStripeProvider as stripeProvider } from '@hookplane/stripe'
 
-const hp = hookplane({
+const hp = await hookplane({
     providers: {
         // TODO this can't be a result
-        stripe: (await stripeProvider({
+        stripe: stripeProvider({
             apiKey: process.env['STRIPE_API_KEY']!,
-        }))._unsafeUnwrap()
+        })
     }
 })
 

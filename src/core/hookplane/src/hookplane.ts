@@ -1,5 +1,5 @@
 import { ProviderSet } from '@hookplane/core'
-import { Subscription, createSubscription } from './subscription'
+import { Subscription, createSubscription } from './subscription.js'
 
 export type Hookplane<TProviderSet extends ProviderSet> = {
     providers: TProviderSet
@@ -10,14 +10,21 @@ export type Hookplane<TProviderSet extends ProviderSet> = {
 }
 
 export type HookplaneParams<TProviderSet extends ProviderSet> = {
-    providers: TProviderSet
+    providers: {
+        [K in keyof TProviderSet]: Promise<TProviderSet[K]>
+    }
 }
 
-export function hookplane<TProviderSet extends ProviderSet>(
+export async function hookplane<TProviderSet extends ProviderSet>(
     params: HookplaneParams<TProviderSet>,
-): Hookplane<TProviderSet> {
+): Promise<Hookplane<TProviderSet>> {
+    const providers = {} as TProviderSet
+    for (const [name, provider] of Object.entries(params.providers)) {
+        providers[name as keyof TProviderSet] = await provider
+    }
+
     return {
-        ...params,
-        subscribe: (provider, event) => createSubscription(provider, event),
+        providers,
+        subscribe: (provider, event) => createSubscription(providers[provider], event),
     }
 }

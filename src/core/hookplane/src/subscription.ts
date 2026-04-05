@@ -1,4 +1,5 @@
 import {
+    EndpointHandle,
     EventDefinition,
     EventTypeOf,
     PayloadOf,
@@ -17,7 +18,7 @@ export function createSubscription<
         async incoming(request) {
             // TODO: make provider.processRequest not optional
             const result = await provider.processRequest!({ 
-                handle: undefined, // TODO
+                handle: '' as EndpointHandle, // TODO
                 request,
                 providerState: provider.state,
                 providerConfig: provider.config,
