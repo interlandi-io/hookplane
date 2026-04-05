@@ -14,7 +14,6 @@ export function createSubscription<
 >(provider: P, event: E): Subscription<P, E> {
     return {
         async incoming(request) {
-            // TODO: make provider.processRequest not optional
             const result = await provider.processRequest!({ 
                 handle: '' as EndpointHandle, // TODO
                 request,

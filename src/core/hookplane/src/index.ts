@@ -1,2 +1,2 @@
-export * from './hookplane'
-export { type Subscription } from './subscription'
+export * from './hookplane.js'
+export { type Subscription } from './subscription.js'
