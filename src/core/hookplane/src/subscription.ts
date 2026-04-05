@@ -2,6 +2,7 @@ import {
     EndpointHandle,
     PayloadOf,
     Provider,
+    RelativeUrl,
 } from '@hookplane/core'
 
 export type Subscription<P extends Provider, E extends keyof P['events']> = {
@@ -11,7 +12,7 @@ export type Subscription<P extends Provider, E extends keyof P['events']> = {
 export function createSubscription<
     P extends Provider,
     E extends keyof P['events'],
->(provider: P, event: E): Subscription<P, E> {
+>(url: RelativeUrl, provider: P, event: E): Subscription<P, E> {
     return {
         async incoming(request) {
             const result = await provider.processRequest!({ 
