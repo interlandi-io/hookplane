@@ -29,6 +29,9 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
+      hookplane:
+        specifier: workspace:*
+        version: link:../hookplane
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0

@@ -21,6 +21,7 @@ export type SubscriptionInstance = {
 }
 
 type GlobError =
+    | { name: 'TSProjectError'; message: string; cause?: Error }
     | {
           name: 'MultipleInstancesError'
           message: `multiple hookplane instances found: ${string}`
@@ -28,9 +29,21 @@ type GlobError =
     | { name: 'NoInstancesError'; message: 'no hookplane instances found' }
 
 export function createGlob(tsConfigFilePath: string): Result<Glob, GlobError> {
-    const project = new Project({
-        tsConfigFilePath,
-    })
+    let project
+    try {
+        project = new Project({
+            tsConfigFilePath,
+        })
+    } catch (e) {
+        return err({
+            name: 'TSProjectError',
+            message:
+                e instanceof Error
+                    ? e.message
+                    : 'could not instantiate TS project',
+            cause: e instanceof Error ? e : undefined,
+        })
+    }
 
     const hookplane = findHookplane(project)
     if (hookplane.isErr()) {
