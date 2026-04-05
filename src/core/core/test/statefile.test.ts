@@ -40,6 +40,11 @@ function createMockProvider(name: string, events: string[]): Provider {
         updateEndpoint: () => okAsync(),
         deleteEndpoint: () => okAsync(),
         indexEndpoints: () => okAsync(new Map()),
+        processRequest: () =>
+            okAsync({
+                event: events[0] as 'payment.succeeded' | 'push',
+                data: {},
+            }),
     }
 }
 

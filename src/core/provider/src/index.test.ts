@@ -85,9 +85,7 @@ const Provider = describeProvider<
 
 describe('provider', () => {
     it('mocks', async () => {
-        const result = await Provider({ slug: '', apiKey: '' })
-        expect(result.isOk()).toBe(true)
-        const provider = result._unsafeUnwrap()
+        const provider = await Provider({ slug: '', apiKey: '' })
 
         expect(provider.processRequest).toBeDefined()
         expect(provider.mockRequest).toBeDefined()
@@ -127,32 +125,22 @@ describe('provider', () => {
                 }),
                 setup: () => okAsync({}),
                 createEndpoint: () => {
-                    return okAsync({
-                        handle: createEndpointHandle(
-                            'handle-0',
-                        )._unsafeUnwrap(),
-                    })
+                    throw 'unimplemented'
                 },
                 readEndpoint: () => {
-                    return okAsync({
-                        relativeUrl:
-                            createRelativeUrl('/hooks')._unsafeUnwrap(),
-                        events: [],
-                        config: {
-                            fields: [],
-                        },
-                    })
+                    throw 'unimplemented'
                 },
                 updateEndpoint: () => {
-                    return okAsync()
+                    throw 'unimplemented'
                 },
                 deleteEndpoint: () => {
-                    return okAsync()
+                    throw 'unimplemented'
                 },
                 indexEndpoints: () => {
-                    return ResultAsync.fromSafePromise(
-                        Promise.resolve(new Map()),
-                    )
+                    throw 'unimplemented'
+                },
+                processRequest: () => {
+                    throw 'unimplemented'
                 },
             })
         }

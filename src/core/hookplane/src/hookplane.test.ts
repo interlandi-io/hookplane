@@ -11,4 +11,9 @@ const hp = await hookplane({
     },
 })
 
-const checkoutCompleted = hp.subscribe('stripe', 'checkout.session.completed')
+// eslint-disable-next-line
+const checkoutCompleted = hp.subscribe(
+    '/hooks',
+    'stripe',
+    'checkout.session.completed',
+)

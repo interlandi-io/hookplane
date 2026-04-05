@@ -12,6 +12,7 @@ export type Subscription<P extends Provider, E extends keyof P['events']> = {
 export function createSubscription<
     P extends Provider,
     E extends keyof P['events'],
+    // eslint-disable-next-line
 >(url: RelativeUrl, provider: P, event: E): Subscription<P, E> {
     return {
         async incoming(request) {

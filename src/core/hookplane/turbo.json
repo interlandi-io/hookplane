@@ -9,10 +9,12 @@
         "test:run": {
             "cache": false,
             "persistent": false,
+            "env": ["STRIPE_API_KEY"],
         },
         "test:watch": {
             "cache": false,
             "persistent": true,
+            "env": ["STRIPE_API_KEY"],
         }
     }
 }
