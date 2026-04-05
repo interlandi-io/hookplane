@@ -99,6 +99,12 @@ const MockProvider: Provider<
         }
         return okAsync(index)
     },
+    processRequest() {
+        return okAsync({
+            event: 'testEvent' as const,
+            data: {},
+        })
+    },
 }
 
 describe('executor', () => {

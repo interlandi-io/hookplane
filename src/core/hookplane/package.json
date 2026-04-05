@@ -1,0 +1,27 @@
+{
+    "name": "hookplane",
+    "type": "module",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "test": "doppler run -- vitest",
+        "__test:run": "doppler run -- vitest run",
+        "test:watch": "doppler run -- vitest --watch",
+        "check-types": "tsc --noEmit",
+        "lint": "eslint . --max-warnings 0"
+    },
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "dependencies": {
+        "@hookplane/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@hookplane/stripe": "workspace:*",
+        "@types/node": "^22.15.3",
+        "vite": "^8.0.0",
+        "vitest": "^4.1.2"
+    }
+}

@@ -42,6 +42,12 @@ const TestProvider = (config: {
     indexEndpoints: function () {
         throw new Error('Function not implemented.')
     },
+    processRequest: function () {
+        return okAsync({
+            event: 'testEvent' as const,
+            data: {},
+        })
+    },
 })
 
 // eslint-disable-next-line
@@ -263,6 +269,12 @@ describe('plan', () => {
             indexEndpoints: function () {
                 throw new Error('Function not implemented.')
             },
+            processRequest: function () {
+                return okAsync({
+                    event: 'eventA' as const,
+                    data: {},
+                })
+            },
         })
 
         const ProviderB = (config: Config) => ({
@@ -290,6 +302,12 @@ describe('plan', () => {
             indexEndpoints: function () {
                 throw new Error('Function not implemented.')
             },
+            processRequest: function () {
+                return okAsync({
+                    event: 'eventC' as const,
+                    data: {},
+                })
+            },
         })
 
         const ProviderC = (config: Config) => ({
@@ -316,6 +334,12 @@ describe('plan', () => {
             },
             indexEndpoints: function () {
                 throw new Error('Function not implemented.')
+            },
+            processRequest: function () {
+                return okAsync({
+                    event: 'eventD' as const,
+                    data: {},
+                })
             },
         })
 
@@ -346,15 +370,6 @@ describe('plan', () => {
                                 createRelativeUrl('/eventA')._unsafeUnwrap(),
                             events: ['eventA'],
                             config: { value: 'leftA' },
-                        },
-                    ],
-                    [
-                        createEndpointHandle('handle-1')._unsafeUnwrap(),
-                        {
-                            relativeUrl:
-                                createRelativeUrl('/eventB')._unsafeUnwrap(),
-                            events: ['eventB'],
-                            config: { value: 'leftB' },
                         },
                     ],
                 ]),
@@ -411,15 +426,14 @@ describe('plan', () => {
         expect(result.isOk()).toBe(true)
         const plan = result._unsafeUnwrap()
 
-        expect(plan.providerPlans.providerA!).toHaveLength(2)
+        expect(plan.providerPlans.providerA!).toHaveLength(1)
         expect(plan.providerPlans.providerB!).toHaveLength(1)
         expect(plan.providerPlans.providerC!).toHaveLength(1)
-        expect(plan.getStepIds().length).toBe(4)
+        expect(plan.getStepIds().length).toBe(3)
 
         const stepA0 = plan.providerPlans.providerA!.get(createStepId(0))
-        const stepA1 = plan.providerPlans.providerA!.get(createStepId(1))
-        const stepB0 = plan.providerPlans.providerB!.get(createStepId(2))
-        const stepC0 = plan.providerPlans.providerC!.get(createStepId(3))
+        const stepB0 = plan.providerPlans.providerB!.get(createStepId(1))
+        const stepC0 = plan.providerPlans.providerC!.get(createStepId(2))
 
         expect(stepA0).toEqual({
             kind: 'update',
@@ -429,11 +443,6 @@ describe('plan', () => {
                 events: ['eventA'],
                 config: { value: 'rightA' },
             },
-        })
-
-        expect(stepA1).toEqual({
-            kind: 'delete',
-            handle: 'handle-1',
         })
 
         expect(stepB0).toEqual({

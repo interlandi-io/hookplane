@@ -51,7 +51,7 @@ function toSignatureError(
     } as RequestSignatureValidationError
 }
 
-const createStripeProvider = describeProvider<
+const stripeProvider = describeProvider<
     StripeEvent,
     StripeProviderConfig,
     StripeEndpointConfig,
@@ -250,7 +250,7 @@ function getInvalidEvents(events: string[]): string[] {
     return []
 }
 
-export { createStripeProvider }
+export { stripeProvider }
 export type {
     StripeProviderConfig,
     StripeEndpointConfig,

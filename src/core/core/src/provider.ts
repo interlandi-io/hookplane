@@ -126,7 +126,7 @@ interface Provider<
      * @returns a `ProcessRequestReturn` if both the schema and request
      * validation are scucessful, else an error.
      */
-    processRequest?(
+    processRequest(
         params: ProcessRequestParams<TProviderState, TProviderConfig>,
     ): ResultAsync<ProcessRequestReturn<TEventType>, ProviderError>
 

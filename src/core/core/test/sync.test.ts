@@ -71,6 +71,12 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
     indexEndpoints() {
         return okAsync(endpoints)
     },
+    processRequest() {
+        return okAsync({
+            event: 'testEvent' as const,
+            data: {},
+        })
+    },
 }
 
 const providers = {
@@ -141,6 +147,12 @@ describe('sync', () => {
                     name: 'UnknownError' as const,
                     message: `an error occurred: index failed`,
                     source: new Error('index failed'),
+                })
+            },
+            processRequest() {
+                return okAsync({
+                    event: 'testEvent' as const,
+                    data: {},
                 })
             },
         }

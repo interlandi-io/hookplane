@@ -23,6 +23,11 @@ const TestProvider = (
     updateEndpoint: () => okAsync(undefined),
     deleteEndpoint: () => okAsync(undefined),
     indexEndpoints: () => okAsync(new Map()),
+    processRequest: () =>
+        okAsync({
+            event: '' as string,
+            data: {},
+        }),
 })
 
 const mock = TestProvider('mock')

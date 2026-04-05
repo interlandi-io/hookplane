@@ -6,6 +6,17 @@ import {
 } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 
+export type ProviderFactory<
+    TEventType extends string,
+    TProviderConfig,
+    TEndpointConfig,
+    TProviderState,
+> = (
+    config: TProviderConfig,
+) => Promise<
+    Provider<TEventType, TProviderConfig, TEndpointConfig, TProviderState>
+>
+
 /**
  * Provider descriptor - defines the events and methods for a provider.
  */
@@ -58,7 +69,7 @@ type ProviderDescriptor<
         TProviderState
     >['indexEndpoints']
 
-    processRequest?: Provider<
+    processRequest: Provider<
         TEventType,
         TProviderConfig,
         TEndpointConfig,
@@ -104,22 +115,22 @@ export interface ProviderFeaturesMismatchError extends Error {
  * ```
  */
 function describeProvider<
-    TEventKey extends string,
+    TEventType extends string,
     TProviderConfig,
     TEndpointConfig,
     TProviderState,
 >(
     desc: ProviderDescriptor<
-        TEventKey,
+        TEventType,
         TProviderConfig,
         TEndpointConfig,
         TProviderState
     >,
-): (
-    config: TProviderConfig,
-) => ResultAsync<
-    Provider<TEventKey, TProviderConfig, TEndpointConfig, TProviderState>,
-    ProviderError
+): ProviderFactory<
+    TEventType,
+    TProviderConfig,
+    TEndpointConfig,
+    TProviderState
 > {
     const { events, ..._desc } = desc
 
@@ -135,21 +146,20 @@ function describeProvider<
         } satisfies ProviderFeaturesMismatchError
     }
 
-    return (config: TProviderConfig) =>
-        desc.setup(config).map(
-            (state) =>
-                ({
-                    config,
-                    state,
-                    events,
-                    ..._desc,
-                }) as Provider<
-                    TEventKey,
-                    TProviderConfig,
-                    TEndpointConfig,
-                    TProviderState
-                >,
-        )
+    return async (config: TProviderConfig) => {
+        const state = (await desc.setup(config))._unsafeUnwrap() // Throw b/c this hits the API boundary
+        return {
+            config,
+            state,
+            events,
+            ..._desc,
+        } as Provider<
+            TEventType,
+            TProviderConfig,
+            TEndpointConfig,
+            TProviderState
+        >
+    }
 }
 
 export { describeProvider }
