@@ -6,11 +6,9 @@ const apiKey = process.env['STRIPE_API_KEY']!
 describe('CRUD Round Trip: Stripe', async () => {
     await crudRoundTrip(
         async () => {
-            return (
-                await stripeProvider({
-                    apiKey,
-                })
-            )
+            return await stripeProvider({
+                apiKey,
+            })
         },
         {
             name: 'Event Name',

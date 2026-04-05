@@ -3,7 +3,10 @@ import { Subscription, createSubscription } from './subscription.js'
 
 export type Hookplane<TProviderSet extends ProviderSet> = {
     providers: TProviderSet
-    subscribe<P extends keyof TProviderSet, E extends keyof TProviderSet[P]['events']>(
+    subscribe<
+        P extends keyof TProviderSet,
+        E extends keyof TProviderSet[P]['events'],
+    >(
         relativeUrl: string,
         provider: P,
         event: E,
@@ -29,6 +32,6 @@ export async function hookplane<TProviderSet extends ProviderSet>(
         subscribe: (_url, provider, event) => {
             const url = createRelativeUrl(_url)._unsafeUnwrap()
             return createSubscription(url, providers[provider], event)
-        }
+        },
     }
 }

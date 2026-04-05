@@ -15,7 +15,7 @@ export function createSubscription<
 >(url: RelativeUrl, provider: P, event: E): Subscription<P, E> {
     return {
         async incoming(request) {
-            const result = await provider.processRequest!({ 
+            const result = await provider.processRequest!({
                 handle: '' as EndpointHandle, // TODO
                 request,
                 providerState: provider.state,
@@ -23,6 +23,6 @@ export function createSubscription<
             })
             const { data } = result._unsafeUnwrap()
             return data as PayloadOf<P['events'][E]>
-        }
+        },
     }
 }

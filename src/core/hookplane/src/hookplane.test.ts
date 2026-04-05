@@ -7,8 +7,8 @@ const hp = await hookplane({
         // TODO this can't be a result
         stripe: stripeProvider({
             apiKey: process.env['STRIPE_API_KEY']!,
-        })
-    }
+        }),
+    },
 })
 
 const checkoutCompleted = hp.subscribe('stripe', 'checkout.session.completed')

@@ -11,12 +11,11 @@ export type ProviderFactory<
     TProviderConfig,
     TEndpointConfig,
     TProviderState,
-> = (config: TProviderConfig) => Promise<Provider<
-    TEventType,
-    TProviderConfig,
-    TEndpointConfig,
-    TProviderState
->>
+> = (
+    config: TProviderConfig,
+) => Promise<
+    Provider<TEventType, TProviderConfig, TEndpointConfig, TProviderState>
+>
 
 /**
  * Provider descriptor - defines the events and methods for a provider.
@@ -149,16 +148,16 @@ function describeProvider<
 
     return async (config: TProviderConfig) => {
         const state = (await desc.setup(config))._unsafeUnwrap() // Throw b/c this hits the API boundary
-        return ({
+        return {
             config,
             state,
             events,
             ..._desc,
-        }) as Provider<
-        TEventType,
-        TProviderConfig,
-        TEndpointConfig,
-        TProviderState
+        } as Provider<
+            TEventType,
+            TProviderConfig,
+            TEndpointConfig,
+            TProviderState
         >
     }
 }
