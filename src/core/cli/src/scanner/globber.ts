@@ -1,64 +1,110 @@
-import { promises as fs } from 'node:fs'
-import { relative, join } from 'node:path'
-import picomatch from 'picomatch'
+import { Project, Symbol as AstSymbol } from 'ts-morph'
+import { ok, err, Result } from 'neverthrow'
 
-export type GlobParams = {
-    roots: string[]
-    include?: string[]
-    exclude?: string[]
+const HOOKPLANE_IMPORT_NAME = 'hookplane'
+const HOOKPLANE_MODULE_SPECIFIER = 'hookplane'
+
+export type Glob = {
+    hookplane: HookplaneInstance
+    subscriptions: SubscriptionInstance[]
 }
 
-async function isDirectory(path: string): Promise<boolean> {
-    try {
-        const stat = await fs.stat(path)
-        return stat.isDirectory()
-    } catch {
-        return false
+export type HookplaneInstance = {
+    filePath: string
+    exportName: string
+    symbol: AstSymbol
+}
+
+export type SubscriptionInstance = {
+    filePath: string
+    exportName: string
+}
+
+type GlobError =
+    | {
+          name: 'MultipleInstancesError'
+          message: `multiple hookplane instances found: ${string}`
+      }
+    | { name: 'NoInstancesError'; message: 'no hookplane instances found' }
+    | { name: 'InvalidExportSymbolError'; message: string }
+
+export function glob(tsConfigFilePath: string): Result<Glob, GlobError> {
+    const project = new Project({
+        tsConfigFilePath,
+    })
+
+    const hookplane = findHookplane(project)
+    if (hookplane.isErr()) {
+        return err(hookplane.error)
     }
-}
 
-async function* walkDirectory(dir: string): AsyncGenerator<string> {
-    const entries = await fs.readdir(dir, { withFileTypes: true })
-    for (const entry of entries) {
-        const fullPath = join(dir, entry.name)
-        if (entry.isDirectory()) {
-            yield* walkDirectory(fullPath)
-        } else {
-            yield fullPath
-        }
+    const subscriptions = findSubscriptions(project, hookplane.value)
+    if (subscriptions.isErr()) {
+        return err(subscriptions.error)
     }
+
+    return ok({
+        hookplane: hookplane.value,
+        subscriptions: subscriptions.value,
+    })
 }
 
-export async function glob(params: GlobParams): Promise<string[]> {
-    const {
-        roots,
-        include = ['**/*.ts', '**/*.tsx'],
-        exclude = [
-            '**/node_modules/**',
-            '**/dist/**',
-            '**/build/**',
-            '**/*.d.ts',
-            '**/*.test.ts',
-        ],
-    } = params
-
-    const includeMatcher = picomatch(include, { dot: true })
-    const excludeMatcher = picomatch(exclude, { dot: true })
-
-    const files: string[] = []
-
-    for (const root of roots) {
-        if (!(await isDirectory(root))) {
+// TODO only works if hookplane is default export
+function findHookplane(project: Project): Result<HookplaneInstance, GlobError> {
+    const instances: HookplaneInstance[] = []
+    const sources = project.getSourceFiles()
+    for (const source of sources) {
+        const _import = source.getImportDeclaration(HOOKPLANE_MODULE_SPECIFIER)
+        const hookplaneImport = _import
+            ?.getNamedImports()
+            .find((s) => s.getName() === HOOKPLANE_IMPORT_NAME)
+        if (!hookplaneImport) {
             continue
         }
-
-        for await (const file of walkDirectory(root)) {
-            const relPath = relative(process.cwd(), file)
-            if (includeMatcher(relPath) && !excludeMatcher(relPath)) {
-                files.push(file)
-            }
+        const defaultExport = source.getDefaultExportSymbol()
+        if (!defaultExport) {
+            continue
         }
+        instances.push({
+            filePath: source.getFilePath(),
+            exportName: 'default',
+            symbol: defaultExport,
+        })
     }
 
-    return files.sort()
+    if (instances.length > 1) {
+        const formatted = instances
+            .map((u) => `${u.filePath}::exports[${u.exportName}]`)
+            .join('\n')
+        return err({
+            name: 'MultipleInstancesError',
+            message: `multiple hookplane instances found: ${'\n' + formatted}`,
+        })
+    } else if (instances.length === 0) {
+        return err({
+            name: 'NoInstancesError',
+            message: 'no hookplane instances found',
+        })
+    }
+
+    return ok(instances[0]!)
+}
+
+function findSubscriptions(
+    project: Project,
+    hookplane: HookplaneInstance,
+): Result<SubscriptionInstance[], GlobError> {
+    const symbol = hookplane.symbol.getAliasedSymbol() ?? hookplane.symbol
+    const decl = symbol.getValueDeclaration()
+    if (!decl) {
+        return err({
+            name: 'InvalidExportSymbolError',
+            message: 'export symbol for hookplane had no value declaration',
+        } satisfies GlobError)
+    }
+    // eslint-disable-next-line
+    const references = project.getLanguageService().findReferencesAsNodes(decl)
+    const subs: SubscriptionInstance[] = []
+    // TODO
+    return ok(subs)
 }

@@ -15,7 +15,9 @@
     },
     "dependencies": {
         "@hookplane/core": "workspace:*",
-        "picomatch": "^4.0.0"
+        "neverthrow": "^8.2.0",
+        "picomatch": "^4.0.0",
+        "ts-morph": "^27.0.2"
     },
     "devDependencies": {
         "@hookplane/stripe": "workspace:*",
