@@ -1,4 +1,4 @@
-import { Project, Symbol as AstSymbol } from 'ts-morph'
+import { Project, Node, SyntaxKind } from 'ts-morph'
 import { ok, err, Result } from 'neverthrow'
 
 const HOOKPLANE_IMPORT_NAME = 'hookplane'
@@ -12,12 +12,12 @@ export type Glob = {
 export type HookplaneInstance = {
     filePath: string
     exportName: string
-    symbol: AstSymbol
+    declarationNode: Node
 }
 
 export type SubscriptionInstance = {
     filePath: string
-    exportName: string
+    callNode: Node
 }
 
 type GlobError =
@@ -26,9 +26,8 @@ type GlobError =
           message: `multiple hookplane instances found: ${string}`
       }
     | { name: 'NoInstancesError'; message: 'no hookplane instances found' }
-    | { name: 'InvalidExportSymbolError'; message: string }
 
-export function glob(tsConfigFilePath: string): Result<Glob, GlobError> {
+export function createGlob(tsConfigFilePath: string): Result<Glob, GlobError> {
     const project = new Project({
         tsConfigFilePath,
     })
@@ -49,7 +48,7 @@ export function glob(tsConfigFilePath: string): Result<Glob, GlobError> {
     })
 }
 
-// TODO only works if hookplane is default export
+// TODO only works if hookplane is default export but non anonymous
 function findHookplane(project: Project): Result<HookplaneInstance, GlobError> {
     const instances: HookplaneInstance[] = []
     const sources = project.getSourceFiles()
@@ -65,10 +64,20 @@ function findHookplane(project: Project): Result<HookplaneInstance, GlobError> {
         if (!defaultExport) {
             continue
         }
+
+        const decl = defaultExport.getDeclarations()[0]
+        if (!decl) {
+            // TODO do something better here
+            console.warn(
+                `${source.getFilePath()}: Did you mean to export hookplane?`,
+            )
+            continue
+        }
+
         instances.push({
             filePath: source.getFilePath(),
             exportName: 'default',
-            symbol: defaultExport,
+            declarationNode: decl,
         })
     }
 
@@ -94,17 +103,21 @@ function findSubscriptions(
     project: Project,
     hookplane: HookplaneInstance,
 ): Result<SubscriptionInstance[], GlobError> {
-    const symbol = hookplane.symbol.getAliasedSymbol() ?? hookplane.symbol
-    const decl = symbol.getValueDeclaration()
-    if (!decl) {
-        return err({
-            name: 'InvalidExportSymbolError',
-            message: 'export symbol for hookplane had no value declaration',
-        } satisfies GlobError)
-    }
-    // eslint-disable-next-line
-    const references = project.getLanguageService().findReferencesAsNodes(decl)
+    const references = project
+        .getLanguageService()
+        .findReferencesAsNodes(hookplane.declarationNode)
     const subs: SubscriptionInstance[] = []
-    // TODO
+    for (const ref of references) {
+        const propAcc = ref.getParentIfKind(SyntaxKind.PropertyAccessExpression)
+        const call = propAcc?.getParentIfKind(SyntaxKind.CallExpression)
+        const methodName = propAcc?.getChildren()[2]?.getText()
+        if (propAcc && call && methodName) {
+            subs.push({
+                filePath: ref.getSourceFile().getFilePath(),
+                callNode: call,
+            })
+        }
+    }
+
     return ok(subs)
 }

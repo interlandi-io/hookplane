@@ -1,4 +1,3 @@
-// Just a sketch for now
 import { hookplane } from './hookplane.js'
 import { stripeProvider } from '@hookplane/stripe'
 
