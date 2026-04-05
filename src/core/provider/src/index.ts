@@ -58,7 +58,7 @@ type ProviderDescriptor<
         TProviderState
     >['indexEndpoints']
 
-    processRequest?: Provider<
+    processRequest: Provider<
         TEventType,
         TProviderConfig,
         TEndpointConfig,
