@@ -1,19 +1,20 @@
-// Just a sketch for now
 import { hookplane } from './hookplane.js'
 import { stripeProvider } from '@hookplane/stripe'
 
 const hp = await hookplane({
     providers: {
-        // TODO this can't be a result
-        stripe: stripeProvider({
-            apiKey: process.env['STRIPE_API_KEY']!,
-        }),
+        stripe: {
+            provider: await stripeProvider({
+                apiKey: process.env['STRIPE_API_KEY']!,
+            }),
+            endpoint: '/hooks/stripe',
+            events: ['checkout.session.completed'],
+            config: {
+                name: 'my_endpoint',
+                eventPayload: 'snapshot',
+            }
+        }
     },
 })
 
-// eslint-disable-next-line
-const checkoutCompleted = hp.subscribe(
-    '/hooks',
-    'stripe',
-    'checkout.session.completed',
-)
+export default hp

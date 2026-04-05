@@ -1,21 +1,17 @@
-import { ProviderSet, createRelativeUrl } from '@hookplane/core'
-import { Subscription, createSubscription } from './subscription.js'
+import { EndpointConfigOf, EventTypeOf, ProviderSet } from '@hookplane/core'
 
 export type Hookplane<TProviderSet extends ProviderSet> = {
     providers: TProviderSet
-    subscribe<
-        P extends keyof TProviderSet,
-        E extends keyof TProviderSet[P]['events'],
-    >(
-        relativeUrl: string,
-        provider: P,
-        event: E,
-    ): Subscription<TProviderSet[P], E>
 }
 
-export type HookplaneParams<TProviderSet extends ProviderSet> = {
+type HookplaneParams<TProviderSet extends ProviderSet> = {
     providers: {
-        [K in keyof TProviderSet]: Promise<TProviderSet[K]>
+        [K in keyof TProviderSet]: {
+            provider: TProviderSet[K]
+            endpoint: string
+            events: EventTypeOf<TProviderSet[K]>[]
+            config: EndpointConfigOf<TProviderSet[K]>
+        }
     }
 }
 
@@ -29,9 +25,5 @@ export async function hookplane<TProviderSet extends ProviderSet>(
 
     return {
         providers,
-        subscribe: (_url, provider, event) => {
-            const url = createRelativeUrl(_url)._unsafeUnwrap()
-            return createSubscription(url, providers[provider], event)
-        },
     }
 }
