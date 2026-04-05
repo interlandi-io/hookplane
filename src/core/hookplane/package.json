@@ -13,6 +13,9 @@
     "exports": {
         ".": "./src/index.ts"
     },
+    "dependencies": {
+        "@hookplane/core": "workspace:*"
+    },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
@@ -20,12 +23,5 @@
         "@types/node": "^22.15.3",
         "vite": "^8.0.0",
         "vitest": "^4.1.2"
-    },
-    "peerDependencies": {
-        "@hookplane/core": "workspace:*"
-    },
-    "dependencies": {
-        "neverthrow": "^8.2.0",
-        "zod": "^4.3.6"
     }
 }
