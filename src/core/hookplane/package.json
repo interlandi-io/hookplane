@@ -15,6 +15,7 @@
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
+        "@hookplane/stripe": "workspace:*",
         "@types/node": "^22.15.3",
         "vite": "^8.0.0",
         "vitest": "^4.1.2"

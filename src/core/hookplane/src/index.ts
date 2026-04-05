@@ -1,13 +1,2 @@
-import { ProviderSet } from '@hookplane/core'
-
-export type Hookplane = {
-    providers: ProviderSet
-}
-
-export type HookplaneParams = {
-    providers: ProviderSet
-}
-
-export function hookplane(params: HookplaneParams): Hookplane {
-    return { ...params }
-}
+export * from './hookplane'
+export { type Subscription } from './subscription'

@@ -61,6 +61,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@hookplane/stripe':
+        specifier: workspace:*
+        version: link:../../providers/stripe
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../shared/eslint-config
