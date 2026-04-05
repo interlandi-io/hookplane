@@ -1,7 +1,5 @@
 import {
     EndpointHandle,
-    EventDefinition,
-    EventTypeOf,
     PayloadOf,
     Provider,
 } from '@hookplane/core'

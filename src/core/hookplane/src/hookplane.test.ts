@@ -1,6 +1,6 @@
 // Just a sketch for now
 import { hookplane } from './hookplane.js'
-import { createStripeProvider, createStripeProvider as stripeProvider } from '@hookplane/stripe'
+import { stripeProvider } from '@hookplane/stripe'
 
 const hp = await hookplane({
     providers: {
