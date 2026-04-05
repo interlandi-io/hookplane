@@ -12,8 +12,8 @@ const hp = await hookplane({
             config: {
                 name: 'my_endpoint',
                 eventPayload: 'snapshot',
-            }
-        }
+            },
+        },
     },
 })
 
