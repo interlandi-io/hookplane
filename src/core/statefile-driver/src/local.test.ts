@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createLocalFileDriver } from '~/local.js'
 import { StatefileDriverData } from '~/statefile-driver.js'
 import {
+    Statefile,
+    ProviderSet,
     createBaseUrl,
     createEndpointHandle,
     createRelativeUrl,
@@ -39,6 +41,14 @@ describe('createLocalFileDriver', () => {
                 },
             },
         },
+    }
+
+    const mockStatefile: Statefile<ProviderSet> = {
+        data: mockData,
+        toState: () => {
+            throw new Error('Not implemented in test')
+        },
+        getSigningSecrets: () => new Map(),
     }
 
     describe('read', () => {
@@ -80,7 +90,7 @@ describe('createLocalFileDriver', () => {
         it('creates file with json data', async () => {
             const filePath = path.join(tmpDir, 'write-test.json')
             const driver = createLocalFileDriver({ path: filePath })
-            const result = await driver.write(mockData)
+            const result = await driver.write(mockStatefile)
 
             expect(result.isOk()).toBe(true)
 
@@ -94,7 +104,7 @@ describe('createLocalFileDriver', () => {
             await fs.writeFile(filePath, '{"old": "data"}', 'utf-8')
 
             const driver = createLocalFileDriver({ path: filePath })
-            const result = await driver.write(mockData)
+            const result = await driver.write(mockStatefile)
 
             expect(result.isOk()).toBe(true)
 

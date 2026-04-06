@@ -7,6 +7,7 @@ import {
     WriteRejectedError,
     UnknownError,
 } from './statefile-driver.js'
+import { Statefile, ProviderSet } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import {
     readFile,
@@ -87,11 +88,11 @@ async function readStatefile(
     return JSON.parse(contents)
 }
 
-async function writeStatefile(
+async function writeStatefile<P extends ProviderSet>(
     config: LocalFileDriverConfig,
-    data: StatefileDriverData,
+    data: Statefile<P>,
 ): Promise<void> {
-    await writeFile(config.path, JSON.stringify(data, null, 2), 'utf-8')
+    await writeFile(config.path, JSON.stringify(data.data, null, 2), 'utf-8')
 }
 
 async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
@@ -105,19 +106,21 @@ async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
     }
 }
 
-export const createLocalFileDriver =
-    describeStatefileDriver<LocalFileDriverConfig>({
-        name: 'local-file',
-        read: ({ config }) =>
-            ResultAsync.fromPromise(readStatefile(config), (e) =>
-                toStatefileDriverError(e, 'read', config.path),
-            ),
-        write: ({ config, data }) =>
-            ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-                toStatefileDriverError(e, 'write', config.path),
-            ),
-        delete: ({ config }) =>
-            ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-                toStatefileDriverError(e, 'update', config.path),
-            ),
-    })
+export const createLocalFileDriver = describeStatefileDriver<
+    LocalFileDriverConfig,
+    ProviderSet
+>({
+    name: 'local-file',
+    read: ({ config }) =>
+        ResultAsync.fromPromise(readStatefile(config), (e) =>
+            toStatefileDriverError(e, 'read', config.path),
+        ),
+    write: ({ config, data }) =>
+        ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
+            toStatefileDriverError(e, 'write', config.path),
+        ),
+    delete: ({ config }) =>
+        ResultAsync.fromPromise(deleteStatefile(config), (e) =>
+            toStatefileDriverError(e, 'update', config.path),
+        ),
+})
