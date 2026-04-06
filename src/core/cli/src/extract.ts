@@ -7,10 +7,10 @@ export type ExtractionError =
     | { name: 'NotExportedError'; message: string; filePath: string }
     | { name: 'InvalidHookplaneInstance'; message: string; filePath: string }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function extract(
     exportName: string,
     moduleSpecifier: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Result<State<any>, ExtractionError>> {
     const jiti = createJiti(import.meta.url)
     const mod = await jiti.import(moduleSpecifier)
