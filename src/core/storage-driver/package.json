@@ -1,5 +1,5 @@
 {
-    "name": "@hookplane/storage-driver",
+    "name": "hookplane",
     "type": "module",
     "version": "0.0.0",
     "private": true,
