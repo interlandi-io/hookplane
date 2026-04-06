@@ -1,5 +1,6 @@
 import {
     describeStatefileDriver,
+    type StatefileOperation,
     type StatefileDriverError,
     type StatefileDriverData,
     NotFoundError,
@@ -17,7 +18,7 @@ export type LocalFileDriverConfig = {
 
 function toStatefileDriverError(
     e: unknown,
-    operation: 'read' | 'write' | 'update',
+    operation: StatefileOperation,
     path: string,
 ): StatefileDriverError {
     const error = e as NodeJS.ErrnoException & { kind?: string }
