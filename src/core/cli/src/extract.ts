@@ -20,7 +20,16 @@ export async function extract(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Result<State<any>, ExtractionError>> {
     const jiti = createJiti(import.meta.url)
-    const mod = await jiti.import(moduleSpecifier)
+
+    let mod
+    try {
+        mod = await jiti.import(moduleSpecifier)
+    } catch (e) {
+        return err({
+            name: 'ModuleError',
+            cause: e instanceof Error ? e : new Error(JSON.stringify(e)),
+        })
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state = (mod as any)?.[exportName] as State<any>
