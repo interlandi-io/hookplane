@@ -14,12 +14,14 @@
         ".": "./src/index.ts"
     },
     "dependencies": {
-        "@hookplane/core": "workspace:*"
+        "@hookplane/core": "workspace:*",
+        "neverthrow": "^8.2.0",
+        "ts-morph": "^27.0.2"
     },
     "devDependencies": {
+        "@hookplane/stripe": "workspace:*",
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
-        "@hookplane/stripe": "workspace:*",
         "@types/node": "^22.15.3",
         "vite": "^8.0.0",
         "vitest": "^4.1.2"
