@@ -118,6 +118,7 @@ interface Provider<
     ): ResultAsync<EndpointIndex<this>, ProviderError>
 
     /**
+     * @todo This feature does not exist yet.
      * Performs any or all of the following:
      * 1) Validate the schema of an incoming request.
      * 2) Validate the cryptographic signature of an incoming request.
@@ -126,11 +127,12 @@ interface Provider<
      * @returns a `ProcessRequestReturn` if both the schema and request
      * validation are scucessful, else an error.
      */
-    processRequest(
+    processRequest?(
         params: ProcessRequestParams<TProviderState, TProviderConfig>,
     ): ResultAsync<ProcessRequestReturn<TEventType>, ProviderError>
 
     /**
+     * @todo This feature does not exist yet.
      * Generates a mock request with a valid schema & signature for an event.
      *
      * @returns a `MockRequestReturn`

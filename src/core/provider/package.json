@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "test": "doppler run -- vitest",
-        "__test:run": "doppler run -- vitest run",
+        "test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
         "check-types": "tsc --noEmit",
         "lint": "eslint . --max-warnings 0"

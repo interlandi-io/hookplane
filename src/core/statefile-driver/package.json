@@ -1,5 +1,5 @@
 {
-    "name": "hookplane",
+    "name": "@hookplane/statefile-driver",
     "type": "module",
     "version": "0.0.0",
     "private": true,
@@ -14,12 +14,12 @@
         ".": "./src/index.ts"
     },
     "dependencies": {
-        "@hookplane/core": "workspace:*"
+        "@hookplane/core": "workspace:*",
+        "neverthrow": "^8.2.0"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
-        "@hookplane/stripe": "workspace:*",
         "@types/node": "^22.15.3",
         "vite": "^8.0.0",
         "vitest": "^4.1.2"
