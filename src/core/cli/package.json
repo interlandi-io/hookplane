@@ -15,6 +15,7 @@
     },
     "dependencies": {
         "@hookplane/core": "workspace:*",
+        "jiti": "^2.6.1",
         "neverthrow": "^8.2.0",
         "ts-morph": "^27.0.2"
     },
