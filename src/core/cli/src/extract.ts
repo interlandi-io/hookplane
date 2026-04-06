@@ -7,6 +7,13 @@ export type ExtractionError =
     | { name: 'NotExportedError'; message: string; filePath: string }
     | { name: 'InvalidHookplaneInstance'; message: string; filePath: string }
 
+/**
+ * Extracts a Hookplane `State` export from the specified module and verifies it has minimal expected fields.
+ *
+ * @param exportName - The exported identifier to read from the module.
+ * @param moduleSpecifier - The module path or specifier to import.
+ * @returns A `Result` containing the extracted `State` on success, or an `ExtractionError` describing why extraction failed (missing export or missing required fields `baseUrl`, `providers`, or `providerStates`).
+ */
 export async function extract(
     exportName: string,
     moduleSpecifier: string,

@@ -18,7 +18,15 @@ export type FindError =
       }
     | { name: 'NoInstancesError'; message: 'no hookplane instances found' }
 
-// TODO only works if hookplane is default export but non anonymous
+/**
+ * Locate the single Hookplane instance within a TypeScript project referenced by a tsconfig.
+ *
+ * Scans the project described by `tsConfigFilePath` for source files that import the `hookplane`
+ * named import and expose a default export, and returns the discovered instance or a detailed error.
+ *
+ * @param tsConfigFilePath - Path to the TypeScript configuration file (tsconfig) used to build the project
+ * @returns An `ok` result containing the `HookplaneInstance` when exactly one instance is found; an `err` result with a `FindError` when project creation fails (`TSProjectError`), no instances are found (`NoInstancesError`), or more than one instance is found (`MultipleInstancesError`)
+ */
 export function findHookplane(
     tsConfigFilePath: string,
 ): Result<HookplaneInstance, FindError> {
