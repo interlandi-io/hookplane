@@ -17,7 +17,7 @@ export interface StatefileDriver<P extends ProviderSet> {
     delete(): ResultAsync<void, StatefileDriverError>
 }
 
-export type StatefileOperation = 'read' | 'write' | 'update'
+export type StatefileOperation = 'read' | 'write' | 'delete'
 
 export type StatefileDriverError =
     | NotFoundError

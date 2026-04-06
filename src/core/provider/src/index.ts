@@ -134,17 +134,18 @@ function describeProvider<
 > {
     const { events, ..._desc } = desc
 
-    if (
-        desc.features?.requiresSigningSecret &&
-        desc.processRequest === undefined
-    ) {
-        // We throw instead of using neverthrow b/c this touches the public API boundary.
-        throw {
-            name: 'ProviderFeaturesMismatchError',
-            message:
-                'features.requiresSigningSecret is true, but processRequest is not defined',
-        } satisfies ProviderFeaturesMismatchError
-    }
+    // TODO: This code path is dead, but here for future releases involving the below features.
+    // if (
+    //     desc.features?.requiresSigningSecret &&
+    //     desc.processRequest === undefined
+    // ) {
+    //     // We throw instead of using neverthrow b/c this touches the public API boundary.
+    //     throw {
+    //         name: 'ProviderFeaturesMismatchError',
+    //         message:
+    //             'features.requiresSigningSecret is true, but processRequest is not defined',
+    //     } satisfies ProviderFeaturesMismatchError
+    // }
 
     return async (config: TProviderConfig) => {
         const state = (await desc.setup(config))._unsafeUnwrap() // Throw b/c this hits the API boundary

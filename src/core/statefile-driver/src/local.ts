@@ -98,6 +98,6 @@ export const createLocalFileDriver = describeStatefileDriver<
         ),
     delete: ({ config }) =>
         ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-            toStatefileDriverError(e, 'update', config.path),
+            toStatefileDriverError(e, 'delete', config.path),
         ),
 })
