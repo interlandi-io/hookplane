@@ -3,7 +3,7 @@ import { stripeProvider } from '@hookplane/stripe'
 
 describe('hookplane', () => {
     it('constructs', async () => {
-        await hookplane({
+        const state = await hookplane({
             baseUrl: 'https://localhost:3000',
             providers: {
                 stripe: {
@@ -19,5 +19,8 @@ describe('hookplane', () => {
                 },
             },
         })
+        expect(state.baseUrl).toBe('https://localhost:3000')
+        expect(state.providers['stripe']).toBeDefined()
+        expect(state.providerStates['stripe']).toBeDefined()
     })
 })
