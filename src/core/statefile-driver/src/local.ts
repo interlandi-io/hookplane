@@ -9,13 +9,7 @@ import {
 } from './statefile-driver.js'
 import { Statefile, ProviderSet } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
-import {
-    readFile,
-    writeFile,
-    unlink,
-    access,
-    constants,
-} from 'node:fs/promises'
+import { readFile, writeFile, unlink } from 'node:fs/promises'
 
 export type LocalFileDriverConfig = {
     path: string
@@ -63,27 +57,9 @@ function toStatefileDriverError(
     } satisfies UnknownError
 }
 
-async function fileExists(path: string): Promise<boolean> {
-    try {
-        await access(path, constants.R_OK)
-        return true
-    } catch {
-        return false
-    }
-}
-
 async function readStatefile(
     config: LocalFileDriverConfig,
 ): Promise<StatefileDriverData> {
-    const exists = await fileExists(config.path)
-    if (!exists) {
-        throw {
-            kind: 'StatefileDriverError',
-            name: 'NotFoundError',
-            message: `file not found: ${config.path}`,
-            while: 'read',
-        } satisfies NotFoundError
-    }
     const contents = await readFile(config.path, 'utf-8')
     return JSON.parse(contents)
 }
