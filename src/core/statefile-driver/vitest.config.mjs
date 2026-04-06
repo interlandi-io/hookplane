@@ -1,9 +1,15 @@
 import { defineConfig } from 'vitest/config'
+import path from 'path'
 
-export default defineConfig(({ mode: _ }) => {
+export default defineConfig(() => {
     return {
+        resolve: {
+            alias: {
+                '~': path.resolve(__dirname, './src'),
+            },
+        },
         test: {
-            globals: true, 
+            globals: true,
         },
     }
 })

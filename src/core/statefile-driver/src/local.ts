@@ -2,6 +2,10 @@ import {
     describeStatefileDriver,
     type StatefileDriverError,
     type StatefileDriverData,
+    NotFoundError,
+    PermissionDeniedError,
+    WriteRejectedError,
+    UnknownError,
 } from './statefile-driver.js'
 import { ResultAsync } from 'neverthrow'
 import {
@@ -21,34 +25,41 @@ function toStatefileDriverError(
     operation: 'read' | 'write' | 'update',
     path: string,
 ): StatefileDriverError {
-    const error = e as NodeJS.ErrnoException
+    const error = e as NodeJS.ErrnoException & { kind?: string }
+    if (error.kind && error.kind === 'StatefileDriverError') {
+        return error as StatefileDriverError
+    }
     if (error.code === 'ENOENT') {
         return {
+            kind: 'StatefileDriverError',
             name: 'NotFoundError',
             message: `file not found: ${path}`,
             while: operation,
-        }
+        } satisfies NotFoundError
     }
     if (error.code === 'EACCES' || error.code === 'EPERM') {
         return {
+            kind: 'StatefileDriverError',
             name: 'PermissionDeniedError',
             message: `permission denied: ${path}`,
             while: operation,
-        }
+        } satisfies PermissionDeniedError
     }
     if (error.code === 'ENOSPC') {
         return {
+            kind: 'StatefileDriverError',
             name: 'WriteRejectedError',
             message: 'disk full',
             while: operation,
-        }
+        } satisfies WriteRejectedError
     }
     return {
+        kind: 'StatefileDriverError',
         name: 'UnknownError',
         message: String(e),
         while: operation,
         cause: e,
-    }
+    } satisfies UnknownError
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -66,10 +77,11 @@ async function readStatefile(
     const exists = await fileExists(config.path)
     if (!exists) {
         throw {
+            kind: 'StatefileDriverError',
             name: 'NotFoundError',
             message: `file not found: ${config.path}`,
             while: 'read',
-        }
+        } satisfies NotFoundError
     }
     const contents = await readFile(config.path, 'utf-8')
     return JSON.parse(contents)

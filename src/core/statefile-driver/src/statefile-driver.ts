@@ -27,24 +27,28 @@ export type StatefileDriverError =
     | UnknownError
 
 export interface NotFoundError {
+    kind: 'StatefileDriverError'
     name: 'NotFoundError'
     message: string
     while: StatefileOperation
 }
 
 export interface PermissionDeniedError {
+    kind: 'StatefileDriverError'
     name: 'PermissionDeniedError'
     message: string
     while: StatefileOperation
 }
 
 export interface WriteRejectedError {
+    kind: 'StatefileDriverError'
     name: 'WriteRejectedError'
     message: string
     while: StatefileOperation
 }
 
 export interface ServerError {
+    kind: 'StatefileDriverError'
     name: 'ServerError'
     message: string
     statusCode?: number
@@ -52,6 +56,7 @@ export interface ServerError {
 }
 
 export interface UnknownError {
+    kind: 'StatefileDriverError'
     name: 'UnknownError'
     message: string
     while: StatefileOperation
