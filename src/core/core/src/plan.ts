@@ -134,36 +134,36 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
 
 const getStepById =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-        (id: StepId) => {
-            let existing = 0
-            let step: Step<Provider> | undefined = undefined
-            for (const providerPlan of Object.values(providerPlans)) {
-                const s = providerPlan.get(id)
-                if (s) {
-                    step = s
-                    existing++
-                }
+    (id: StepId) => {
+        let existing = 0
+        let step: Step<Provider> | undefined = undefined
+        for (const providerPlan of Object.values(providerPlans)) {
+            const s = providerPlan.get(id)
+            if (s) {
+                step = s
+                existing++
             }
-
-            if (existing > 1) {
-                return err(new Error(`more than one step shares id ${id}`))
-            } else if (existing < 1 || step == undefined) {
-                return err(new Error(`no step found by id ${id}`))
-            }
-
-            return ok(step)
         }
+
+        if (existing > 1) {
+            return err(new Error(`more than one step shares id ${id}`))
+        } else if (existing < 1 || step == undefined) {
+            return err(new Error(`no step found by id ${id}`))
+        }
+
+        return ok(step)
+    }
 
 const getStepIds =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-        () => {
-            const ids: StepId[] = []
-            for (const providerPlan of Object.values(providerPlans)) {
-                ids.push(...(providerPlan as Map<StepId, Step<Provider>>).keys())
-            }
-
-            return ids
+    () => {
+        const ids: StepId[] = []
+        for (const providerPlan of Object.values(providerPlans)) {
+            ids.push(...(providerPlan as Map<StepId, Step<Provider>>).keys())
         }
+
+        return ids
+    }
 
 /**
  * Comapres two states by merging their Providers and juxtaposing their respective `EndpointState`s.

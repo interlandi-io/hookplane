@@ -24,25 +24,25 @@ const TestProvider = (config: {
         testEvent: {},
     },
     state: {},
-    setup: function() {
+    setup: function () {
         return okAsync({})
     },
-    createEndpoint: function() {
+    createEndpoint: function () {
         throw new Error('Function not implemented.')
     },
-    readEndpoint: function() {
+    readEndpoint: function () {
         throw new Error('Function not implemented.')
     },
-    updateEndpoint: function() {
+    updateEndpoint: function () {
         throw new Error('Function not implemented.')
     },
-    deleteEndpoint: function() {
+    deleteEndpoint: function () {
         throw new Error('Function not implemented.')
     },
-    indexEndpoints: function() {
+    indexEndpoints: function () {
         throw new Error('Function not implemented.')
     },
-    processRequest: function() {
+    processRequest: function () {
         return okAsync({
             event: 'testEvent' as const,
             data: {},
@@ -252,25 +252,25 @@ describe('plan', () => {
                 eventB: {},
             },
             state: {},
-            setup: function() {
+            setup: function () {
                 return okAsync({})
             },
-            createEndpoint: function() {
+            createEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            readEndpoint: function() {
+            readEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            updateEndpoint: function() {
+            updateEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            deleteEndpoint: function() {
+            deleteEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            indexEndpoints: function() {
+            indexEndpoints: function () {
                 throw new Error('Function not implemented.')
             },
-            processRequest: function() {
+            processRequest: function () {
                 return okAsync({
                     event: 'eventA' as const,
                     data: {},
@@ -285,25 +285,25 @@ describe('plan', () => {
                 eventC: {},
             },
             state: {},
-            setup: function() {
+            setup: function () {
                 return okAsync({})
             },
-            createEndpoint: function() {
+            createEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            readEndpoint: function() {
+            readEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            updateEndpoint: function() {
+            updateEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            deleteEndpoint: function() {
+            deleteEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            indexEndpoints: function() {
+            indexEndpoints: function () {
                 throw new Error('Function not implemented.')
             },
-            processRequest: function() {
+            processRequest: function () {
                 return okAsync({
                     event: 'eventC' as const,
                     data: {},
@@ -318,25 +318,25 @@ describe('plan', () => {
                 eventD: {},
             },
             state: {},
-            setup: function() {
+            setup: function () {
                 return okAsync({})
             },
-            createEndpoint: function() {
+            createEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            readEndpoint: function() {
+            readEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            updateEndpoint: function() {
+            updateEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            deleteEndpoint: function() {
+            deleteEndpoint: function () {
                 throw new Error('Function not implemented.')
             },
-            indexEndpoints: function() {
+            indexEndpoints: function () {
                 throw new Error('Function not implemented.')
             },
-            processRequest: function() {
+            processRequest: function () {
                 return okAsync({
                     event: 'eventD' as const,
                     data: {},
