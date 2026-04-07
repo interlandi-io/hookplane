@@ -17,7 +17,7 @@ export interface MultipleMatchesError {
     name: 'MultipleMatchesError'
     message: 'multiple matches found for a single endpoint state'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    known: EndpointState<any>
+    unknown: EndpointState<any>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     matched: EndpointState<any>[]
 }
@@ -68,8 +68,8 @@ export function match<P extends ProviderSet>(
                         name: 'MultipleMatchesError',
                         message:
                             'multiple matches found for a single endpoint state',
-                        known: knownState,
-                        matched: [prev, unknownState],
+                        unknown: unknownState,
+                        matched: [prev, knownState],
                     } satisfies MultipleMatchesError)
                 } else {
                     outputIndex.set(handle, unknownState)
