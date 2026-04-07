@@ -1,4 +1,4 @@
-import { State } from '@hookplane/core'
+import { StateUnknown } from '@hookplane/core'
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
 
@@ -18,7 +18,7 @@ export async function extract(
     exportName: string,
     moduleSpecifier: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<Result<State<any>, ExtractionError>> {
+): Promise<Result<StateUnknown<any>, ExtractionError>> {
     const jiti = createJiti(import.meta.url)
 
     let mod
@@ -32,7 +32,7 @@ export async function extract(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const state = (mod as any)?.[exportName] as State<any>
+    const state = (mod as any)?.[exportName] as StateUnknown<any>
     if (!state) {
         return err({
             name: 'NotExportedError',
