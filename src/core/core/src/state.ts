@@ -29,7 +29,8 @@ interface State<P extends ProviderSet> {
 }
 
 /**
- * A snapshot of an application-wide endpoint configuration.
+ * A snapshot of an application-wide endpoint configuration discovered from an external source,
+ * where endpoint states are not yet mapped to known handles.
  */
 interface StateUnknown<P extends ProviderSet> {
     /** The base URL of the application/state. */
