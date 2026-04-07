@@ -11,8 +11,7 @@ export type Heuristic = <P extends Provider>(
     known: EndpointState<P>,
 ) => boolean
 
-export type MatchError =
-    | MultipleMatchesError
+export type MatchError = MultipleMatchesError
 
 export interface MultipleMatchesError {
     name: 'MultipleMatchesError'
@@ -23,7 +22,7 @@ export interface MultipleMatchesError {
     matched: EndpointState<any>[]
 }
 
-/** 
+/**
  * Takes in a `_unknown` and attempts to match the `EndpointState`s in it
  * to the `EndpointState`s in `known` based on `heuristic`.
  *
@@ -34,10 +33,11 @@ export function match<P extends ProviderSet>(
     unknown: StateUnknown<P>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     known: State<any>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Result<State<any>, MatchError> {
     const providerStates = {} as State<P>['providerStates']
 
-    for (const e of Object.entries(unknown)) {
+    for (const e of Object.entries(unknown.providerStates)) {
         const [provider, unknownSet] = e as [
             keyof P,
             Set<EndpointState<P[keyof P]>>,
@@ -45,11 +45,14 @@ export function match<P extends ProviderSet>(
         const knownIndex = known.providerStates[provider]
         // If this provider is new, all handles are orphan
         if (!knownIndex) {
-            const entries = Array.from(unknownSet, e => [createOrphanEndpointHandle(), e] as const)
+            const entries = Array.from(
+                unknownSet,
+                (e) => [createOrphanEndpointHandle(), e] as const,
+            )
             providerStates[provider] = new Map(entries)
             continue
         }
-        let outputIndex: EndpointIndex<P[keyof P]> = new Map()
+        const outputIndex: EndpointIndex<P[keyof P]> = new Map()
 
         for (const unknownState of unknownSet) {
             let matched = false
@@ -88,4 +91,5 @@ export function match<P extends ProviderSet>(
     })
 }
 
-export const relativeUrlHeuristic: Heuristic = (unknown, known) => unknown.relativeUrl === known.relativeUrl
+export const relativeUrlHeuristic: Heuristic = (unknown, known) =>
+    unknown.relativeUrl === known.relativeUrl
