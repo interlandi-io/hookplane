@@ -29,15 +29,9 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
-      jiti:
-        specifier: ^2.6.1
-        version: 2.6.1
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
-      ts-morph:
-        specifier: ^27.0.2
-        version: 27.0.2
     devDependencies:
       '@hookplane/stripe':
         specifier: workspace:*
@@ -116,9 +110,15 @@ importers:
       '@hookplane/statefile-driver':
         specifier: workspace:*
         version: link:../statefile-driver
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+      ts-morph:
+        specifier: ^27.0.2
+        version: 27.0.2
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*

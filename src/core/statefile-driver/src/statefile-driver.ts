@@ -11,7 +11,9 @@ export interface StatefileDriver {
     read(): ResultAsync<StatefileDriverData, StatefileDriverError>
 
     /** Writes a validated statefile to storage */
-    write<P extends ProviderSet>(data: Statefile<P>): ResultAsync<void, StatefileDriverError>
+    write<P extends ProviderSet>(
+        data: Statefile<P>,
+    ): ResultAsync<void, StatefileDriverError>
 
     /** Deletes the statefile from storage */
     delete(): ResultAsync<void, StatefileDriverError>

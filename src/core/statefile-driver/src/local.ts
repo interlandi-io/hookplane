@@ -83,20 +83,19 @@ async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
     }
 }
 
-export const createLocalFileDriver = describeStatefileDriver<
-    LocalFileDriverConfig
->({
-    name: 'local-file',
-    read: ({ config }) =>
-        ResultAsync.fromPromise(readStatefile(config), (e) =>
-            toStatefileDriverError(e, 'read', config.path),
-        ),
-    write: ({ config, data }) =>
-        ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-            toStatefileDriverError(e, 'write', config.path),
-        ),
-    delete: ({ config }) =>
-        ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-            toStatefileDriverError(e, 'delete', config.path),
-        ),
-})
+export const createLocalFileDriver =
+    describeStatefileDriver<LocalFileDriverConfig>({
+        name: 'local-file',
+        read: ({ config }) =>
+            ResultAsync.fromPromise(readStatefile(config), (e) =>
+                toStatefileDriverError(e, 'read', config.path),
+            ),
+        write: ({ config, data }) =>
+            ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
+                toStatefileDriverError(e, 'write', config.path),
+            ),
+        delete: ({ config }) =>
+            ResultAsync.fromPromise(deleteStatefile(config), (e) =>
+                toStatefileDriverError(e, 'delete', config.path),
+            ),
+    })
