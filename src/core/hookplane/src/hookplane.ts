@@ -1,5 +1,5 @@
 import {
-    State,
+    StateUnknown,
     createBaseUrl,
     EndpointConfigOf,
     EventTypeOf,
@@ -7,7 +7,6 @@ import {
     createProviderSet,
     Provider,
     createRelativeUrl,
-    createOrphanEndpointHandle,
 } from '@hookplane/core'
 
 type HookplaneParams<TProviderSet extends ProviderSet> = {
@@ -35,10 +34,10 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
  */
 export async function hookplane<TProviderSet extends ProviderSet>(
     params: HookplaneParams<TProviderSet>,
-): Promise<State<TProviderSet>> {
+): Promise<StateUnknown<TProviderSet>> {
     // We throw in this b/c it touches the API boundary
     const providersUnvalidated: Record<string, Provider> = {}
-    const providerStates = {} as State<TProviderSet>['providerStates']
+    const providerStates = {} as StateUnknown<TProviderSet>['providerStates']
 
     for (const [name, v] of Object.entries(params.providers)) {
         const { provider, endpoint, events, config } =
@@ -46,16 +45,12 @@ export async function hookplane<TProviderSet extends ProviderSet>(
         providersUnvalidated[name] = provider
 
         const relativeUrl = createRelativeUrl(endpoint)._unsafeUnwrap()
-        providerStates[name as keyof typeof providerStates] = new Map([
-            [
-                createOrphanEndpointHandle(), // TODO: this isn't correct because it will create new endpoints for everything
-                {
-                    // there needs to be a matching heuristic here
-                    relativeUrl,
-                    events,
-                    config,
-                },
-            ],
+        providerStates[name as keyof typeof providerStates] = new Set([
+            {
+                relativeUrl,
+                events,
+                config,
+            },
         ])
     }
 
