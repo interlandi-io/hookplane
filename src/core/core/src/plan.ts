@@ -26,11 +26,18 @@ type Plan<P extends ProviderSet> = {
     providerPlans: {
         [K in keyof P]: Map<StepId, Step<P[K]>>
     }
+    /**
+     * @returns the `Step` corresponding to `id`
+     */
     getStepById(id: StepId): Result<Step<P[keyof P]>, Error>
     /**
      * @returns `StepId`s in this `Plan`
      */
     getStepIds(): StepId[]
+    /**
+     * @returns if there are no steps in the `Plan`
+     */
+    isEmpty(): boolean
 }
 
 export type PlanError = InvalidOrphanEndpointHandleError
@@ -121,41 +128,42 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         providerPlans,
         getStepById: getStepById(providerPlans),
         getStepIds: getStepIds(providerPlans),
+        isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
 }
 
 const getStepById =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-    (id: StepId) => {
-        let existing = 0
-        let step: Step<Provider> | undefined = undefined
-        for (const providerPlan of Object.values(providerPlans)) {
-            const s = providerPlan.get(id)
-            if (s) {
-                step = s
-                existing++
+        (id: StepId) => {
+            let existing = 0
+            let step: Step<Provider> | undefined = undefined
+            for (const providerPlan of Object.values(providerPlans)) {
+                const s = providerPlan.get(id)
+                if (s) {
+                    step = s
+                    existing++
+                }
             }
-        }
 
-        if (existing > 1) {
-            return err(new Error(`more than one step shares id ${id}`))
-        } else if (existing < 1 || step == undefined) {
-            return err(new Error(`no step found by id ${id}`))
-        }
+            if (existing > 1) {
+                return err(new Error(`more than one step shares id ${id}`))
+            } else if (existing < 1 || step == undefined) {
+                return err(new Error(`no step found by id ${id}`))
+            }
 
-        return ok(step)
-    }
+            return ok(step)
+        }
 
 const getStepIds =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-    () => {
-        const ids: StepId[] = []
-        for (const providerPlan of Object.values(providerPlans)) {
-            ids.push(...(providerPlan as Map<StepId, Step<Provider>>).keys())
-        }
+        () => {
+            const ids: StepId[] = []
+            for (const providerPlan of Object.values(providerPlans)) {
+                ids.push(...(providerPlan as Map<StepId, Step<Provider>>).keys())
+            }
 
-        return ids
-    }
+            return ids
+        }
 
 /**
  * Comapres two states by merging their Providers and juxtaposing their respective `EndpointState`s.
