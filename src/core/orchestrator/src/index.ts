@@ -1,10 +1,5 @@
-export type Orchestrator = {
+export type Orchestrator = {}
 
-}
+export type OrchestratorDescriptor = {}
 
-export type OrchestratorDescriptor = {
-}
-
-export function createOrchestrator() {
-
-}
+export function createOrchestrator() {}

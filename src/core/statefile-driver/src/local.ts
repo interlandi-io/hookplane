@@ -84,8 +84,7 @@ async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
 }
 
 export const createLocalFileDriver = describeStatefileDriver<
-    LocalFileDriverConfig,
-    ProviderSet
+    LocalFileDriverConfig
 >({
     name: 'local-file',
     read: ({ config }) =>
