@@ -23,11 +23,12 @@ export interface MultipleMatchesError {
 }
 
 /**
- * Takes in a `_unknown` and attempts to match the `EndpointState`s in it
- * to the `EndpointState`s in `known` based on `heuristic`.
+ * Aligns endpoint states from an unknown state to a known state using a heuristic, producing a reconciled State whose endpoint handles are either mapped to matched known handles or created as orphans.
  *
- * Any states that are not matched are decidedly orphan.
- */
+ * @param heuristic - Function that returns `true` when an unknown `EndpointState` should be considered a match for a known `EndpointState`
+ * @param unknown - The source state containing endpoint states to be matched
+ * @param known - The reference state whose provider indexes are used to find matches
+ * @returns A `Result` containing the reconciled `State` on success; an `err` with `MultipleMatchesError` when a single unknown endpoint state matches more than one known state that map to the same handle.
 export function match<P extends ProviderSet>(
     heuristic: Heuristic,
     unknown: StateUnknown<P>,
