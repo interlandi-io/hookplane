@@ -17,6 +17,10 @@ import {
 } from './provider'
 import { ProviderSet } from './provider-set'
 
+// Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
+// and they make including an Executor as a property in an Orchestrator difficult.
+// Use extra care when passing Providers/ProviderSets around, since there aren't any type guards to help you.
+
 /**
  * Handle to an executor that runs a `Plan` against remote providers.
  *
@@ -26,9 +30,9 @@ import { ProviderSet } from './provider-set'
  * executor.execute()
  * ```
  */
-export interface Executor<P extends ProviderSet> {
+export interface Executor {
     /** The plan this executor was created with. */
-    getPlan(): Plan<P>
+    getPlan(): Plan<ProviderSet>
 
     /** Current states of all steps. Check this after execute() to see results. */
     getStepStates(): Map<StepId, StepState>
@@ -40,7 +44,7 @@ export interface Executor<P extends ProviderSet> {
 export type ExecutorState<P extends ProviderSet> = {
     plan: Plan<P>
     stepStates: Map<StepId, StepState>
-    dispatchFn: DispatchFn<P[keyof P]>
+    dispatchFn: DispatchFn
 }
 
 /**
@@ -66,10 +70,10 @@ export type StepResult =
  * @param stepStates - The initial set of step states.
  * @param dispatch - The dispatch function to use.
  */
-export type ExecuteFn<P extends ProviderSet> = (
-    plan: Plan<P>,
+export type ExecuteFn = (
+    plan: Plan<ProviderSet>,
     stepStates: Map<StepId, StepState>,
-    dispatch: DispatchFn<P[keyof P]>,
+    dispatch: DispatchFn,
 ) => ResultAsync<void, Error>
 
 /**
@@ -78,11 +82,11 @@ export type ExecuteFn<P extends ProviderSet> = (
  * @param stepId - The step's unique ID
  * @param step - The step to execute (create, delete, or update)
  */
-export type DispatchFn<P extends Provider> = (
+export type DispatchFn = (
     baseUrl: BaseUrl,
-    provider: P,
+    provider: Provider,
     stepId: StepId,
-    step: Step<P>,
+    step: Step<Provider>,
 ) => ResultAsync<StepResult, DispatchError>
 
 export type ExecutorError = EmptyPlanError
@@ -174,9 +178,9 @@ export interface UpdateError extends Error {
  */
 export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
-    executeFn: ExecuteFn<P>,
-    dispatchFn: DispatchFn<P[keyof P]>,
-): Result<Executor<P>, ExecutorError> {
+    executeFn: ExecuteFn,
+    dispatchFn: DispatchFn,
+): Result<Executor, ExecutorError> {
     const stepIds = plan.getStepIds()
     if (stepIds.length == 0) {
         return err({
@@ -212,50 +216,50 @@ export function createExecutor<P extends ProviderSet>(
  */
 export const parallelExecution =
     <P extends ProviderSet>() =>
-    (
-        plan: Plan<P>,
-        stepStates: Map<StepId, StepState>,
-        dispatch: DispatchFn<P[keyof P]>,
-    ): ResultAsync<void, Error> => {
-        const promises: Promise<void>[] = []
+        (
+            plan: Plan<P>,
+            stepStates: Map<StepId, StepState>,
+            dispatch: DispatchFn,
+        ): ResultAsync<void, Error> => {
+            const promises: Promise<void>[] = []
 
-        for (const [providerKey, providerPlan] of Object.entries(
-            plan.providerPlans,
-        )) {
-            for (const [stepId, step] of providerPlan) {
-                const currentState = stepStates.get(stepId)
-                // TODO: Currently, this just skips steps already in flight.
-                // Maybe we want to do something with this later.
-                if (
-                    currentState?.status == 'inFlight' ||
-                    currentState?.status == 'success'
-                )
-                    continue
+            for (const [providerKey, providerPlan] of Object.entries(
+                plan.providerPlans,
+            )) {
+                for (const [stepId, step] of providerPlan) {
+                    const currentState = stepStates.get(stepId)
+                    // TODO: Currently, this just skips steps already in flight.
+                    // Maybe we want to do something with this later.
+                    if (
+                        currentState?.status == 'inFlight' ||
+                        currentState?.status == 'success'
+                    )
+                        continue
 
-                const provider = plan.providers[providerKey as keyof P]
-                stepStates.set(stepId, { status: 'inFlight' })
+                    const provider = plan.providers[providerKey as keyof P]!
+                    stepStates.set(stepId, { status: 'inFlight' })
 
-                const promise = dispatch(
-                    plan.baseUrl,
-                    provider,
-                    stepId,
-                    step as Step<P[keyof P]>,
-                ).match(
-                    (result) => {
-                        stepStates.set(stepId, { status: 'success', result })
-                    },
-                    (error) => {
-                        stepStates.set(stepId, { status: 'failure', error })
-                    },
-                )
-                promises.push(promise)
+                    const promise = dispatch(
+                        plan.baseUrl,
+                        provider,
+                        stepId,
+                        step as Step<P[keyof P]>,
+                    ).match(
+                        (result) => {
+                            stepStates.set(stepId, { status: 'success', result })
+                        },
+                        (error) => {
+                            stepStates.set(stepId, { status: 'failure', error })
+                        },
+                    )
+                    promises.push(promise)
+                }
             }
-        }
 
-        return ResultAsync.fromSafePromise(Promise.allSettled(promises)).map(
-            () => {},
-        )
-    }
+            return ResultAsync.fromSafePromise(Promise.allSettled(promises)).map(
+                () => { },
+            )
+        }
 
 /**
  * Default dispatch that calls provider.createEndpoint, deleteEndpoint, or updateEndpoint.
@@ -269,76 +273,76 @@ export const parallelExecution =
  */
 export const defaultDispatch =
     <P extends ProviderSet>() =>
-    <K extends keyof P>(
-        baseUrl: BaseUrl,
-        provider: P[K],
-        stepId: StepId,
-        step: Step<P[K]>,
-    ): ResultAsync<StepResult, DispatchError> => {
-        switch (step.kind) {
-            case 'create':
-                return provider
-                    .createEndpoint({
-                        providerState: provider.state,
-                        providerConfig: provider.config,
-                        url: composeEndpointUrl(baseUrl, step.state),
-                        events: step.state.events,
-                        endpointConfig: step.state.config,
-                    })
-                    .map(
-                        (ret) =>
-                            ({
-                                kind: 'create',
-                                value: ret,
-                            }) satisfies StepResult,
-                    )
-                    .mapErr(
-                        (error) =>
-                            ({
-                                name: 'CreateError',
-                                message: 'failed to create endpoint',
-                                stepId,
-                                source: error,
-                            }) as CreateError,
-                    )
+        <K extends keyof P>(
+            baseUrl: BaseUrl,
+            provider: P[K],
+            stepId: StepId,
+            step: Step<P[K]>,
+        ): ResultAsync<StepResult, DispatchError> => {
+            switch (step.kind) {
+                case 'create':
+                    return provider
+                        .createEndpoint({
+                            providerState: provider.state,
+                            providerConfig: provider.config,
+                            url: composeEndpointUrl(baseUrl, step.state),
+                            events: step.state.events,
+                            endpointConfig: step.state.config,
+                        })
+                        .map(
+                            (ret) =>
+                                ({
+                                    kind: 'create',
+                                    value: ret,
+                                }) satisfies StepResult,
+                        )
+                        .mapErr(
+                            (error) =>
+                                ({
+                                    name: 'CreateError',
+                                    message: 'failed to create endpoint',
+                                    stepId,
+                                    source: error,
+                                }) as CreateError,
+                        )
 
-            case 'delete':
-                return provider
-                    .deleteEndpoint({
-                        providerState: provider.state,
-                        providerConfig: provider.config,
-                        handle: step.handle,
-                    })
-                    .map(() => ({ kind: 'delete' }) satisfies StepResult)
-                    .mapErr(
-                        (error) =>
-                            ({
-                                name: 'DeleteError',
-                                message: 'failed to delete endpoint',
-                                stepId,
-                                source: error,
-                            }) as DeleteError,
-                    )
+                case 'delete':
+                    return provider
+                        .deleteEndpoint({
+                            providerState: provider.state,
+                            providerConfig: provider.config,
+                            handle: step.handle,
+                        })
+                        .map(() => ({ kind: 'delete' }) satisfies StepResult)
+                        .mapErr(
+                            (error) =>
+                                ({
+                                    name: 'DeleteError',
+                                    message: 'failed to delete endpoint',
+                                    stepId,
+                                    source: error,
+                                }) as DeleteError,
+                        )
 
-            case 'update':
-                return provider
-                    .updateEndpoint({
-                        providerState: provider.state,
-                        providerConfig: provider.config,
-                        handle: step.handle,
-                        url: composeEndpointUrl(baseUrl, step.state),
-                        events: step.state.events,
-                        endpointConfig: step.state.config,
-                    })
-                    .map(() => ({ kind: 'update' }) satisfies StepResult)
-                    .mapErr(
-                        (error) =>
-                            ({
-                                name: 'UpdateError',
-                                message: 'failed to update endpoint',
-                                stepId,
-                                source: error,
-                            }) as UpdateError,
-                    )
+                case 'update':
+                    return provider
+                        .updateEndpoint({
+                            providerState: provider.state,
+                            providerConfig: provider.config,
+                            handle: step.handle,
+                            url: composeEndpointUrl(baseUrl, step.state),
+                            events: step.state.events,
+                            endpointConfig: step.state.config,
+                        })
+                        .map(() => ({ kind: 'update' }) satisfies StepResult)
+                        .mapErr(
+                            (error) =>
+                                ({
+                                    name: 'UpdateError',
+                                    message: 'failed to update endpoint',
+                                    stepId,
+                                    source: error,
+                                }) as UpdateError,
+                        )
+            }
         }
-    }
