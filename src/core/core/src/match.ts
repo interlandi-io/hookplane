@@ -29,6 +29,7 @@ export interface MultipleMatchesError {
  * @param unknown - The source state containing endpoint states to be matched
  * @param known - The reference state whose provider indexes are used to find matches
  * @returns A `Result` containing the reconciled `State` on success; an `err` with `MultipleMatchesError` when a single unknown endpoint state matches more than one known state that map to the same handle.
+ */
 export function match<P extends ProviderSet>(
     heuristic: Heuristic,
     unknown: StateUnknown<P>,
@@ -74,6 +75,7 @@ export function match<P extends ProviderSet>(
                 } else {
                     outputIndex.set(handle, unknownState)
                     matched = true
+                    break
                 }
             }
 
