@@ -79,6 +79,7 @@ export type ExecuteFn<P extends ProviderSet> = (
  * @param step - The step to execute (create, delete, or update)
  */
 export type DispatchFn<P extends Provider> = (
+    baseUrl: BaseUrl,
     provider: P,
     stepId: StepId,
     step: Step<P>,
@@ -235,6 +236,7 @@ export const parallelExecution =
                 stepStates.set(stepId, { status: 'inFlight' })
 
                 const promise = dispatch(
+                    plan.baseUrl,
                     provider,
                     stepId,
                     step as Step<P[keyof P]>,
@@ -260,16 +262,15 @@ export const parallelExecution =
  *
  * Composes URLs from `baseUrl + endpoint.relativeUrl`.
  *
- * @param baseUrl - From `plan.baseUrl`
- *
  * @example
  * ```typescript
  * const dispatch = defaultDispatch(plan.baseUrl)
  * ```
  */
 export const defaultDispatch =
-    <P extends ProviderSet>(baseUrl: BaseUrl) =>
+    <P extends ProviderSet>() =>
     <K extends keyof P>(
+        baseUrl: BaseUrl,
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,

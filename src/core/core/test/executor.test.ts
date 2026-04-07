@@ -168,7 +168,7 @@ describe('executor', () => {
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -239,7 +239,7 @@ describe('executor', () => {
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -299,7 +299,7 @@ describe('executor', () => {
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -328,7 +328,7 @@ describe('executor', () => {
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isErr()).toBe(true)
         expect(executor._unsafeUnwrapErr().name).toBe('EmptyPlanError')
