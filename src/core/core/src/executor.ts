@@ -18,7 +18,7 @@ import {
 import { ProviderSet } from './provider-set'
 
 // Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
-// and they make including an Executor as a property in an Orchestrator difficult.
+// and they make including ExecuteFns and DispatchFns as properties in an Orchestrator difficult.
 // Use extra care when passing Providers/ProviderSets around, since there aren't any type guards to help you.
 
 /**
@@ -30,9 +30,9 @@ import { ProviderSet } from './provider-set'
  * executor.execute()
  * ```
  */
-export interface Executor {
+export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
-    getPlan(): Plan<ProviderSet>
+    getPlan(): Plan<P>
 
     /** Current states of all steps. Check this after execute() to see results. */
     getStepStates(): Map<StepId, StepState>
@@ -180,7 +180,7 @@ export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
     executeFn: ExecuteFn,
     dispatchFn: DispatchFn,
-): Result<Executor, ExecutorError> {
+): Result<Executor<P>, ExecutorError> {
     const stepIds = plan.getStepIds()
     if (stepIds.length == 0) {
         return err({
