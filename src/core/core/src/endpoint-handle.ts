@@ -1,10 +1,8 @@
 import { Result, ok, err } from 'neverthrow'
 import { randomUUID } from 'crypto'
 
-// TODO instead of a prefix, create two branded types
-// EndpointHandleReal and EndpointHandlOrphan and
-// make EndpointHandle a union of the two.
-const ORPHAN_PREFIX: string = '___ORPHAN___'
+const PREFIX_UNKNOWN: string = '___UNKNOWN___'
+const PREFIX_ORPHAN: string = '___ORPHAN___'
 
 /**
  * Represents a provider-side id keying a provider-registered endpoint.
@@ -13,11 +11,24 @@ export type EndpointHandle = EndpointHandleReal | EndpointHandleOrphan
 
 /**
  * An endpoint handle that corresponds to an endpoint currently registered with a provider.
+ * @see `EndpointHandleUnknown`
+ * @see `EndpointHandleOrphan`
  */
 export type EndpointHandleReal = string & { __brand: 'EndpointHandleReal' }
 
 /**
+ * An endpoint handle that may correspond to a real endpoint or an orphan (yet to be registered).
+ * @see `EndpointHandleReal`
+ * @see `EndpointHandleOrphan`
+ */
+export type EndpointHandleUnknown = string & {
+    __brand: 'EndpointHandleUnknown'
+}
+
+/**
  * An endpoint handle that corresponds to an endpoint yet to be registered/not registered with a provider.
+ * @see `EndpointHandleReal`
+ * @see `EndpointHandleUnknown`
  */
 export type EndpointHandleOrphan = string & { __brand: 'EndpointHandleOrphan' }
 
@@ -57,15 +68,30 @@ export function createRealEndpointHandle(
  * Creates an orphan endpoint handle.
  * @returns An orphan endpoint handle
  */
+export function createUnknownEndpointHandle(): EndpointHandleUnknown {
+    const uuid = randomUUID()
+    const handle = PREFIX_UNKNOWN + uuid
+
+    return handle as EndpointHandleUnknown
+}
+
+export function endpointHandleIsUnknown(handle: EndpointHandle): boolean {
+    return handle.startsWith(PREFIX_UNKNOWN)
+}
+
+/**
+ * Creates an orphan endpoint handle.
+ * @returns An orphan endpoint handle
+ */
 export function createOrphanEndpointHandle(): EndpointHandleOrphan {
     const uuid = randomUUID()
-    const handle = ORPHAN_PREFIX + uuid
+    const handle = PREFIX_ORPHAN + uuid
 
     return handle as EndpointHandleOrphan
 }
 
 export function endpointHandleIsOrphan(handle: EndpointHandle): boolean {
-    return handle.startsWith(ORPHAN_PREFIX)
+    return handle.startsWith(PREFIX_ORPHAN)
 }
 
 /**
