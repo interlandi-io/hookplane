@@ -20,6 +20,7 @@ import {
     MatchError,
     ExecutorError,
     bootstrap,
+    fromState,
 } from '@hookplane/core'
 import {
     StatefileDriver,
@@ -46,12 +47,12 @@ export type OrchestratorState =
     | OrchestratorStateTerminal
 
 export type OrchestratorStateNonTerminal =
-    | { 
+    | {
           tag: 'ready'
-          tsconfigPath: string 
+          tsconfigPath: string
           shouldBootstrap: boolean
       }
-    | { 
+    | {
           tag: 'scanned'
           rightUnknown: StateUnknown<ProviderSet>
           shouldBootstrap: boolean
@@ -85,12 +86,25 @@ export type OrchestratorStateNonTerminal =
           left: State<ProviderSet>
           rightUnknown: StateUnknown<ProviderSet>
       }
-    | { tag: 'matched'; left: State<ProviderSet>; right: State<ProviderSet> }
-    | { tag: 'planned'; plan: Plan<ProviderSet> }
-    | { tag: 'executable'; executor: Executor<ProviderSet> }
+    | {
+          tag: 'matched'
+          left: State<ProviderSet>
+          right: State<ProviderSet>
+      }
+    | {
+          tag: 'planned'
+          plan: Plan<ProviderSet>
+          right: State<ProviderSet>
+      }
+    | {
+          tag: 'executable'
+          executor: Executor<ProviderSet>
+          right: State<ProviderSet>
+      }
+    | { tag: 'executed'; right: State<ProviderSet> }
 
 type OrchestratorStateTerminal =
-    | { tag: 'succeeded'; stepStates: Map<StepId, StepState> }
+    | { tag: 'succeeded' }
     | {
           tag: 'failed'
           error: OrchestratorError
@@ -108,6 +122,7 @@ export type OrchestratorError =
     | { last: 'matched'; error: PlanError }
     | { last: 'planned'; error: ExecutorError }
     | { last: 'executable'; error: Map<StepId, StepState> }
+    | { last: 'executed'; error: StatefileDriverError }
 
 export type RunParams = {
     from?: OrchestratorStateNonTerminal
@@ -175,7 +190,7 @@ async function transition(
                     lastValidState: state,
                 }
             }
-            return { 
+            return {
                 tag: 'scanned',
                 rightUnknown: rightUnknown.value,
                 shouldBootstrap,
@@ -187,16 +202,18 @@ async function transition(
             if (shouldBootstrap) {
                 const bootstrapped = bootstrap(rightUnknown.baseUrl)
                 const result = await statefileDriver.write(bootstrapped)
-                if (result.isErr()) {{
-                    return {
-                        tag: 'failed',
-                        error: {
-                            last: 'scanned',
-                            error: result.error,
-                        },
-                        lastValidState: state,
+                if (result.isErr()) {
+                    {
+                        return {
+                            tag: 'failed',
+                            error: {
+                                last: 'scanned',
+                                error: result.error,
+                            },
+                            lastValidState: state,
+                        }
                     }
-                }}
+                }
             }
             const leftStatefileData = await statefileDriver.read()
             if (leftStatefileData.isErr()) {
@@ -341,11 +358,12 @@ async function transition(
             return {
                 tag: 'planned',
                 plan: plan.value,
+                right,
             }
         }
 
         case 'planned': {
-            const { plan } = state
+            const { plan, right } = state
             const executor = createExecutor(plan, execute, dispatch)
             if (executor.isErr()) {
                 return {
@@ -360,11 +378,12 @@ async function transition(
             return {
                 tag: 'executable',
                 executor: executor.value,
+                right,
             }
         }
 
         case 'executable': {
-            const { executor } = state
+            const { executor, right } = state
             await executor.execute()
             const stepStates = executor.getStepStates()
             const failed = stepStates
@@ -372,8 +391,8 @@ async function transition(
                 .some((s) => s.status !== 'success')
             return !failed
                 ? {
-                      tag: 'succeeded',
-                      stepStates,
+                      tag: 'executed',
+                      right,
                   }
                 : {
                       tag: 'failed',
@@ -383,6 +402,23 @@ async function transition(
                       },
                       lastValidState: state,
                   }
+        }
+
+        case 'executed': {
+            const { right } = state
+            const statefile = fromState(1, right)
+            const result = await statefileDriver.write(statefile)
+            if (result.isErr()) {
+                return {
+                    tag: 'failed',
+                    error: {
+                        last: 'executed',
+                        error: result.error,
+                    },
+                    lastValidState: state,
+                }
+            }
+            return { tag: 'succeeded' }
         }
     }
 }

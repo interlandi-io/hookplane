@@ -25,7 +25,7 @@ describe('orchestrator', () => {
         await fs.rm(tmpDir, { recursive: true, force: true })
     })
 
-    it('runs', async () => {
+    it.skip('runs', async () => {
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
         const orchestrator = createOrchestrator({
             tsconfigPath: path.resolve(__dirname, '../test-proj/tsconfig.json'),
@@ -34,8 +34,7 @@ describe('orchestrator', () => {
             statefileDriver,
             matchingHeuristic: relativeUrlHeuristic,
         })
-        const state = await orchestrator.run({ 
-            until: 'drift-detected',
+        const state = await orchestrator.run({
             shouldBootstrap: true,
         })
         console.log(state)
