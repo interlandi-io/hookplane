@@ -1,4 +1,6 @@
 import {
+    BaseUrl,
+    bootstrap,
     defaultDispatch,
     parallelExecution,
     relativeUrlHeuristic,
@@ -25,6 +27,12 @@ describe('orchestrator', () => {
 
     it('runs', async () => {
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
+        const statefile = bootstrap('https://example.com' as BaseUrl)
+        const result = await statefileDriver.write(statefile)
+        if (result.isErr()) {
+            throw result.error
+        }
+
         const orchestrator = createOrchestrator({
             tsconfigPath: path.resolve(__dirname, '../test-proj/tsconfig.json'),
             execute: parallelExecution(),
@@ -33,6 +41,5 @@ describe('orchestrator', () => {
             matchingHeuristic: relativeUrlHeuristic,
         })
         const state = await orchestrator.run({ until: 'drift-detected' })
-        console.log(state)
     }, 10_000)
 })
