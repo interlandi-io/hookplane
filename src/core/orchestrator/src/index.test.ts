@@ -1,7 +1,11 @@
-import { defaultDispatch, parallelExecution, relativeUrlHeuristic } from "@hookplane/core";
-import { createOrchestrator } from "./index.js";
-import { createLocalFileDriver } from "@hookplane/statefile-driver";
-import path from "path";
+import {
+    defaultDispatch,
+    parallelExecution,
+    relativeUrlHeuristic,
+} from '@hookplane/core'
+import { createOrchestrator } from './index.js'
+import { createLocalFileDriver } from '@hookplane/statefile-driver'
+import path from 'path'
 
 describe('orchestrator', () => {
     it('runs', async () => {

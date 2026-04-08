@@ -234,6 +234,21 @@ export function parseStatefile<P extends ProviderSet>(
     })
 }
 
+export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
+    const providers: ProviderSet = {}
+    const data = {
+        version: 1,
+        baseUrl,
+        providerStates: {},
+    } as const
+
+    return {
+        data,
+        toState: toState(providers, data),
+        getSigningSecrets: getSigningSecrets(data),
+    }
+}
+
 /**
  * Creates a Statefile from a State object.
  *

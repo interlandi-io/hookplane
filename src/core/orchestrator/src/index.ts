@@ -33,7 +33,7 @@ export type Orchestrator = {
 }
 
 export type OrchestratorDescriptor = {
-    tsconfigPath: string,
+    tsconfigPath: string
     execute: ExecuteFn
     dispatch: DispatchFn
     statefileDriver: StatefileDriver
@@ -48,34 +48,34 @@ export type OrchestratorStateNonTerminal =
     | { tag: 'ready'; tsconfigPath: string }
     | { tag: 'scanned'; rightUnknown: StateUnknown<ProviderSet> }
     | {
-        tag: 'statefile-loaded'
-        rightUnknown: StateUnknown<ProviderSet>
-        leftStatefileData: StatefileDriverData
-    }
+          tag: 'statefile-loaded'
+          rightUnknown: StateUnknown<ProviderSet>
+          leftStatefileData: StatefileDriverData
+      }
     | {
-        tag: 'statefile-parsed'
-        leftPrior: State<ProviderSet>
-        rightUnknown: StateUnknown<ProviderSet>
-        // We could extract signing secrets here,
-        // but that's for future releases.
-    }
+          tag: 'statefile-parsed'
+          leftPrior: State<ProviderSet>
+          rightUnknown: StateUnknown<ProviderSet>
+          // We could extract signing secrets here,
+          // but that's for future releases.
+      }
     | {
-        tag: 'synced'
-        leftPrior: State<ProviderSet>
-        leftActual: State<ProviderSet>
-        rightUnknown: StateUnknown<ProviderSet>
-    }
+          tag: 'synced'
+          leftPrior: State<ProviderSet>
+          leftActual: State<ProviderSet>
+          rightUnknown: StateUnknown<ProviderSet>
+      }
     | {
-        tag: 'drift-detected'
-        leftActual: State<ProviderSet>
-        plan: Plan<ProviderSet>
-        rightUnknown: StateUnknown<ProviderSet>
-    }
+          tag: 'drift-detected'
+          leftActual: State<ProviderSet>
+          plan: Plan<ProviderSet>
+          rightUnknown: StateUnknown<ProviderSet>
+      }
     | {
-        tag: 'reconciled'
-        left: State<ProviderSet>
-        rightUnknown: StateUnknown<ProviderSet>
-    }
+          tag: 'reconciled'
+          left: State<ProviderSet>
+          rightUnknown: StateUnknown<ProviderSet>
+      }
     | { tag: 'matched'; left: State<ProviderSet>; right: State<ProviderSet> }
     | { tag: 'planned'; plan: Plan<ProviderSet> }
     | { tag: 'executable'; executor: Executor<ProviderSet> }
@@ -83,10 +83,10 @@ export type OrchestratorStateNonTerminal =
 type OrchestratorStateTerminal =
     | { tag: 'succeeded'; stepStates: Map<StepId, StepState> }
     | {
-        tag: 'failed'
-        error: OrchestratorError
-        lastValidState: OrchestratorState
-    }
+          tag: 'failed'
+          error: OrchestratorError
+          lastValidState: OrchestratorState
+      }
 
 export type OrchestratorError =
     | { last: 'ready'; error: FindError | ExtractionError }
@@ -101,20 +101,26 @@ export type OrchestratorError =
     | { last: 'executable'; error: Map<StepId, StepState> }
 
 export type RunParams = {
-    from?: OrchestratorStateNonTerminal,
+    from?: OrchestratorStateNonTerminal
     until?: OrchestratorStateNonTerminal['tag']
 }
 
 export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     return {
         async run({ from, until }: RunParams) {
-            let state: OrchestratorState = from ?? { tag: 'ready', tsconfigPath: desc.tsconfigPath }
+            let state: OrchestratorState = from ?? {
+                tag: 'ready',
+                tsconfigPath: desc.tsconfigPath,
+            }
             while (
                 until
                     ? !stateIsTerminal(state) && state.tag !== until
                     : !stateIsTerminal(state)
             ) {
-                state = await transition(state as OrchestratorStateNonTerminal, desc)
+                state = await transition(
+                    state as OrchestratorStateNonTerminal,
+                    desc,
+                )
             }
             return state
         },
@@ -217,7 +223,10 @@ async function transition(
 
         case 'statefile-parsed': {
             const { leftPrior, rightUnknown } = state
-            const leftActual = await sync(leftPrior.baseUrl, leftPrior.providers)
+            const leftActual = await sync(
+                leftPrior.baseUrl,
+                leftPrior.providers,
+            )
             if (leftActual.isErr()) {
                 return {
                     tag: 'failed',
@@ -258,7 +267,7 @@ async function transition(
         }
 
         case 'drift-detected': {
-            const { leftActual, rightUnknown, } = state
+            const { leftActual, rightUnknown } = state
             // TODO: reconcile
             return {
                 tag: 'reconciled',
@@ -329,20 +338,25 @@ async function transition(
             const { executor } = state
             await executor.execute()
             const stepStates = executor.getStepStates()
-            const failed = stepStates.values().some(s => s.status !== 'success')
-            return !failed ? {
-                tag: 'succeeded',
-                stepStates,
-            } : {
-                tag: 'failed',
-                error: {
-                    last: 'executable',
-                    error: stepStates,
-                },
-                lastValidState: state,
-            }
+            const failed = stepStates
+                .values()
+                .some((s) => s.status !== 'success')
+            return !failed
+                ? {
+                      tag: 'succeeded',
+                      stepStates,
+                  }
+                : {
+                      tag: 'failed',
+                      error: {
+                          last: 'executable',
+                          error: stepStates,
+                      },
+                      lastValidState: state,
+                  }
         }
     }
 }
 
-export const stateIsTerminal = (state: OrchestratorState) => state.tag === 'succeeded' || state.tag === 'failed'
+export const stateIsTerminal = (state: OrchestratorState) =>
+    state.tag === 'succeeded' || state.tag === 'failed'

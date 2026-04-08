@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+    bootstrap,
     fromState,
     parseStatefile,
     ProviderNotFoundError,
@@ -550,6 +551,19 @@ describe('parseStatefile', () => {
                 providers,
             )
             expect(result.isOk()).toBe(true)
+        })
+    })
+
+    describe('bootstrap', () => {
+        it('bootstraps', () => {
+            const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
+            const statefile = bootstrap(baseUrl)
+            expect(statefile.data.baseUrl).toEqual(baseUrl)
+            expect(
+                Array.from(Object.keys(statefile.data.providerStates)),
+            ).toHaveLength(0)
+            expect(statefile.toState().isOk()).toBe(true)
+            expect(statefile.getSigningSecrets).not.toThrow()
         })
     })
 
