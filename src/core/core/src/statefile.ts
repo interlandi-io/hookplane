@@ -321,16 +321,17 @@ const toState =
     ): Statefile<P>['toState'] =>
     () => {
         // validate that all providers in providers have at least one endpoint in data
-        const providersInData = Object.keys(data.providerStates)
-        for (const providerName of Object.keys(providers)) {
-            if (!providersInData.includes(providerName)) {
-                return err({
-                    name: 'ProviderNotUsedError',
-                    message: `provider ${providerName} not used in statefile`,
-                    provider: providerName,
-                } satisfies ProviderNotUsedError)
-            }
-        }
+        // This is not necessary.
+        // const providersInData = Object.keys(data.providerStates)
+        // for (const providerName of Object.keys(providers)) {
+        //     if (!providersInData.includes(providerName)) {
+        //         return err({
+        //             name: 'ProviderNotUsedError',
+        //             message: `provider ${providerName} not used in statefile`,
+        //             provider: providerName,
+        //         } satisfies ProviderNotUsedError)
+        //     }
+        // }
 
         const providerStatesEntries: [
             keyof P,

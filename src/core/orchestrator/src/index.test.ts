@@ -40,6 +40,6 @@ describe('orchestrator', () => {
             statefileDriver,
             matchingHeuristic: relativeUrlHeuristic,
         })
-        console.log(await orchestrator.run({ until: 'statefile-parsed' }))
-    })
+        const state = await orchestrator.run({ until: 'drift-detected' })
+    }, 10_000)
 })

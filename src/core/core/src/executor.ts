@@ -83,6 +83,8 @@ export type ExecuteFn = (
  * @param step - The step to execute (create, delete, or update)
  */
 export type DispatchFn = (
+    // TODO this is a huge bug.
+    // Executor will just use whatever baseUrl is given, rather than the right one for the step.
     baseUrl: BaseUrl,
     provider: Provider,
     stepId: StepId,
