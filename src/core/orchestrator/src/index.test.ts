@@ -27,12 +27,6 @@ describe('orchestrator', () => {
 
     it('runs', async () => {
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
-        const statefile = bootstrap('https://example.com' as BaseUrl)
-        const result = await statefileDriver.write(statefile)
-        if (result.isErr()) {
-            throw result.error
-        }
-
         const orchestrator = createOrchestrator({
             tsconfigPath: path.resolve(__dirname, '../test-proj/tsconfig.json'),
             execute: parallelExecution(),
@@ -40,6 +34,10 @@ describe('orchestrator', () => {
             statefileDriver,
             matchingHeuristic: relativeUrlHeuristic,
         })
-        const state = await orchestrator.run({ until: 'drift-detected' })
+        const state = await orchestrator.run({ 
+            until: 'drift-detected',
+            shouldBootstrap: true,
+        })
+        console.log(state)
     }, 10_000)
 })

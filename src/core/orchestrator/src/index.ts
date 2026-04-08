@@ -19,6 +19,7 @@ import {
     PlanError,
     MatchError,
     ExecutorError,
+    bootstrap,
 } from '@hookplane/core'
 import {
     StatefileDriver,
@@ -45,8 +46,16 @@ export type OrchestratorState =
     | OrchestratorStateTerminal
 
 export type OrchestratorStateNonTerminal =
-    | { tag: 'ready'; tsconfigPath: string }
-    | { tag: 'scanned'; rightUnknown: StateUnknown<ProviderSet> }
+    | { 
+          tag: 'ready'
+          tsconfigPath: string 
+          shouldBootstrap: boolean
+      }
+    | { 
+          tag: 'scanned'
+          rightUnknown: StateUnknown<ProviderSet>
+          shouldBootstrap: boolean
+      }
     | {
           tag: 'statefile-loaded'
           rightUnknown: StateUnknown<ProviderSet>
@@ -103,14 +112,16 @@ export type OrchestratorError =
 export type RunParams = {
     from?: OrchestratorStateNonTerminal
     until?: OrchestratorStateNonTerminal['tag']
+    shouldBootstrap?: boolean
 }
 
 export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     return {
-        async run({ from, until }: RunParams) {
+        async run({ from, until, shouldBootstrap = false }: RunParams) {
             let state: OrchestratorState = from ?? {
                 tag: 'ready',
                 tsconfigPath: desc.tsconfigPath,
+                shouldBootstrap,
             }
             while (
                 until
@@ -140,7 +151,7 @@ async function transition(
 ): Promise<OrchestratorState> {
     switch (state.tag) {
         case 'ready': {
-            const { tsconfigPath } = state
+            const { tsconfigPath, shouldBootstrap } = state
             const instance = findHookplane(tsconfigPath)
             if (instance.isErr()) {
                 return {
@@ -164,11 +175,29 @@ async function transition(
                     lastValidState: state,
                 }
             }
-            return { tag: 'scanned', rightUnknown: rightUnknown.value }
+            return { 
+                tag: 'scanned',
+                rightUnknown: rightUnknown.value,
+                shouldBootstrap,
+            }
         }
 
         case 'scanned': {
-            const { rightUnknown } = state
+            const { rightUnknown, shouldBootstrap } = state
+            if (shouldBootstrap) {
+                const bootstrapped = bootstrap(rightUnknown.baseUrl)
+                const result = await statefileDriver.write(bootstrapped)
+                if (result.isErr()) {{
+                    return {
+                        tag: 'failed',
+                        error: {
+                            last: 'scanned',
+                            error: result.error,
+                        },
+                        lastValidState: state,
+                    }
+                }}
+            }
             const leftStatefileData = await statefileDriver.read()
             if (leftStatefileData.isErr()) {
                 return {
