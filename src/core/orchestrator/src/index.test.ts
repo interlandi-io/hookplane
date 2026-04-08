@@ -1,6 +1,4 @@
 import {
-    BaseUrl,
-    bootstrap,
     defaultDispatch,
     parallelExecution,
     relativeUrlHeuristic,

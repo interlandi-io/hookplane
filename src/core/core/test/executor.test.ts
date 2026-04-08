@@ -163,6 +163,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
@@ -234,6 +237,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
@@ -294,6 +300,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
@@ -322,6 +331,9 @@ describe('executor', () => {
             },
             getStepIds() {
                 return []
+            },
+            isEmpty() {
+                throw 'unimplemented'
             },
         }
 
