@@ -9,9 +9,9 @@ import z, { ZodError } from 'zod'
 import { BaseUrl, createBaseUrl, createRelativeUrl, RelativeUrl } from './url'
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set'
-import { State } from './state'
+import { State, StateUnknown } from './state'
 import { EndpointIndex, EndpointState, Provider } from './provider'
-import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle'
+import { EndpointHandle, createOrphanEndpointHandle, createRealEndpointHandle } from './endpoint-handle'
 
 /**
  * Zod schema for base URLs.
@@ -234,12 +234,24 @@ export function parseStatefile<P extends ProviderSet>(
     })
 }
 
-export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
-    const providers: ProviderSet = {}
+export function bootstrapStatefile<P extends ProviderSet>(stateUnknown: StateUnknown<P>): Statefile<P> {
+    const baseUrl = stateUnknown.baseUrl
+    const providers = stateUnknown.providers
+    const providerStates = {} as Statefile<P>['data']['providerStates']
+    for (const e of Object.entries(stateUnknown.providerStates)) {
+        const [providerName, endpointSet] = e as [string, Set<EndpointState<P[string]>>]
+        providerStates[providerName] = {}
+        for (const endpointState of [...endpointSet]) {
+            const orphan = createOrphanEndpointHandle()
+            providerStates[providerName][orphan] = {
+                state: endpointState,
+            }
+        }
+    }
     const data = {
         version: 1,
         baseUrl,
-        providerStates: {},
+        providerStates,
     } as const
 
     return {
