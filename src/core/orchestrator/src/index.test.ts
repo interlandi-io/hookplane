@@ -12,6 +12,6 @@ describe('orchestrator', () => {
             statefileDriver: createLocalFileDriver({ path: 'TODO' }),
             matchingHeuristic: relativeUrlHeuristic,
         })
-        console.log(await orchestrator.run('scanned'))
+        console.log(await orchestrator.run({ until: 'scanned' }))
     })
 })

@@ -29,8 +29,7 @@ import { FindError, findHookplane } from './find-hookplane.js'
 import { extract, ExtractionError } from './extract.js'
 
 export type Orchestrator = {
-    run(): void
-    checkpoint(): OrchestratorState
+    run(params: RunParams): Promise<OrchestratorState>
 }
 
 export type OrchestratorDescriptor = {
@@ -42,6 +41,10 @@ export type OrchestratorDescriptor = {
 }
 
 export type OrchestratorState =
+    | OrchestratorStateNonTerminal
+    | OrchestratorStateTerminal
+
+export type OrchestratorStateNonTerminal =
     | { tag: 'ready'; tsconfigPath: string }
     | { tag: 'scanned'; rightUnknown: StateUnknown<ProviderSet> }
     | {
@@ -76,6 +79,8 @@ export type OrchestratorState =
     | { tag: 'matched'; left: State<ProviderSet>; right: State<ProviderSet> }
     | { tag: 'planned'; plan: Plan<ProviderSet> }
     | { tag: 'executable'; executor: Executor<ProviderSet> }
+
+type OrchestratorStateTerminal =
     | { tag: 'succeeded'; stepStates: Map<StepId, StepState> }
     | {
         tag: 'failed'
@@ -95,17 +100,21 @@ export type OrchestratorError =
     | { last: 'planned'; error: ExecutorError }
     | { last: 'executable'; error: Map<StepId, StepState> }
 
-export function createOrchestrator(desc: OrchestratorDescriptor) {
-    let state: OrchestratorState = { tag: 'ready', tsconfigPath: desc.tsconfigPath }
+export type RunParams = {
+    from?: OrchestratorStateNonTerminal,
+    until?: OrchestratorStateNonTerminal['tag']
+}
 
+export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     return {
-        async run(until?: OrchestratorState['tag']) {
+        async run({ from, until }: RunParams) {
+            let state: OrchestratorState = from ?? { tag: 'ready', tsconfigPath: desc.tsconfigPath }
             while (
                 until
                     ? !stateIsTerminal(state) && state.tag !== until
                     : !stateIsTerminal(state)
             ) {
-                state = await transition(state, desc)
+                state = await transition(state as OrchestratorStateNonTerminal, desc)
             }
             return state
         },
@@ -115,7 +124,7 @@ export function createOrchestrator(desc: OrchestratorDescriptor) {
 // Just a sketch here
 // eslint-disable-next-line
 async function transition(
-    state: OrchestratorState,
+    state: OrchestratorStateNonTerminal,
     {
         execute,
         dispatch,
@@ -333,13 +342,6 @@ async function transition(
                 lastValidState: state,
             }
         }
-
-        // TODO: maybe error here?
-        case 'succeeded':
-            return state
-
-        case 'failed':
-            return state
     }
 }
 
