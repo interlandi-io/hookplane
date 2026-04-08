@@ -34,6 +34,7 @@ export type Orchestrator = {
 }
 
 export type OrchestratorDescriptor = {
+    tsconfigPath: string,
     execute: ExecuteFn
     dispatch: DispatchFn
     statefileDriver: StatefileDriver
@@ -41,7 +42,7 @@ export type OrchestratorDescriptor = {
 }
 
 export type OrchestratorState =
-    | { tag: 'ready' }
+    | { tag: 'ready'; tsconfigPath: string }
     | { tag: 'scanned'; rightUnknown: StateUnknown<ProviderSet> }
     | {
         tag: 'statefile-loaded'
@@ -95,10 +96,19 @@ export type OrchestratorError =
     | { last: 'executable'; error: Map<StepId, StepState> }
 
 export function createOrchestrator(desc: OrchestratorDescriptor) {
-    let state: OrchestratorState = { tag: 'ready' }
+    let state: OrchestratorState = { tag: 'ready', tsconfigPath: desc.tsconfigPath }
 
     return {
-        run() { },
+        async run(until?: OrchestratorState['tag']) {
+            while (
+                until
+                    ? !stateIsTerminal(state) && state.tag !== until
+                    : !stateIsTerminal(state)
+            ) {
+                state = await transition(state, desc)
+            }
+            return state
+        },
     }
 }
 
@@ -115,7 +125,8 @@ async function transition(
 ): Promise<OrchestratorState> {
     switch (state.tag) {
         case 'ready': {
-            const instance = findHookplane('TODO')
+            const { tsconfigPath } = state
+            const instance = findHookplane(tsconfigPath)
             if (instance.isErr()) {
                 return {
                     tag: 'failed',
@@ -331,3 +342,5 @@ async function transition(
             return state
     }
 }
+
+export const stateIsTerminal = (state: OrchestratorState) => state.tag === 'succeeded' || state.tag === 'failed'
