@@ -8,11 +8,10 @@
 import {
     type Provider,
     type EndpointState,
-    type BaseUrl,
     type EndpointIndex,
-    type RelativeUrl,
-} from './provider'
-import { ProviderSet } from './provider-set'
+} from './provider.js'
+import { BaseUrl, RelativeUrl } from './url.js'
+import { ProviderSet } from './provider-set.js'
 
 /**
  * A snapshot of an application-wide endpoint configuration.

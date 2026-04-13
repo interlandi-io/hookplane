@@ -771,7 +771,7 @@ describe('parseStatefile', () => {
                     .provider,
             ).toBe('stripe')
         })
-        
+
         // Not necessary, see source
         it.skip('returns ProviderNotUsedError when multiple providers unused', () => {
             const providers = createTestProviderSet([

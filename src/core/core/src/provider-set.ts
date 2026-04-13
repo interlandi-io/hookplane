@@ -1,5 +1,5 @@
 import { err, ok, Result } from 'neverthrow'
-import { Provider } from './provider'
+import { Provider } from './provider.js'
 
 /**
  * A Record<string, Provider> that ensures provider keys match provider names.

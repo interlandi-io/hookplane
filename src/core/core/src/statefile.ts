@@ -6,12 +6,17 @@
  * registered with each provider.
  */
 import z, { ZodError } from 'zod'
-import { BaseUrl, createBaseUrl, createRelativeUrl, RelativeUrl } from './url'
+import {
+    BaseUrl,
+    createBaseUrl,
+    createRelativeUrl,
+    RelativeUrl,
+} from './url.js'
 import { Result, ok, err } from 'neverthrow'
-import { ProviderSet } from './provider-set'
-import { State } from './state'
-import { EndpointIndex, EndpointState, Provider } from './provider'
-import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle'
+import { ProviderSet } from './provider-set.js'
+import { State } from './state.js'
+import { EndpointIndex, EndpointState, Provider } from './provider.js'
+import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle.js'
 
 /**
  * Zod schema for base URLs.

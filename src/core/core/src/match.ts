@@ -1,10 +1,10 @@
 // A matcher takes in a StateUnknown and returns a State
 
 import { err, ok, Result } from 'neverthrow'
-import { EndpointIndex, EndpointState, Provider } from './provider'
-import { ProviderSet } from './provider-set'
-import { State, StateUnknown } from './state'
-import { createOrphanEndpointHandle } from './endpoint-handle'
+import { EndpointIndex, EndpointState, Provider } from './provider.js'
+import { ProviderSet } from './provider-set.js'
+import { State, StateUnknown } from './state.js'
+import { createOrphanEndpointHandle } from './endpoint-handle.js'
 
 export type Heuristic = <P extends Provider>(
     unknown: EndpointState<P>,

@@ -1,7 +1,8 @@
 import { err, ok, Result } from 'neverthrow'
-import { BaseUrl, ProviderError } from './provider'
-import { ProviderSet } from './provider-set'
-import { State } from './state'
+import { ProviderError } from './provider.js'
+import { BaseUrl } from './url.js'
+import { ProviderSet } from './provider-set.js'
+import { State } from './state.js'
 
 export interface SyncError extends Error {
     name: 'SyncError'

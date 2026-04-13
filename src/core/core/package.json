@@ -2,6 +2,7 @@
     "name": "@hookplane/core",
     "version": "0.0.0",
     "private": true,
+    "type": "module",
     "scripts": {
         "build": "tsc --project ./tsconfig.build.json",
         "test": "doppler run -- vitest",
