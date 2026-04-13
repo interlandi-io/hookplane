@@ -13,7 +13,7 @@
     },
     "exports": {
         ".": {
-            "defalt": "./dist/index.js",
+            "default": "./dist/index.js",
             "types": "./dist/index.d.ts"
         }
     },

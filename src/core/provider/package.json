@@ -13,16 +13,12 @@
     },
     "exports": {
         ".": {
-            "defalt": "./dist/index.js",
+            "default": "./dist/index.js",
             "types": "./dist/index.d.ts"
         },
         "./harness": {
-            "defalt": "./dist/harness/index.js",
+            "default": "./dist/harness/index.js",
             "types": "./dist/harness/index.d.ts"
-        },
-        "./zod": {
-            "defalt": "./dist/zod.js",
-            "types": "./dist/zod.d.ts"
         }
     },
     "devDependencies": {
