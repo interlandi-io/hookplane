@@ -1,1 +1,1 @@
-export { crudRoundTrip } from './crud-round-trip'
+export { crudRoundTrip } from './crud-round-trip.js'

@@ -1,6 +1,7 @@
 {
     "name": "@hookplane/stripe",
     "version": "0.0.0",
+    "type": "module",
     "private": true,
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
