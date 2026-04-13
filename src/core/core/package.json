@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
+        "build": "tsc --project ./tsconfig.build.json",
         "test": "doppler run -- vitest",
         "__test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
