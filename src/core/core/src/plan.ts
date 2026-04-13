@@ -26,11 +26,18 @@ type Plan<P extends ProviderSet> = {
     providerPlans: {
         [K in keyof P]: Map<StepId, Step<P[K]>>
     }
+    /**
+     * @returns the `Step` corresponding to `id`
+     */
     getStepById(id: StepId): Result<Step<P[keyof P]>, Error>
     /**
      * @returns `StepId`s in this `Plan`
      */
     getStepIds(): StepId[]
+    /**
+     * @returns if there are no steps in the `Plan`
+     */
+    isEmpty(): boolean
 }
 
 export type PlanError = InvalidOrphanEndpointHandleError
@@ -121,6 +128,7 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         providerPlans,
         getStepById: getStepById(providerPlans),
         getStepIds: getStepIds(providerPlans),
+        isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
 }
 

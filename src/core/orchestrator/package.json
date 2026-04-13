@@ -1,5 +1,5 @@
 {
-    "name": "@hookplane/cli",
+    "name": "@hookplane/orchestrator",
     "type": "module",
     "version": "0.0.0",
     "private": true,
@@ -15,10 +15,12 @@
     },
     "dependencies": {
         "@hookplane/core": "workspace:*",
+        "@hookplane/statefile-driver": "workspace:*",
+        "jiti": "^2.6.1",
+        "ts-morph": "^27.0.2",
         "neverthrow": "^8.2.0"
     },
     "devDependencies": {
-        "@hookplane/stripe": "workspace:*",
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
         "@types/node": "^22.15.3",

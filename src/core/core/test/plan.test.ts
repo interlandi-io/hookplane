@@ -105,6 +105,7 @@ describe('plan', () => {
         expect(plan.providers.testProvider).toBe(left1.providers.testProvider)
         expect(plan.providerPlans.testProvider!).toHaveLength(0)
         expect(plan.getStepIds().length).toBe(0)
+        expect(plan.isEmpty()).toBe(true)
     })
 
     it('generates delete when removing endpoint', () => {

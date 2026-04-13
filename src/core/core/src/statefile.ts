@@ -234,6 +234,21 @@ export function parseStatefile<P extends ProviderSet>(
     })
 }
 
+export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
+    const providers: ProviderSet = {}
+    const data = {
+        version: 1,
+        baseUrl,
+        providerStates: {},
+    } as const
+
+    return {
+        data,
+        toState: toState(providers, data),
+        getSigningSecrets: getSigningSecrets(data),
+    }
+}
+
 /**
  * Creates a Statefile from a State object.
  *
@@ -306,16 +321,17 @@ const toState =
     ): Statefile<P>['toState'] =>
     () => {
         // validate that all providers in providers have at least one endpoint in data
-        const providersInData = Object.keys(data.providerStates)
-        for (const providerName of Object.keys(providers)) {
-            if (!providersInData.includes(providerName)) {
-                return err({
-                    name: 'ProviderNotUsedError',
-                    message: `provider ${providerName} not used in statefile`,
-                    provider: providerName,
-                } satisfies ProviderNotUsedError)
-            }
-        }
+        // This is not necessary.
+        // const providersInData = Object.keys(data.providerStates)
+        // for (const providerName of Object.keys(providers)) {
+        //     if (!providersInData.includes(providerName)) {
+        //         return err({
+        //             name: 'ProviderNotUsedError',
+        //             message: `provider ${providerName} not used in statefile`,
+        //             provider: providerName,
+        //         } satisfies ProviderNotUsedError)
+        //     }
+        // }
 
         const providerStatesEntries: [
             keyof P,

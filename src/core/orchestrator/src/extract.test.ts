@@ -9,7 +9,7 @@ describe('extract', () => {
             )
         }
         const state = result.value
-        expect(state.baseUrl).toBe('https://localhost:3000')
+        expect(state.baseUrl).toBe('https://example.com')
         expect(state.providers['stripe']).toBeDefined()
         expect(state.providerStates['stripe']).toBeDefined()
         const arr = [...state.providerStates['stripe']!.values()]

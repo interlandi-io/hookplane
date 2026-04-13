@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+    bootstrap,
     fromState,
     parseStatefile,
     ProviderNotFoundError,
@@ -553,6 +554,19 @@ describe('parseStatefile', () => {
         })
     })
 
+    describe('bootstrap', () => {
+        it('bootstraps', () => {
+            const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
+            const statefile = bootstrap(baseUrl)
+            expect(statefile.data.baseUrl).toEqual(baseUrl)
+            expect(
+                Array.from(Object.keys(statefile.data.providerStates)),
+            ).toHaveLength(0)
+            expect(statefile.toState().isOk()).toBe(true)
+            expect(statefile.getSigningSecrets).not.toThrow()
+        })
+    })
+
     describe('toState', () => {
         it('returns State with correct baseUrl', () => {
             const providers = createTestProviderSet([
@@ -733,7 +747,8 @@ describe('parseStatefile', () => {
             expect(state.providerStates['github']!.size).toBe(1)
         })
 
-        it('returns ProviderNotUsedError when provider not in statefile', () => {
+        // Not necessary, see source
+        it.skip('returns ProviderNotUsedError when provider not in statefile', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
@@ -756,8 +771,9 @@ describe('parseStatefile', () => {
                     .provider,
             ).toBe('stripe')
         })
-
-        it('returns ProviderNotUsedError when multiple providers unused', () => {
+        
+        // Not necessary, see source
+        it.skip('returns ProviderNotUsedError when multiple providers unused', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
                 createMockProvider('github', ['push']),

@@ -17,6 +17,10 @@ import {
 } from './provider'
 import { ProviderSet } from './provider-set'
 
+// Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
+// and they make including ExecuteFns and DispatchFns as properties in an Orchestrator difficult.
+// Use extra care when passing Providers/ProviderSets around, since there aren't any type guards to help you.
+
 /**
  * Handle to an executor that runs a `Plan` against remote providers.
  *
@@ -34,13 +38,13 @@ export interface Executor<P extends ProviderSet> {
     getStepStates(): Map<StepId, StepState>
 
     /** Execute the plan according to the execution strategy. */
-    execute(): void
+    execute(): Promise<void>
 }
 
 export type ExecutorState<P extends ProviderSet> = {
     plan: Plan<P>
     stepStates: Map<StepId, StepState>
-    dispatchFn: DispatchFn<P[keyof P]>
+    dispatchFn: DispatchFn
 }
 
 /**
@@ -66,10 +70,10 @@ export type StepResult =
  * @param stepStates - The initial set of step states.
  * @param dispatch - The dispatch function to use.
  */
-export type ExecuteFn<P extends ProviderSet> = (
-    plan: Plan<P>,
+export type ExecuteFn = (
+    plan: Plan<ProviderSet>,
     stepStates: Map<StepId, StepState>,
-    dispatch: DispatchFn<P[keyof P]>,
+    dispatch: DispatchFn,
 ) => ResultAsync<void, Error>
 
 /**
@@ -78,10 +82,13 @@ export type ExecuteFn<P extends ProviderSet> = (
  * @param stepId - The step's unique ID
  * @param step - The step to execute (create, delete, or update)
  */
-export type DispatchFn<P extends Provider> = (
-    provider: P,
+export type DispatchFn = (
+    // TODO this is a huge bug.
+    // Executor will just use whatever baseUrl is given, rather than the right one for the step.
+    baseUrl: BaseUrl,
+    provider: Provider,
     stepId: StepId,
-    step: Step<P>,
+    step: Step<Provider>,
 ) => ResultAsync<StepResult, DispatchError>
 
 export type ExecutorError = EmptyPlanError
@@ -173,8 +180,8 @@ export interface UpdateError extends Error {
  */
 export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
-    executeFn: ExecuteFn<P>,
-    dispatchFn: DispatchFn<P[keyof P]>,
+    executeFn: ExecuteFn,
+    dispatchFn: DispatchFn,
 ): Result<Executor<P>, ExecutorError> {
     const stepIds = plan.getStepIds()
     if (stepIds.length == 0) {
@@ -195,8 +202,8 @@ export function createExecutor<P extends ProviderSet>(
     return ok({
         getPlan: () => state.plan,
         getStepStates: () => state.stepStates,
-        execute: () => {
-            executeFn(state.plan, state.stepStates, state.dispatchFn)
+        execute: async () => {
+            await executeFn(state.plan, state.stepStates, state.dispatchFn)
         },
     })
 }
@@ -214,7 +221,7 @@ export const parallelExecution =
     (
         plan: Plan<P>,
         stepStates: Map<StepId, StepState>,
-        dispatch: DispatchFn<P[keyof P]>,
+        dispatch: DispatchFn,
     ): ResultAsync<void, Error> => {
         const promises: Promise<void>[] = []
 
@@ -231,10 +238,11 @@ export const parallelExecution =
                 )
                     continue
 
-                const provider = plan.providers[providerKey as keyof P]
+                const provider = plan.providers[providerKey as keyof P]!
                 stepStates.set(stepId, { status: 'inFlight' })
 
                 const promise = dispatch(
+                    plan.baseUrl,
                     provider,
                     stepId,
                     step as Step<P[keyof P]>,
@@ -260,16 +268,15 @@ export const parallelExecution =
  *
  * Composes URLs from `baseUrl + endpoint.relativeUrl`.
  *
- * @param baseUrl - From `plan.baseUrl`
- *
  * @example
  * ```typescript
  * const dispatch = defaultDispatch(plan.baseUrl)
  * ```
  */
 export const defaultDispatch =
-    <P extends ProviderSet>(baseUrl: BaseUrl) =>
+    <P extends ProviderSet>() =>
     <K extends keyof P>(
+        baseUrl: BaseUrl,
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,

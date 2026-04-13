@@ -163,12 +163,15 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -234,12 +237,15 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -294,12 +300,15 @@ describe('executor', () => {
                 }
                 return ids
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isOk()).toBe(true)
 
@@ -323,12 +332,15 @@ describe('executor', () => {
             getStepIds() {
                 return []
             },
+            isEmpty() {
+                throw 'unimplemented'
+            },
         }
 
         const executor = createExecutor(
             plan,
             parallelExecution(),
-            defaultDispatch(plan.baseUrl),
+            defaultDispatch(),
         )
         expect(executor.isErr()).toBe(true)
         expect(executor._unsafeUnwrapErr().name).toBe('EmptyPlanError')

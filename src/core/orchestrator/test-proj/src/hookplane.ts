@@ -2,7 +2,7 @@ import { hookplane } from 'hookplane'
 import { stripeProvider } from '@hookplane/stripe'
 
 const hp = await hookplane({
-    baseUrl: 'https://localhost:3000',
+    baseUrl: 'https://example.com',
     providers: {
         stripe: {
             provider: await stripeProvider({
