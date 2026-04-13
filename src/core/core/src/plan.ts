@@ -1,13 +1,14 @@
 import { isDeepStrictEqual } from 'util'
-import { State } from './state'
-import { Provider, EndpointState, EndpointIndex, BaseUrl } from './provider'
 import { err, ok, Result } from 'neverthrow'
-import { ProviderSet } from './provider-set'
+import { State } from './state.js'
+import { Provider, EndpointState, EndpointIndex } from './provider.js'
+import { BaseUrl } from './url.js'
+import { ProviderSet } from './provider-set.js'
 import {
     downcastEndpointHandle,
     endpointHandleIsOrphan,
     EndpointHandleReal,
-} from './endpoint-handle'
+} from './endpoint-handle.js'
 
 /**
  * A plan for moving from the `left` `IndexedState` to the `right` `State`.

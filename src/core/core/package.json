@@ -2,9 +2,12 @@
     "name": "@hookplane/core",
     "version": "0.0.0",
     "private": true,
+    "type": "module",
     "scripts": {
+        "dev": "tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json",
         "test": "doppler run -- vitest",
-        "__test:run": "doppler run -- vitest run",
+        "test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
         "check-types": "tsc --noEmit",
         "lint": "eslint . --max-warnings 0"
@@ -13,7 +16,10 @@
         "~/*": "./src/*"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "default": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",

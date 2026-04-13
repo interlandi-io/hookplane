@@ -1,5 +1,5 @@
 import { err, ok, Result } from 'neverthrow'
-import { type EndpointState, type Provider } from './provider'
+import { type EndpointState, type Provider } from './provider.js'
 
 /**
  * The full URL of an endpoint (base URL + relative URL).

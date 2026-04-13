@@ -7,15 +7,14 @@
  */
 import { Result, ResultAsync } from 'neverthrow'
 import {
-    type BaseUrl,
     type RelativeUrl,
     type EndpointUrl,
     createBaseUrl,
     createRelativeUrl,
     createEndpointUrl,
     composeEndpointUrl,
-} from './url'
-import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle'
+} from './url.js'
+import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle.js'
 
 /**
  * A provider defines how to interact with an external system for a set of events.
@@ -421,9 +420,6 @@ export {
     type Provider,
     type ProviderFeatures,
     type EndpointState,
-    type BaseUrl,
-    type RelativeUrl,
-    type EndpointUrl,
     type CreateEndpointParams,
     type ReadEndpointParams,
     type UpdateEndpointParams,
@@ -434,7 +430,6 @@ export {
     type CreateEndpointReturn,
     type ProcessRequestReturn,
     type MockRequestReturn,
-    type EndpointHandle,
     type EndpointIndex,
     type EventDefinition,
     type ProviderKeyOf,

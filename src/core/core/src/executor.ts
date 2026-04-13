@@ -8,14 +8,14 @@
  * 4. Monitor progress with `executor.getStepStates()`
  */
 import { ok, err, Result, ResultAsync } from 'neverthrow'
-import { Plan, Step, StepId } from './plan'
+import { Plan, Step, StepId } from './plan.js'
 import {
     Provider,
     composeEndpointUrl,
-    BaseUrl,
     CreateEndpointReturn,
-} from './provider'
-import { ProviderSet } from './provider-set'
+} from './provider.js'
+import { type BaseUrl } from './url.js'
+import { ProviderSet } from './provider-set.js'
 
 // Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
 // and they make including ExecuteFns and DispatchFns as properties in an Orchestrator difficult.

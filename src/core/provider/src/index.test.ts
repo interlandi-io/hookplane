@@ -7,8 +7,8 @@ import {
     EndpointHandle,
     EndpointUrl,
     ProviderError,
-} from '.'
-import { zodEvents } from './zod'
+} from './index.js'
+import { zodEvents } from './zod.js'
 
 type ProviderEvent =
     | 'checkout.started'

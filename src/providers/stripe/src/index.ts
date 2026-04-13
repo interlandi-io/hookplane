@@ -10,7 +10,7 @@ import {
 } from '@hookplane/provider'
 import { okAsync, errAsync, ResultAsync, err, ok } from 'neverthrow'
 import Stripe from 'stripe'
-import { StripeEvents, type StripeEvent } from './events'
+import { StripeEvents, type StripeEvent } from './events.js'
 
 type StripeProviderConfig = {
     apiKey: string
