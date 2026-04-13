@@ -4,6 +4,8 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
+        "dev": "tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json",
         "test": "doppler run -- vitest",
         "test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
@@ -11,7 +13,10 @@
         "lint": "eslint . --max-warnings 0"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "defalt": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
     },
     "dependencies": {
         "@hookplane/core": "workspace:*"

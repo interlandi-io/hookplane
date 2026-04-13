@@ -4,7 +4,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "tsc --project ./tsconfig.build.json",
+        "dev": "tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json",
         "test": "doppler run -- vitest",
         "__test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
@@ -16,7 +17,7 @@
     },
     "exports": {
         ".": {
-            "defalt": "./dist/index.js",
+            "default": "./dist/index.js",
             "types": "./dist/index.d.ts"
         }
     },

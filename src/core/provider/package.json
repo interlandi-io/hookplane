@@ -3,6 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
+        "dev": "tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json",
         "test": "doppler run -- vitest",
         "test:run": "doppler run -- vitest run",
         "test:watch": "doppler run -- vitest --watch",
@@ -10,9 +12,18 @@
         "lint": "eslint . --max-warnings 0"
     },
     "exports": {
-        ".": "./src/index.ts",
-        "./harness": "./src/harness/index.ts",
-        "./zod": "./src/zod.ts"
+        ".": {
+            "defalt": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./harness": {
+            "defalt": "./dist/harness/index.js",
+            "types": "./dist/harness/index.d.ts"
+        },
+        "./zod": {
+            "defalt": "./dist/zod.js",
+            "types": "./dist/zod.d.ts"
+        }
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
