@@ -17,7 +17,7 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
             provider: TProviderSet[K]
             endpoint: string
             events: EventTypeOf<TProviderSet[K]>[]
-            config: EndpointConfigOf<TProviderSet[K]>
+            endpointConfig: EndpointConfigOf<TProviderSet[K]>
         }
     }
 }
@@ -41,7 +41,7 @@ export async function hookplane<TProviderSet extends ProviderSet>(
     const providerStates = {} as StateUnknown<TProviderSet>['providerStates']
 
     for (const [name, v] of Object.entries(params.providers)) {
-        const { provider, endpoint, events, config } =
+        const { provider, endpoint, events, endpointConfig } =
             v as HookplaneParams<TProviderSet>['providers'][typeof name]
         providersUnvalidated[name] = provider
 
@@ -50,7 +50,7 @@ export async function hookplane<TProviderSet extends ProviderSet>(
             {
                 relativeUrl,
                 events,
-                config,
+                config: endpointConfig,
             },
         ])
     }
