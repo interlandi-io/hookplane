@@ -117,6 +117,8 @@ export type Statefile<P extends ProviderSet> = {
  * A map of signing secrets for endpoints.
  *
  * Used to preserve signing secrets when converting between State and Statefile.
+ *
+ * @deprecated
  */
 export type SigningSecretMap<P extends ProviderSet> = Map<
     keyof P,
@@ -380,6 +382,7 @@ const toState =
         } satisfies State<P>)
     }
 
+/** @deprecated */
 const getSigningSecrets =
     <P extends ProviderSet>(
         data: z.infer<typeof StatefileSchema>,
