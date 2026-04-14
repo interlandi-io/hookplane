@@ -34,7 +34,9 @@ const orchestrator = createOrchestrator({
 })
 
 try { 
-    const result = await orchestrator.run({  })
+    const result = await orchestrator.run({ 
+        shouldBootstrap: true,
+    })
     console.log('Result: ')
     console.log(result)
 } finally {
