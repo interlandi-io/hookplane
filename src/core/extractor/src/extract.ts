@@ -1,5 +1,6 @@
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
+import { Hookplane } from '@hookplane/core'
 
 export type ExtractionError =
     | { name: 'ModuleError'; cause: Error }
@@ -17,7 +18,7 @@ export async function extract(
     exportName: string,
     moduleSpecifier: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<Result<StateUnknown<any>, ExtractionError>> {
+): Promise<Result<Hookplane, ExtractionError>> {
     const jiti = createJiti(import.meta.url)
 
     let mod
@@ -31,8 +32,8 @@ export async function extract(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const state = (mod as any)?.[exportName] as StateUnknown<any>
-    if (!state) {
+    const hookplane = (mod as any)?.[exportName] as Hookplane 
+    if (!hookplane) {
         return err({
             name: 'NotExportedError',
             message: 'hookplane instance found, but not exported',
@@ -41,7 +42,11 @@ export async function extract(
     }
 
     // Dumb schema validation heuristic
-    if (!state['baseUrl'] || !state['providers'] || !state['providerStates']) {
+    if (
+        !hookplane['state']['baseUrl'] 
+        || !hookplane['state']['providers'] 
+        || !hookplane['state']['providerStates']
+    ) {
         return err({
             name: 'InvalidHookplaneInstance',
             message: 'invalid hookplane instance',
@@ -49,5 +54,5 @@ export async function extract(
         })
     }
 
-    return ok(state)
+    return ok(hookplane)
 }
