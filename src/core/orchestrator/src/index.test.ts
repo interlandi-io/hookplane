@@ -3,6 +3,8 @@ import {
     parallelExecution,
     relativeUrlHeuristic,
 } from '@hookplane/core'
+import { hookplane } from 'hookplane'
+import { stripeProvider } from '@hookplane/stripe'
 import { createOrchestrator } from './index.js'
 import { createLocalFileDriver } from '@hookplane/statefile-driver'
 import path from 'path'
@@ -24,9 +26,26 @@ describe('orchestrator', () => {
     })
 
     it.skip('runs', async () => {
+        const rightState = await hookplane({
+            baseUrl: 'https://example.com',
+            providers: {
+                stripe: {
+                    provider: await stripeProvider({
+                        apiKey: process.env['STRIPE_API_KEY']!,
+                    }),
+                    endpoint: '/hooks/stripe',
+                    events: ['checkout.session.completed'],
+                    config: {
+                        name: 'my_endpoint',
+                        eventPayload: 'snapshot',
+                    },
+                },
+            },
+        })
+
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
         const orchestrator = createOrchestrator({
-            tsconfigPath: path.resolve(__dirname, '../test-proj/tsconfig.json'),
+            rightState,
             execute: parallelExecution(),
             dispatch: defaultDispatch(),
             statefileDriver,

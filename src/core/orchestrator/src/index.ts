@@ -33,7 +33,7 @@ export type Orchestrator = {
 }
 
 export type OrchestratorDescriptor = {
-    rightState: StateUnknown<ProviderSet>,
+    rightState: StateUnknown<ProviderSet>
     execute: ExecuteFn
     dispatch: DispatchFn
     statefileDriver: StatefileDriver
@@ -125,16 +125,15 @@ export type OrchestratorError =
 export type RunParams = {
     from?: OrchestratorStateNonTerminal
     until?: OrchestratorStateNonTerminal['tag']
-    rightState: StateUnknown<ProviderSet>
     shouldBootstrap?: boolean
 }
 
 export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     return {
-        async run({ from, until, rightState, shouldBootstrap = false }: RunParams) {
+        async run({ from, until, shouldBootstrap = false }: RunParams) {
             let state: OrchestratorState = from ?? {
                 tag: 'ready',
-                rightState,
+                rightState: desc.rightState,
                 shouldBootstrap,
             }
             while (
