@@ -138,9 +138,6 @@ importers:
       '@types/node':
         specifier: ^22.15.3
         version: 22.15.3
-      hookplane:
-        specifier: workspace:*
-        version: link:../hookplane
       vite:
         specifier: ^8.0.0
         version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)

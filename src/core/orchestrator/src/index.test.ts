@@ -1,7 +1,11 @@
 import {
+    BaseUrl,
     defaultDispatch,
     parallelExecution,
+    ProviderSet,
+    RelativeUrl,
     relativeUrlHeuristic,
+    StateUnknown,
 } from '@hookplane/core'
 import { hookplane } from 'hookplane'
 import { stripeProvider } from '@hookplane/stripe'
@@ -25,23 +29,22 @@ describe('orchestrator', () => {
         await fs.rm(tmpDir, { recursive: true, force: true })
     })
 
-    it.skip('runs', async () => {
-        const rightState = await hookplane({
-            baseUrl: 'https://example.com',
+    it('runs', async () => {
+        const rightState: StateUnknown<ProviderSet> = {
+            baseUrl: 'https://example.com' as BaseUrl,
             providers: {
-                stripe: {
-                    provider: await stripeProvider({
-                        apiKey: process.env['STRIPE_API_KEY']!,
-                    }),
-                    endpoint: '/hooks/stripe',
-                    events: ['checkout.session.completed'],
-                    config: {
-                        name: 'my_endpoint',
-                        eventPayload: 'snapshot',
-                    },
-                },
+                stripe: await stripeProvider({
+                    apiKey: process.env['STRIPE_API_KEY']!,
+                })
             },
-        })
+            providerStates: {
+                stripe: new Set([{
+                    relativeUrl: '/hooks/stripe' as RelativeUrl,
+                    events: ['checkout.session.completed'],
+                    config: {  }
+                }])
+            } 
+        }
 
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
         const orchestrator = createOrchestrator({

@@ -26,7 +26,6 @@
         "neverthrow": "^8.2.0"
     },
     "devDependencies": {
-        "hookplane": "workspace:*",
         "@hookplane/stripe": "workspace:*",
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
