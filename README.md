@@ -14,7 +14,7 @@ const hp = await hookplane({
             }),
             endpoint: '/hooks/stripe',
             events: ['checkout.session.completed'],
-            config: {
+            endpointConfig: {
                 name: 'my_endpoint',
                 eventPayload: 'snapshot',
             },
@@ -65,7 +65,7 @@ const hp = await hookplane({
             }),
             endpoint: '/hooks/stripe',
             events: ['checkout.session.completed'],
-            config: {
+            endpointConfig: {
                 name: 'my_endpoint',
                 eventPayload: 'snapshot',
             },
