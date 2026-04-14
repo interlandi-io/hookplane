@@ -25,6 +25,31 @@ fs.writeFile(tmpfile, '')
 
 console.log(`tmpfile created at ${tmpfile}`)
 
+// const { tsconfigPath, shouldBootstrap } = state
+// const instance = findHookplane(tsconfigPath)
+// if (instance.isErr()) {
+//     return {
+//         tag: 'failed',
+//         error: {
+//             last: 'ready',
+//             error: instance.error,
+//         },
+//         lastValidState: state,
+//     }
+// }
+// const { exportName, filePath } = instance.value
+// const rightUnknown = await extract(exportName, filePath)
+// if (rightUnknown.isErr()) {
+//     return {
+//         tag: 'failed',
+//         error: {
+//             last: 'ready',
+//             error: rightUnknown.error,
+//         },
+//         lastValidState: state,
+//     }
+// }
+
 const statefileDriver = createLocalFileDriver({
     path: tmpfile,
 })

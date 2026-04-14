@@ -21,7 +21,6 @@
     "dependencies": {
         "@hookplane/core": "workspace:*",
         "@hookplane/statefile-driver": "workspace:*",
-        "@hookplane/extractor": "workspace:*",
         "jiti": "^2.6.1",
         "ts-morph": "^27.0.2",
         "neverthrow": "^8.2.0"

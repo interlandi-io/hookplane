@@ -110,9 +110,6 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
-      '@hookplane/extractor':
-        specifier: workspace:*
-        version: link:../extractor
       '@hookplane/statefile-driver':
         specifier: workspace:*
         version: link:../statefile-driver
