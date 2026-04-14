@@ -12,7 +12,7 @@ import { Statefile, ProviderSet } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
 
-export type LocalFileDriverConfig = {
+export type LocalBackendConfig = {
     path: string
 }
 
@@ -59,20 +59,20 @@ function toBackendError(
 }
 
 async function readStatefile(
-    config: LocalFileDriverConfig,
+    config: LocalBackendConfig,
 ): Promise<StatefileData> {
     const contents = await readFile(config.path, 'utf-8')
     return JSON.parse(contents)
 }
 
 async function writeStatefile<P extends ProviderSet>(
-    config: LocalFileDriverConfig,
+    config: LocalBackendConfig,
     data: Statefile<P>,
 ): Promise<void> {
     await writeFile(config.path, JSON.stringify(data.data, null, 2), 'utf-8')
 }
 
-async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
+async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
     try {
         await unlink(config.path)
     } catch (e) {
@@ -83,8 +83,8 @@ async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
     }
 }
 
-export const createLocalFileDriver =
-    describeBackend<LocalFileDriverConfig>({
+export const createLocalBackend =
+    describeBackend<LocalBackendConfig>({
         name: 'local-file',
         read: ({ config }) =>
             ResultAsync.fromPromise(readStatefile(config), (e) =>

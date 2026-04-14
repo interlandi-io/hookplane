@@ -1,4 +1,4 @@
-export { createLocalFileDriver, type LocalFileDriverConfig } from './local.js'
+export { createLocalBackend, type LocalBackendConfig } from './local.js'
 export type {
     StatefileData,
     Backend,

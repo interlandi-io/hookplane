@@ -23,10 +23,10 @@ import {
     fromState,
 } from '@hookplane/core'
 import {
-    StatefileDriver,
-    StatefileDriverData,
-    StatefileDriverError,
-} from '@hookplane/statefile-driver'
+    Backend,
+    StatefileData,
+    BackendError,
+} from '@hookplane/backend'
 
 export type Orchestrator = {
     run(params: RunParams): Promise<OrchestratorState>
@@ -36,7 +36,7 @@ export type OrchestratorDescriptor = {
     rightState: StateUnknown<ProviderSet>
     execute: ExecuteFn
     dispatch: DispatchFn
-    statefileDriver: StatefileDriver
+    backend: Backend
     matchingHeuristic: Heuristic
 }
 
@@ -58,7 +58,7 @@ export type OrchestratorStateNonTerminal =
     | {
           tag: 'statefile-loaded'
           rightUnknown: StateUnknown<ProviderSet>
-          leftStatefileData: StatefileDriverData
+          leftStatefileData: StatefileData
       }
     | {
           tag: 'statefile-parsed'
@@ -111,7 +111,7 @@ type OrchestratorStateTerminal =
 
 export type OrchestratorError =
     | { last: 'ready' }
-    | { last: 'initialized'; error: StatefileDriverError }
+    | { last: 'initialized'; error: BackendError }
     | { last: 'statefile-loaded'; error: StatefileError }
     | { last: 'statefile-parsed'; error: SyncError }
     | { last: 'synced'; error: PlanError }
@@ -120,7 +120,7 @@ export type OrchestratorError =
     | { last: 'matched'; error: PlanError }
     | { last: 'planned'; error: ExecutorError }
     | { last: 'executable'; error: Map<StepId, StepState> }
-    | { last: 'executed'; error: StatefileDriverError }
+    | { last: 'executed'; error: BackendError }
 
 export type RunParams = {
     from?: OrchestratorStateNonTerminal
@@ -156,7 +156,7 @@ async function transition(
     {
         execute,
         dispatch,
-        statefileDriver,
+        backend,
         matchingHeuristic,
     }: OrchestratorDescriptor,
 ): Promise<OrchestratorState> {
@@ -175,7 +175,7 @@ async function transition(
             const { rightUnknown, shouldBootstrap } = state
             if (shouldBootstrap) {
                 const bootstrapped = bootstrap(rightUnknown.baseUrl)
-                const result = await statefileDriver.write(bootstrapped)
+                const result = await backend.writeStatefile(bootstrapped)
                 if (result.isErr()) {
                     {
                         return {
@@ -189,7 +189,7 @@ async function transition(
                     }
                 }
             }
-            const leftStatefileData = await statefileDriver.read()
+            const leftStatefileData = await backend.readStatefile()
             if (leftStatefileData.isErr()) {
                 return {
                     tag: 'failed',
@@ -381,7 +381,7 @@ async function transition(
         case 'executed': {
             const { right } = state
             const statefile = fromState(1, right)
-            const result = await statefileDriver.write(statefile)
+            const result = await backend.writeStatefile(statefile)
             if (result.isErr()) {
                 return {
                     tag: 'failed',

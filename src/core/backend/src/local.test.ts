@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createLocalFileDriver } from '~/local.js'
+import { createLocalBackend } from '~/local.js'
 import { StatefileData } from '~/backend.js'
 import {
     Statefile,
@@ -12,7 +12,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as os from 'node:os'
 
-describe('createLocalFileDriver', () => {
+describe('createLocalBackend', () => {
     let tmpDir: string
 
     beforeAll(async () => {
@@ -56,7 +56,7 @@ describe('createLocalFileDriver', () => {
             const filePath = path.join(tmpDir, 'state.json')
             await fs.writeFile(filePath, JSON.stringify(mockData), 'utf-8')
 
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.readStatefile()
 
             expect(result.isOk()).toBe(true)
@@ -65,7 +65,7 @@ describe('createLocalFileDriver', () => {
 
         it('returns NotFoundError when file does not exist', async () => {
             const filePath = path.join(tmpDir, 'nonexistent.json')
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.readStatefile()
 
             expect(result.isErr()).toBe(true)
@@ -77,7 +77,7 @@ describe('createLocalFileDriver', () => {
             const filePath = path.join(tmpDir, 'invalid.json')
             await fs.writeFile(filePath, 'not valid json', 'utf-8')
 
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.readStatefile()
 
             expect(result.isErr()).toBe(true)
@@ -89,7 +89,7 @@ describe('createLocalFileDriver', () => {
     describe('write', () => {
         it('creates file with json data', async () => {
             const filePath = path.join(tmpDir, 'write-test.json')
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.writeStatefile(mockStatefile)
 
             expect(result.isOk()).toBe(true)
@@ -103,7 +103,7 @@ describe('createLocalFileDriver', () => {
             const filePath = path.join(tmpDir, 'overwrite.json')
             await fs.writeFile(filePath, '{"old": "data"}', 'utf-8')
 
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.writeStatefile(mockStatefile)
 
             expect(result.isOk()).toBe(true)
@@ -119,7 +119,7 @@ describe('createLocalFileDriver', () => {
             const filePath = path.join(tmpDir, 'delete-me.json')
             await fs.writeFile(filePath, '{}', 'utf-8')
 
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.deleteStatefile()
 
             expect(result.isOk()).toBe(true)
@@ -133,7 +133,7 @@ describe('createLocalFileDriver', () => {
 
         it('returns ok when file does not exist (idempotent delete)', async () => {
             const filePath = path.join(tmpDir, 'never-existed.json')
-            const driver = createLocalFileDriver({ path: filePath })
+            const driver = createLocalBackend({ path: filePath })
             const result = await driver.deleteStatefile()
 
             expect(result.isOk()).toBe(true)
@@ -142,7 +142,7 @@ describe('createLocalFileDriver', () => {
 
     describe('driver identity', () => {
         it('has correct name', () => {
-            const driver = createLocalFileDriver({
+            const driver = createLocalBackend({
                 path: path.join(tmpDir, 'test.json'),
             })
             expect(driver.name).toBe('local-file')

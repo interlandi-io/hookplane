@@ -8,7 +8,7 @@ import {
 import { extract } from './extract.js'
 import { findHookplane } from './find-hookplane.js'
 import { createOrchestrator } from '@hookplane/orchestrator'
-import { createLocalFileDriver } from '../../statefile-driver/dist/local.js'
+import { createLocalBackend } from '@hookplane/backend'
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
@@ -51,7 +51,7 @@ console.log(
     `extracted hookplane instance with providers ${rightState.providers}`,
 )
 
-const statefileDriver = createLocalFileDriver({
+const backend = createLocalBackend({
     path: tmpfile,
 })
 
@@ -59,7 +59,7 @@ const orchestrator = createOrchestrator({
     rightState,
     execute: parallelExecution(),
     dispatch: defaultDispatch(),
-    statefileDriver,
+    backend,
     matchingHeuristic: relativeUrlHeuristic,
 })
 
