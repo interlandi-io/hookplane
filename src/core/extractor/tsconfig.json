@@ -1,0 +1,20 @@
+{
+    "extends": "@repo/typescript-config/server-lib.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "~/*": ["src/*"]
+        },
+        "composite": true
+    },
+    "include": ["src"],
+    "exclude": ["node_modules", "dist"],
+    "references": [
+        {
+            "path": "../core"
+        },
+        {
+            "path": "../statefile-driver"
+        }
+    ]
+}
