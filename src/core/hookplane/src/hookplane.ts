@@ -7,11 +7,8 @@ import {
     createProviderSet,
     Provider,
     createRelativeUrl,
+    Hookplane,
 } from '@hookplane/core'
-
-export type Hookplane = {
-    state: StateUnknown<ProviderSet>,
-}
 
 type HookplaneParams<TProviderSet extends ProviderSet> = {
     baseUrl: string
