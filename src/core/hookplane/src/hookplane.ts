@@ -28,10 +28,6 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
  * @param params - Parameters including `baseUrl` and a `providers` record where each entry supplies:
  *   `provider` (the provider instance), `endpoint` (the provider's endpoint URL), `events` (the event types to subscribe to),
  *   and `config` (the endpoint configuration).
- * @returns The assembled `State<TProviderSet>` containing:
- *   - `baseUrl`: the validated base URL,
- *   - `providers`: the typed provider set,
- *   - `providerStates`: a mapping from provider keys to a `Map` of endpoint handles to endpoint metadata objects `{ relativeUrl, events, config }`.
  */
 export async function hookplane<TProviderSet extends ProviderSet>(
     params: HookplaneParams<TProviderSet>,
