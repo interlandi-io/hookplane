@@ -151,8 +151,6 @@ export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     }
 }
 
-// Just a sketch here
-// eslint-disable-next-line
 async function transition(
     state: OrchestratorStateNonTerminal,
     {

@@ -7,7 +7,6 @@ import {
     relativeUrlHeuristic,
     StateUnknown,
 } from '@hookplane/core'
-import { hookplane } from 'hookplane'
 import { stripeProvider } from '@hookplane/stripe'
 import { createOrchestrator } from './index.js'
 import { createLocalFileDriver } from '@hookplane/statefile-driver'

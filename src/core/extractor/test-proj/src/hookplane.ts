@@ -6,6 +6,7 @@ const hp = await hookplane({
     providers: {
         stripe: {
             provider: await stripeProvider({
+                // eslint-disable-next-line turbo/no-undeclared-env-vars
                 apiKey: process.env['STRIPE_API_KEY']!,
             }),
             endpoint: '/hooks/stripe',
