@@ -1,16 +1,29 @@
 # Hookplane
 
-Define and manage webhooks entirely in code.
+Define and manage webhooks subscriptions entirely in code.
 
-Built for the LLM era.
-
-## Receive webhooks with one line of code.
+## Receive webhooks by writing code
 
 ```typescript
-hookplane.subscribe('hubspot', 'ticket.creation')
+const hp = await hookplane({
+    baseUrl: 'https://example.com',
+    providers: {
+        stripe: {
+            provider: await stripeProvider({
+                apiKey: process.env['STRIPE_API_KEY']!,
+            }),
+            endpoint: '/hooks/stripe',
+            events: ['checkout.session.completed'],
+            config: {
+                name: 'my_endpoint',
+                eventPayload: 'snapshot',
+            },
+        },
+    },
+})
 ```
 
-## Your integrations live in your codebase.
+## Your integrations live in your codebase
 
 Hookplane is stateless and 100% declarative.
 
@@ -18,14 +31,9 @@ No more keeping code in sync with dashboards.
 
 Define, manage, and validate webhooks exactly where they’re handled.
 
-## Built for agents, not just humans
+## Agents love it
 
-Hookplane has
-
-- End-to-end type safety
-- Best-in-class LoB (Locality of Behavior), eliminating the "context tax" of isolated config files
-
-So, LLMs can safely:
+Hookplane has end-to-end type safety so, LLMs can safely:
 
 - add new webhook subscriptions
 - update event handlers
@@ -33,27 +41,56 @@ So, LLMs can safely:
 
 No MCP required.
 
-## Framework-native
-
-This isn't Terraform, it's:
-
-```typescript
-// In a next.js app:
-// app/hooks/handler.ts
-
-import { hookplane } from '@/lib/hookplane'
-
-const paymentFailed = hookplane.subscribe('stripe') // route inferred
-
-export default function handler(request: Request) {
-    const event = hookplane.parse(request, paymentFailed)
-    console.log('Payment Intent Failed: ', event.data.id) // 100% type safe
-}
+## Getting started 
+Install `hookplane` and the Stripe provider through your favorite package manager.
+```bash
+npm install hookplane @hookplane/stripe
 ```
 
-## Zero-Latency
+Create a `hookplane.ts` file anywhere you would otherwise keep your source files.
+```typescript
+// ./src/hookplane.ts
+import { hookplane } from 'hookplane'
+import { stripeProvider } from '@hookplane/stripe'
 
-Hookplane is proxyless, meaning we use provider APIs to pair endpoints with events directly.
+const hp = await hookplane({
+    baseUrl: 'https://example.com',
+    providers: {
+        stripe: {
+            provider: await stripeProvider({
+                apiKey: process.env['STRIPE_API_KEY']!,
+            }),
+            endpoint: '/hooks/stripe',
+            events: ['checkout.session.completed'],
+            config: {
+                name: 'my_endpoint',
+                eventPayload: 'snapshot',
+            },
+        },
+    },
+})
+
+export default hp
+```
+
+Add an env file (or inject environment variables however you normally do)
+```bash
+echo STRIPE_API_KEY=<YOUR-STRIPE-API-KEY> >> .env.local
+```
+
+Try out the `hp` command.
+```bash
+npx hp plan
+```
+
+Push your changes with the `--bootstrap` flag, since this is your first push.
+```bash
+npx hp push --bootstrap
+```
+
+Go look at your Stripe dashboard.
+
+You're subscribed to `'checkout.session.completed'`.
 
 ---
 
