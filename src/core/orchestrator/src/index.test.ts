@@ -9,7 +9,7 @@ import {
 } from '@hookplane/core'
 import { stripeProvider } from '@hookplane/stripe'
 import { createOrchestrator } from './index.js'
-import { createLocalFileDriver } from '@hookplane/statefile-driver'
+import { createLocalBackend } from '@hookplane/backend'
 import path from 'path'
 import fs from 'fs/promises'
 import os from 'os'
@@ -47,12 +47,12 @@ describe('orchestrator', () => {
             },
         }
 
-        const statefileDriver = createLocalFileDriver({ path: statefilePath })
+        const backend = createLocalBackend({ path: statefilePath })
         const orchestrator = createOrchestrator({
             rightState,
             execute: parallelExecution(),
             dispatch: defaultDispatch(),
-            statefileDriver,
+            backend,
             matchingHeuristic: relativeUrlHeuristic,
         })
         const state = await orchestrator.run({

@@ -21,6 +21,31 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  src/core/backend:
+    dependencies:
+      '@hookplane/core':
+        specifier: workspace:*
+        version: link:../core
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../shared/eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../shared/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      vite:
+        specifier: ^8.0.0
+        version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
+
   src/core/core:
     dependencies:
       neverthrow:
@@ -46,39 +71,11 @@ importers:
         specifier: ^4.1.0
         version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
 
-  src/core/extractor:
-    dependencies:
-      '@hookplane/core':
-        specifier: workspace:*
-        version: link:../core
-      jiti:
-        specifier: ^2.6.1
-        version: 2.6.1
-      neverthrow:
-        specifier: ^8.2.0
-        version: 8.2.0
-      ts-morph:
-        specifier: ^27.0.2
-        version: 27.0.2
-    devDependencies:
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../../shared/eslint-config
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../../shared/typescript-config
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      vite:
-        specifier: ^8.0.0
-        version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)
-      vitest:
-        specifier: ^4.1.2
-        version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
-
   src/core/hookplane:
     dependencies:
+      '@hookplane/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
@@ -113,12 +110,12 @@ importers:
 
   src/core/orchestrator:
     dependencies:
+      '@hookplane/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
-      '@hookplane/statefile-driver':
-        specifier: workspace:*
-        version: link:../statefile-driver
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
@@ -162,31 +159,6 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
-    devDependencies:
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../../shared/eslint-config
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../../shared/typescript-config
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      vite:
-        specifier: ^8.0.0
-        version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)
-      vitest:
-        specifier: ^4.1.2
-        version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
-
-  src/core/statefile-driver:
-    dependencies:
-      '@hookplane/core':
-        specifier: workspace:*
-        version: link:../core
-      neverthrow:
-        specifier: ^8.2.0
-        version: 8.2.0
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*

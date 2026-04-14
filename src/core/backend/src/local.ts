@@ -1,33 +1,33 @@
 import {
-    describeStatefileDriver,
+    describeBackend,
     type StatefileOperation,
-    type StatefileDriverError,
-    type StatefileDriverData,
+    type BackendError,
+    type StatefileData,
     NotFoundError,
     PermissionDeniedError,
     WriteRejectedError,
     UnknownError,
-} from './statefile-driver.js'
+} from './backend.js'
 import { Statefile, ProviderSet } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
 
-export type LocalFileDriverConfig = {
+export type LocalBackendConfig = {
     path: string
 }
 
-function toStatefileDriverError(
+function toBackendError(
     e: unknown,
     operation: StatefileOperation,
     path: string,
-): StatefileDriverError {
+): BackendError {
     const error = e as NodeJS.ErrnoException & { kind?: string }
-    if (error.kind && error.kind === 'StatefileDriverError') {
-        return error as StatefileDriverError
+    if (error.kind && error.kind === 'BackendError') {
+        return error as BackendError 
     }
     if (error.code === 'ENOENT') {
         return {
-            kind: 'StatefileDriverError',
+            kind: 'BackendError',
             name: 'NotFoundError',
             message: `file not found: ${path}`,
             while: operation,
@@ -35,7 +35,7 @@ function toStatefileDriverError(
     }
     if (error.code === 'EACCES' || error.code === 'EPERM') {
         return {
-            kind: 'StatefileDriverError',
+            kind: 'BackendError',
             name: 'PermissionDeniedError',
             message: `permission denied: ${path}`,
             while: operation,
@@ -43,14 +43,14 @@ function toStatefileDriverError(
     }
     if (error.code === 'ENOSPC') {
         return {
-            kind: 'StatefileDriverError',
+            kind: 'BackendError',
             name: 'WriteRejectedError',
             message: 'disk full',
             while: operation,
         } satisfies WriteRejectedError
     }
     return {
-        kind: 'StatefileDriverError',
+        kind: 'BackendError',
         name: 'UnknownError',
         message: String(e),
         while: operation,
@@ -59,20 +59,20 @@ function toStatefileDriverError(
 }
 
 async function readStatefile(
-    config: LocalFileDriverConfig,
-): Promise<StatefileDriverData> {
+    config: LocalBackendConfig,
+): Promise<StatefileData> {
     const contents = await readFile(config.path, 'utf-8')
     return JSON.parse(contents)
 }
 
 async function writeStatefile<P extends ProviderSet>(
-    config: LocalFileDriverConfig,
+    config: LocalBackendConfig,
     data: Statefile<P>,
 ): Promise<void> {
     await writeFile(config.path, JSON.stringify(data.data, null, 2), 'utf-8')
 }
 
-async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
+async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
     try {
         await unlink(config.path)
     } catch (e) {
@@ -83,19 +83,19 @@ async function deleteStatefile(config: LocalFileDriverConfig): Promise<void> {
     }
 }
 
-export const createLocalFileDriver =
-    describeStatefileDriver<LocalFileDriverConfig>({
+export const createLocalBackend =
+    describeBackend<LocalBackendConfig>({
         name: 'local-file',
         read: ({ config }) =>
             ResultAsync.fromPromise(readStatefile(config), (e) =>
-                toStatefileDriverError(e, 'read', config.path),
+                toBackendError(e, 'read', config.path),
             ),
         write: ({ config, data }) =>
             ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-                toStatefileDriverError(e, 'write', config.path),
+                toBackendError(e, 'write', config.path),
             ),
         delete: ({ config }) =>
             ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-                toStatefileDriverError(e, 'delete', config.path),
+                toBackendError(e, 'delete', config.path),
             ),
     })

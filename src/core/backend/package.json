@@ -1,5 +1,5 @@
 {
-    "name": "@hookplane/statefile-driver",
+    "name": "@hookplane/backend",
     "type": "module",
     "version": "0.0.0",
     "private": true,
