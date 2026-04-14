@@ -9,6 +9,10 @@ import {
     createRelativeUrl,
 } from '@hookplane/core'
 
+export type Hookplane = {
+    state: StateUnknown<ProviderSet>,
+}
+
 type HookplaneParams<TProviderSet extends ProviderSet> = {
     baseUrl: string
     providers: {
@@ -34,7 +38,7 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
  */
 export async function hookplane<TProviderSet extends ProviderSet>(
     params: HookplaneParams<TProviderSet>,
-): Promise<StateUnknown<TProviderSet>> {
+): Promise<Hookplane> {
     // We throw in this b/c it touches the API boundary
     const providersUnvalidated: Record<string, Provider> = {}
     const providerStates = {} as StateUnknown<TProviderSet>['providerStates']
@@ -60,8 +64,10 @@ export async function hookplane<TProviderSet extends ProviderSet>(
     )._unsafeUnwrap() as TProviderSet
 
     return {
-        baseUrl,
-        providers,
-        providerStates,
+        state: {
+            baseUrl,
+            providers,
+            providerStates,
+        },
     }
 }
