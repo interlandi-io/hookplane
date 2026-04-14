@@ -22,7 +22,8 @@
         }
     },
     "dependencies": {
-        "@hookplane/core": "workspace:*"
+        "@hookplane/core": "workspace:*",
+        "@hookplane/orchestrator": "workspace:*"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",

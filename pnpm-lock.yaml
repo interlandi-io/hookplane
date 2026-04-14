@@ -24,34 +24,6 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
-  src/core/cli:
-    dependencies:
-      '@hookplane/core':
-        specifier: workspace:*
-        version: link:../core
-      neverthrow:
-        specifier: ^8.2.0
-        version: 8.2.0
-    devDependencies:
-      '@hookplane/stripe':
-        specifier: workspace:*
-        version: link:../../providers/stripe
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../../shared/eslint-config
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../../shared/typescript-config
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      vite:
-        specifier: ^8.0.0
-        version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)
-      vitest:
-        specifier: ^4.1.2
-        version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
-
   src/core/core:
     dependencies:
       neverthrow:
@@ -82,6 +54,9 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
+      '@hookplane/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
     devDependencies:
       '@hookplane/stripe':
         specifier: workspace:*
