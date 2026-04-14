@@ -3,6 +3,9 @@
     "type": "module",
     "version": "0.0.0",
     "private": true,
+    "bin": {
+        "hp": "dist/cli.js"
+    },
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",
@@ -19,7 +22,8 @@
         }
     },
     "dependencies": {
-        "@hookplane/core": "workspace:*"
+        "@hookplane/core": "workspace:*",
+        "@hookplane/orchestrator": "workspace:*"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
