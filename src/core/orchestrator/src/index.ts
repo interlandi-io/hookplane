@@ -27,8 +27,12 @@ import {
     StatefileDriverData,
     StatefileDriverError,
 } from '@hookplane/statefile-driver'
-import { FindError, findHookplane } from './find-hookplane.js'
-import { extract, ExtractionError } from './extract.js'
+import {
+    FindError,
+    findHookplane,
+    extract,
+    ExtractionError,
+} from '@hookplane/extractor'
 
 export type Orchestrator = {
     run(params: RunParams): Promise<OrchestratorState>
