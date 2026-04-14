@@ -41,7 +41,7 @@ Hookplane has end-to-end type safety so, LLMs can safely:
 
 No MCP required.
 
-## Getting started 
+## Getting Started 
 Install `hookplane` and the Stripe provider through your favorite package manager.
 ```bash
 npm install hookplane @hookplane/stripe
