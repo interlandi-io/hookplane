@@ -275,6 +275,7 @@ export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
 export function fromState<P extends ProviderSet>(
     version: 1,
     state: State<P>,
+    /** @deprecated */
     signingSecrets?: SigningSecretMap<P>,
 ): Statefile<P> {
     const providerStatesEntries = Object.entries(state.providerStates).map(
