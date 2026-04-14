@@ -82,12 +82,15 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
-      '@hookplane/extractor':
-        specifier: workspace:*
-        version: link:../extractor
       '@hookplane/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
     devDependencies:
       '@hookplane/stripe':
         specifier: workspace:*

@@ -5,7 +5,8 @@ import {
     defaultDispatch,
     relativeUrlHeuristic,
 } from '@hookplane/core'
-import { findHookplane, extract } from '@hookplane/extractor'
+import { extract } from './extract.js'
+import { findHookplane } from './find-hookplane.js'
 import { createOrchestrator } from '@hookplane/orchestrator'
 import { createLocalFileDriver } from '../../statefile-driver/dist/local.js'
 import fs from 'fs/promises'
@@ -35,17 +36,19 @@ const { exportName, filePath } = instance.value
 
 console.log(`found hookplane instance at ${filePath}`)
 
-const rightState = await extract(exportName, filePath)
-if (rightState.isErr()) {
+const hookplane = await extract(exportName, filePath)
+if (hookplane.isErr()) {
     console.error(
         'failed to extract hookplane instance from state: ',
-        rightState.error,
+        hookplane.error,
     )
     process.exit(1)
 }
 
+const { state: rightState } = hookplane.value
+
 console.log(
-    `extracted hookplane instance with providers ${rightState.value.providers}`,
+    `extracted hookplane instance with providers ${rightState.providers}`,
 )
 
 const statefileDriver = createLocalFileDriver({
@@ -53,7 +56,7 @@ const statefileDriver = createLocalFileDriver({
 })
 
 const orchestrator = createOrchestrator({
-    rightState: rightState.value,
+    rightState,
     execute: parallelExecution(),
     dispatch: defaultDispatch(),
     statefileDriver,
