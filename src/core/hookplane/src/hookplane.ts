@@ -7,6 +7,7 @@ import {
     createProviderSet,
     Provider,
     createRelativeUrl,
+    Hookplane,
 } from '@hookplane/core'
 
 type HookplaneParams<TProviderSet extends ProviderSet> = {
@@ -16,7 +17,7 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
             provider: TProviderSet[K]
             endpoint: string
             events: EventTypeOf<TProviderSet[K]>[]
-            config: EndpointConfigOf<TProviderSet[K]>
+            endpointConfig: EndpointConfigOf<TProviderSet[K]>
         }
     }
 }
@@ -27,20 +28,16 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
  * @param params - Parameters including `baseUrl` and a `providers` record where each entry supplies:
  *   `provider` (the provider instance), `endpoint` (the provider's endpoint URL), `events` (the event types to subscribe to),
  *   and `config` (the endpoint configuration).
- * @returns The assembled `State<TProviderSet>` containing:
- *   - `baseUrl`: the validated base URL,
- *   - `providers`: the typed provider set,
- *   - `providerStates`: a mapping from provider keys to a `Map` of endpoint handles to endpoint metadata objects `{ relativeUrl, events, config }`.
  */
 export async function hookplane<TProviderSet extends ProviderSet>(
     params: HookplaneParams<TProviderSet>,
-): Promise<StateUnknown<TProviderSet>> {
+): Promise<Hookplane> {
     // We throw in this b/c it touches the API boundary
     const providersUnvalidated: Record<string, Provider> = {}
     const providerStates = {} as StateUnknown<TProviderSet>['providerStates']
 
     for (const [name, v] of Object.entries(params.providers)) {
-        const { provider, endpoint, events, config } =
+        const { provider, endpoint, events, endpointConfig } =
             v as HookplaneParams<TProviderSet>['providers'][typeof name]
         providersUnvalidated[name] = provider
 
@@ -49,7 +46,7 @@ export async function hookplane<TProviderSet extends ProviderSet>(
             {
                 relativeUrl,
                 events,
-                config,
+                config: endpointConfig,
             },
         ])
     }
@@ -60,8 +57,10 @@ export async function hookplane<TProviderSet extends ProviderSet>(
     )._unsafeUnwrap() as TProviderSet
 
     return {
-        baseUrl,
-        providers,
-        providerStates,
+        state: {
+            baseUrl,
+            providers,
+            providerStates,
+        },
     }
 }

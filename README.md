@@ -14,7 +14,7 @@ const hp = await hookplane({
             }),
             endpoint: '/hooks/stripe',
             events: ['checkout.session.completed'],
-            config: {
+            endpointConfig: {
                 name: 'my_endpoint',
                 eventPayload: 'snapshot',
             },
@@ -41,13 +41,16 @@ Hookplane has end-to-end type safety so, LLMs can safely:
 
 No MCP required.
 
-## Getting Started 
+## Getting Started
+
 Install `hookplane` and the Stripe provider through your favorite package manager.
+
 ```bash
 npm install hookplane @hookplane/stripe
 ```
 
 Create a `hookplane.ts` file anywhere you would otherwise keep your source files.
+
 ```typescript
 // ./src/hookplane.ts
 import { hookplane } from 'hookplane'
@@ -62,7 +65,7 @@ const hp = await hookplane({
             }),
             endpoint: '/hooks/stripe',
             events: ['checkout.session.completed'],
-            config: {
+            endpointConfig: {
                 name: 'my_endpoint',
                 eventPayload: 'snapshot',
             },
@@ -74,16 +77,19 @@ export default hp
 ```
 
 Add an env file (or inject environment variables however you normally do)
+
 ```bash
 echo STRIPE_API_KEY=<YOUR-STRIPE-API-KEY> >> .env.local
 ```
 
 Try out the `hp` command.
+
 ```bash
 npx hp plan
 ```
 
 Push your changes with the `--bootstrap` flag, since this is your first push.
+
 ```bash
 npx hp push --bootstrap
 ```

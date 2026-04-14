@@ -8,7 +8,7 @@ describe('extract', () => {
                 `Extraction failed: ${JSON.stringify(result.error)}`,
             )
         }
-        const state = result.value
+        const state = result.value.state
         expect(state.baseUrl).toBe('https://example.com')
         expect(state.providers['stripe']).toBeDefined()
         expect(state.providerStates['stripe']).toBeDefined()
