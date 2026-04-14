@@ -1,6 +1,6 @@
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
-import { Hookplane } from '@hookplane/core'
+import { Hookplane, validateHookplaneInstance } from '@hookplane/core'
 
 export type ExtractionError =
     | { name: 'ModuleError'; cause: Error }
@@ -41,15 +41,11 @@ export async function extract(
         })
     }
 
-    // Dumb schema validation heuristic
-    if (
-        !hookplane['state']['baseUrl'] 
-        || !hookplane['state']['providers'] 
-        || !hookplane['state']['providerStates']
-    ) {
+    const maybeError = validateHookplaneInstance(hookplane)
+    if (maybeError) {
         return err({
             name: 'InvalidHookplaneInstance',
-            message: 'invalid hookplane instance',
+            message: 'invalid hookplane instance: ' + maybeError.message,
             filePath: moduleSpecifier,
         })
     }
