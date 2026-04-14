@@ -1,27 +1,27 @@
 import { ProviderSet, Statefile } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 
-export type StatefileDriverData = Statefile<ProviderSet>['data']
+export type StatefileData = Statefile<ProviderSet>['data']
 
-export interface StatefileDriver {
-    /** Name of the driver */
+export interface Backend {
+    /** Name of the backend */
     readonly name: string
 
     /** Reads the raw statefile data from storage */
-    read(): ResultAsync<StatefileDriverData, StatefileDriverError>
+    readStatefile(): ResultAsync<StatefileData, BackendError>
 
     /** Writes a validated statefile to storage */
-    write<P extends ProviderSet>(
+    writeStatefile<P extends ProviderSet>(
         data: Statefile<P>,
-    ): ResultAsync<void, StatefileDriverError>
+    ): ResultAsync<void, BackendError>
 
     /** Deletes the statefile from storage */
-    delete(): ResultAsync<void, StatefileDriverError>
+    deleteStatefile(): ResultAsync<void, BackendError>
 }
 
 export type StatefileOperation = 'read' | 'write' | 'delete'
 
-export type StatefileDriverError =
+export type BackendError =
     | NotFoundError
     | PermissionDeniedError
     | WriteRejectedError
@@ -29,28 +29,28 @@ export type StatefileDriverError =
     | UnknownError
 
 export interface NotFoundError {
-    kind: 'StatefileDriverError'
+    kind: 'BackendError'
     name: 'NotFoundError'
     message: string
     while: StatefileOperation
 }
 
 export interface PermissionDeniedError {
-    kind: 'StatefileDriverError'
+    kind: 'BackendError'
     name: 'PermissionDeniedError'
     message: string
     while: StatefileOperation
 }
 
 export interface WriteRejectedError {
-    kind: 'StatefileDriverError'
+    kind: 'BackendError'
     name: 'WriteRejectedError'
     message: string
     while: StatefileOperation
 }
 
 export interface ServerError {
-    kind: 'StatefileDriverError'
+    kind: 'BackendError'
     name: 'ServerError'
     message: string
     statusCode?: number
@@ -58,32 +58,32 @@ export interface ServerError {
 }
 
 export interface UnknownError {
-    kind: 'StatefileDriverError'
+    kind: 'BackendError'
     name: 'UnknownError'
     message: string
     while: StatefileOperation
     cause?: unknown
 }
 
-export interface StatefileDriverDescriptor<TConfig> {
+export interface BackendDescriptor<TConfig> {
     readonly name: string
     read(params: {
         config: TConfig
-    }): ResultAsync<StatefileDriverData, StatefileDriverError>
+    }): ResultAsync<StatefileData, BackendError>
     write<P extends ProviderSet>(params: {
         config: TConfig
         data: Statefile<P>
-    }): ResultAsync<void, StatefileDriverError>
-    delete(params: { config: TConfig }): ResultAsync<void, StatefileDriverError>
+    }): ResultAsync<void, BackendError>
+    delete(params: { config: TConfig }): ResultAsync<void, BackendError>
 }
 
-export function describeStatefileDriver<TConfig>(
-    desc: StatefileDriverDescriptor<TConfig>,
-): (config: TConfig) => StatefileDriver {
-    return (config: TConfig): StatefileDriver => ({
+export function describeBackend<TConfig>(
+    desc: BackendDescriptor<TConfig>,
+): (config: TConfig) => Backend {
+    return (config: TConfig): Backend => ({
         name: desc.name,
-        read: () => desc.read({ config }),
-        write: (data) => desc.write({ config, data }),
-        delete: () => desc.delete({ config }),
+        readStatefile: () => desc.read({ config }),
+        writeStatefile: (data) => desc.write({ config, data }),
+        deleteStatefile: () => desc.delete({ config }),
     })
 }

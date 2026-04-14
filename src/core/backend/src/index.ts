@@ -1,16 +1,16 @@
 export { createLocalFileDriver, type LocalFileDriverConfig } from './local.js'
 export type {
-    StatefileDriverData,
-    StatefileDriver,
-    StatefileDriverDescriptor,
-    StatefileDriverError,
+    StatefileData,
+    Backend,
+    BackendDescriptor,
+    BackendError,
     StatefileOperation,
-} from './statefile-driver.js'
-export { describeStatefileDriver } from './statefile-driver.js'
+} from './backend.js'
+export { describeBackend } from './backend.js'
 export type {
     NotFoundError,
     PermissionDeniedError,
     WriteRejectedError,
     ServerError,
     UnknownError,
-} from './statefile-driver.js'
+} from './backend.js'
