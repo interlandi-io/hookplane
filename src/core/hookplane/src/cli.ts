@@ -5,6 +5,10 @@ import {
     defaultDispatch,
     relativeUrlHeuristic,
 } from '@hookplane/core'
+import { 
+    findHookplane,
+    extract
+} from '@hookplane/extractor'
 import { createOrchestrator } from '@hookplane/orchestrator'
 import { createLocalFileDriver } from '../../statefile-driver/dist/local.js'
 import fs from 'fs/promises'
@@ -25,37 +29,29 @@ fs.writeFile(tmpfile, '')
 
 console.log(`tmpfile created at ${tmpfile}`)
 
-// const { tsconfigPath, shouldBootstrap } = state
-// const instance = findHookplane(tsconfigPath)
-// if (instance.isErr()) {
-//     return {
-//         tag: 'failed',
-//         error: {
-//             last: 'ready',
-//             error: instance.error,
-//         },
-//         lastValidState: state,
-//     }
-// }
-// const { exportName, filePath } = instance.value
-// const rightUnknown = await extract(exportName, filePath)
-// if (rightUnknown.isErr()) {
-//     return {
-//         tag: 'failed',
-//         error: {
-//             last: 'ready',
-//             error: rightUnknown.error,
-//         },
-//         lastValidState: state,
-//     }
-// }
+const instance = findHookplane(tsconfigPath)
+if (instance.isErr()) {
+    console.error('failed to locate hookplane instance: ', instance.error)
+    process.exit(1)
+}
+const { exportName, filePath } = instance.value
+
+console.log(`found hookplane instance at ${filePath}`)
+
+const rightState = await extract(exportName, filePath)
+if (rightState.isErr()) {
+    console.error('failed to extract hookplane instance from state: ', rightState.error)
+    process.exit(1)
+}
+
+console.log(`extracted hookplane instance with providers ${rightState.value.providers}`)
 
 const statefileDriver = createLocalFileDriver({
     path: tmpfile,
 })
 
 const orchestrator = createOrchestrator({
-    tsconfigPath,
+    rightState: rightState.value,
     execute: parallelExecution(),
     dispatch: defaultDispatch(),
     statefileDriver,

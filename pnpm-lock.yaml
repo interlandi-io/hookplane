@@ -82,6 +82,9 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
+      '@hookplane/extractor':
+        specifier: workspace:*
+        version: link:../extractor
       '@hookplane/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator
