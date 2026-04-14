@@ -1,6 +1,10 @@
 #!/usr/bin/node
 
-import { parallelExecution, defaultDispatch, relativeUrlHeuristic } from '@hookplane/core'
+import {
+    parallelExecution,
+    defaultDispatch,
+    relativeUrlHeuristic,
+} from '@hookplane/core'
 import { createOrchestrator } from '@hookplane/orchestrator'
 import { createLocalFileDriver } from '../../statefile-driver/dist/local.js'
 import fs from 'fs/promises'
@@ -33,8 +37,8 @@ const orchestrator = createOrchestrator({
     matchingHeuristic: relativeUrlHeuristic,
 })
 
-try { 
-    const result = await orchestrator.run({ 
+try {
+    const result = await orchestrator.run({
         shouldBootstrap: true,
     })
     console.log('Result: ')
