@@ -17,7 +17,6 @@ export type ExtractionError =
 export async function extract(
     exportName: string,
     moduleSpecifier: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Result<Hookplane, ExtractionError>> {
     const jiti = createJiti(import.meta.url)
 
