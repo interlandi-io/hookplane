@@ -82,6 +82,9 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
+      '@hookplane/extractor':
+        specifier: workspace:*
+        version: link:../extractor
       '@hookplane/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator
@@ -110,9 +113,6 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
-      '@hookplane/extractor':
-        specifier: workspace:*
-        version: link:../extractor
       '@hookplane/statefile-driver':
         specifier: workspace:*
         version: link:../statefile-driver
@@ -126,6 +126,9 @@ importers:
         specifier: ^27.0.2
         version: 27.0.2
     devDependencies:
+      '@hookplane/stripe':
+        specifier: workspace:*
+        version: link:../../providers/stripe
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../shared/eslint-config

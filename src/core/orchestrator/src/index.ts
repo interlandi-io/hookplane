@@ -27,19 +27,13 @@ import {
     StatefileDriverData,
     StatefileDriverError,
 } from '@hookplane/statefile-driver'
-import {
-    FindError,
-    findHookplane,
-    extract,
-    ExtractionError,
-} from '@hookplane/extractor'
 
 export type Orchestrator = {
     run(params: RunParams): Promise<OrchestratorState>
 }
 
 export type OrchestratorDescriptor = {
-    tsconfigPath: string
+    rightState: StateUnknown<ProviderSet>
     execute: ExecuteFn
     dispatch: DispatchFn
     statefileDriver: StatefileDriver
@@ -53,11 +47,11 @@ export type OrchestratorState =
 export type OrchestratorStateNonTerminal =
     | {
           tag: 'ready'
-          tsconfigPath: string
+          rightState: StateUnknown<ProviderSet>
           shouldBootstrap: boolean
       }
     | {
-          tag: 'scanned'
+          tag: 'initialized'
           rightUnknown: StateUnknown<ProviderSet>
           shouldBootstrap: boolean
       }
@@ -116,8 +110,8 @@ type OrchestratorStateTerminal =
       }
 
 export type OrchestratorError =
-    | { last: 'ready'; error: FindError | ExtractionError }
-    | { last: 'scanned'; error: StatefileDriverError }
+    | { last: 'ready' }
+    | { last: 'initialized'; error: StatefileDriverError }
     | { last: 'statefile-loaded'; error: StatefileError }
     | { last: 'statefile-parsed'; error: SyncError }
     | { last: 'synced'; error: PlanError }
@@ -139,7 +133,7 @@ export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
         async run({ from, until, shouldBootstrap = false }: RunParams) {
             let state: OrchestratorState = from ?? {
                 tag: 'ready',
-                tsconfigPath: desc.tsconfigPath,
+                rightState: desc.rightState,
                 shouldBootstrap,
             }
             while (
@@ -157,8 +151,6 @@ export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
     }
 }
 
-// Just a sketch here
-// eslint-disable-next-line
 async function transition(
     state: OrchestratorStateNonTerminal,
     {
@@ -170,38 +162,16 @@ async function transition(
 ): Promise<OrchestratorState> {
     switch (state.tag) {
         case 'ready': {
-            const { tsconfigPath, shouldBootstrap } = state
-            const instance = findHookplane(tsconfigPath)
-            if (instance.isErr()) {
-                return {
-                    tag: 'failed',
-                    error: {
-                        last: 'ready',
-                        error: instance.error,
-                    },
-                    lastValidState: state,
-                }
-            }
-            const { exportName, filePath } = instance.value
-            const rightUnknown = await extract(exportName, filePath)
-            if (rightUnknown.isErr()) {
-                return {
-                    tag: 'failed',
-                    error: {
-                        last: 'ready',
-                        error: rightUnknown.error,
-                    },
-                    lastValidState: state,
-                }
-            }
+            const { rightState, shouldBootstrap } = state
+
             return {
-                tag: 'scanned',
-                rightUnknown: rightUnknown.value,
+                tag: 'initialized',
+                rightUnknown: rightState,
                 shouldBootstrap,
             }
         }
 
-        case 'scanned': {
+        case 'initialized': {
             const { rightUnknown, shouldBootstrap } = state
             if (shouldBootstrap) {
                 const bootstrapped = bootstrap(rightUnknown.baseUrl)
@@ -211,7 +181,7 @@ async function transition(
                         return {
                             tag: 'failed',
                             error: {
-                                last: 'scanned',
+                                last: 'initialized',
                                 error: result.error,
                             },
                             lastValidState: state,
@@ -224,7 +194,7 @@ async function transition(
                 return {
                     tag: 'failed',
                     error: {
-                        last: 'scanned',
+                        last: 'initialized',
                         error: leftStatefileData.error,
                     },
                     lastValidState: state,
