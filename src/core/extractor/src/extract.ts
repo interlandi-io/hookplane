@@ -32,7 +32,7 @@ export async function extract(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hookplane = (mod as any)?.[exportName] as Hookplane 
+    const hookplane = (mod as any)?.[exportName] as Hookplane
     if (!hookplane) {
         return err({
             name: 'NotExportedError',

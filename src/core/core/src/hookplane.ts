@@ -1,9 +1,9 @@
-import { ProviderSet } from "./provider-set.js";
-import { StateUnknown } from "./state.js";
+import { ProviderSet } from './provider-set.js'
+import { StateUnknown } from './state.js'
 import z from 'zod'
 
 export type Hookplane = {
-    state: StateUnknown<ProviderSet>,
+    state: StateUnknown<ProviderSet>
 }
 
 const HookplaneSchemaApprox = z.object({
@@ -11,7 +11,7 @@ const HookplaneSchemaApprox = z.object({
         baseUrl: z.string(),
         providers: z.object(),
         providerStates: z.object(),
-    })
+    }),
 })
 
 /**

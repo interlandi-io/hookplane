@@ -34,15 +34,17 @@ describe('orchestrator', () => {
             providers: {
                 stripe: await stripeProvider({
                     apiKey: process.env['STRIPE_API_KEY']!,
-                })
+                }),
             },
             providerStates: {
-                stripe: new Set([{
-                    relativeUrl: '/hooks/stripe' as RelativeUrl,
-                    events: ['checkout.session.completed'],
-                    config: {  }
-                }])
-            } 
+                stripe: new Set([
+                    {
+                        relativeUrl: '/hooks/stripe' as RelativeUrl,
+                        events: ['checkout.session.completed'],
+                        config: {},
+                    },
+                ]),
+            },
         }
 
         const statefileDriver = createLocalFileDriver({ path: statefilePath })
