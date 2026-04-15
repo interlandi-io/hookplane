@@ -135,15 +135,10 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         getStepProviderById: (id: StepId) => {
             const result = getStepById(providerPlans, id)
             if (result.isErr()) {
-                return result
+                return result.error
             }
-            const providerName = result.value.providerName
-            const provider = providers[providerName]
-            if (!provider) {
-                return err(new Error(`no provider found with name ${providerName}`))
-            }
-            return ok(provider)
-        },
+            const { providerName } = result.value as keyof P
+        }
         getStepIds: getStepIds(providerPlans),
         isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
@@ -155,7 +150,7 @@ const getStepById = <P extends ProviderSet>(
 ) => {
     let existing = 0
     let retStep: Step<Provider> | undefined = undefined
-    let retProviderName: keyof P | undefined = undefined
+    let retProviderName: string | undefined = undefined
     for (const [providerName, providerPlan] of Object.entries(providerPlans)) {
         const s = providerPlan.get(id)
         if (s) {
