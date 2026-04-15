@@ -1,16 +1,15 @@
 import { errAsync, okAsync } from 'neverthrow'
-import { createExecutor, parallelExecution, defaultDispatch } from '~/executor'
+import { createExecutor, parallelExecution, defaultDispatch } from '~/executor.js'
 import { err, ok } from 'neverthrow'
 import {
     Provider,
-    createEndpointHandle,
     createBaseUrl,
     createRelativeUrl,
     NotFoundError,
-    type EndpointHandle,
-    type RelativeUrl,
-} from '~/provider'
-import { Plan, StepId, createStepId } from '~/plan'
+} from '~/provider.js'
+import { createRealEndpointHandle, EndpointHandle } from '~/endpoint-handle.js'
+import { Plan, StepId, createStepId } from '~/plan.js'
+import { RelativeUrl } from '~/url.js'
 
 interface EndpointRecord {
     url: string
@@ -37,7 +36,7 @@ const MockProvider: Provider<
         return okAsync({})
     },
     createEndpoint({ url, events, endpointConfig }) {
-        const handle = createEndpointHandle(
+        const handle = createRealEndpointHandle(
             `handle-${handleCounter++}`,
         )._unsafeUnwrap()
         endpoints.set(handle, { url, events, config: endpointConfig })
@@ -91,7 +90,7 @@ const MockProvider: Provider<
             }
         >()
         for (const [handle, endpoint] of endpoints) {
-            index.set(createEndpointHandle(handle)._unsafeUnwrap(), {
+            index.set(createRealEndpointHandle(handle)._unsafeUnwrap(), {
                 relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
@@ -201,7 +200,7 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-0',
                         )._unsafeUnwrap(),
                     },
@@ -210,7 +209,7 @@ describe('executor', () => {
                     createStepId(1),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-1',
                         )._unsafeUnwrap(),
                     },
@@ -267,7 +266,7 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'update' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-0',
                         )._unsafeUnwrap(),
                         state: {

@@ -3,10 +3,10 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "~/*": ["src/*"]
+            "~/*": ["./src/*"]
         },
         "composite": true,
     },
     "include": ["src", "test"],
-    "exclude": ["node_modules", "dist", "test"]
+    "exclude": ["node_modules", "dist"]
 }
