@@ -34,23 +34,22 @@ export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
-    /** Current states of all steps. Check this after execute() to see results. */
-    getStepStates(): Map<StepId, StepState>
-
     /** Execute the plan according to the execution strategy. */
     execute(): Promise<void>
 }
 
-export type ExecutorState<P extends ProviderSet> = {
-    plan: Plan<P>
-    stepStates: Map<StepId, StepState>
-    dispatchFn: DispatchFn
-}
+export type ExecutionEventLedger = ExecutionEvent[]
+
+export type ExecutionEvent =
+    | { tag: 'stepStarted'; stepId: StepId; ts: number }
+    | { tag: 'stepSucceeded'; stepId: StepId; ts: number; result: StepResult }
+    | { tag: 'stepFailed'; stepId: StepId; ts: number; error: DispatchError }
 
 /**
  * The status of a step during execution.
+ * @internal
  */
-export type StepState =
+type DerivedStepState =
     | { status: 'pending' }
     | { status: 'inFlight' }
     | { status: 'success'; result: StepResult }
@@ -72,7 +71,7 @@ export type StepResult =
  */
 export type ExecuteFn = (
     plan: Plan<ProviderSet>,
-    stepStates: Map<StepId, StepState>,
+    stepStates: Map<StepId, DerivedStepState>,
     dispatch: DispatchFn,
 ) => ResultAsync<void, Error>
 
@@ -196,27 +195,10 @@ export function createExecutor<P extends ProviderSet>(
     executeFn: ExecuteFn,
     dispatchFn: DispatchFn,
 ): Result<Executor<P>, ExecutorError> {
-    const stepIds = plan.getStepIds()
-    if (stepIds.length == 0) {
-        return err({
-            name: 'EmptyPlanError',
-            message: 'attempted to create Executor for an empty plan',
-        } as EmptyPlanError)
-    }
-    const stepStates = new Map(
-        stepIds.map((id) => [id, { status: 'pending' } as StepState]),
-    )
-    const state: ExecutorState<P> = {
-        stepStates,
-        plan,
-        dispatchFn,
-    }
-
     return ok({
-        getPlan: () => state.plan,
-        getStepStates: () => state.stepStates,
-        execute: async () => {
-            await executeFn(state.plan, state.stepStates, state.dispatchFn)
+        getPlan: () => plan,
+        execute: async (prevEvents?: ExecutionEventLedger) => {
+            await executeFn(plan, stepStates, dispatchFn)
         },
     })
 }
@@ -368,3 +350,38 @@ export const withResolutionEffect =
     (dispatch: DispatchFn, effect: ResolutionEffect): DispatchFn =>
     (...args) => dispatch(...args)
         .andThrough((result) => effect([...args], result))
+
+
+function reduceEventLedger(
+    plan: Plan<ProviderSet>,
+    events: ExecutionEventLedger,
+): Result<Map<StepId, DerivedStepState>, ExecutorError> {
+    const stepIds = plan.getStepIds()
+    if (stepIds.length == 0) {
+        return err({
+            name: 'EmptyPlanError',
+            message: 'attempted to create Executor for an empty plan',
+        } as EmptyPlanError)
+    }
+
+    const sorted = events.toSorted((a, b) => a.ts - b.ts)
+    const derived: Map<StepId, DerivedStepState> = new Map(
+        stepIds.map(id => [id, { status: 'pending' }])
+    )
+
+    for (const event of sorted) {
+        switch (event.tag) {
+            case 'stepStarted':
+                derived.set(event.stepId, { status: 'inFlight' })
+                break
+            case 'stepSucceeded':
+                derived.set(event.stepId, { status: 'success', result: event.result })
+                break
+            case 'stepFailed':
+                derived.set(event.stepId, { status: 'failure', error: event.error })
+                break
+        }
+    }
+
+    return ok(derived)
+}
