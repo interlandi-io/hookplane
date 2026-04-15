@@ -22,10 +22,13 @@ if (!tsconfigPath) {
 console.log(`using tsconfig at path ${tsconfigPath}`)
 
 const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
-const tmpfile = path.join(tmpdir, 'statefile.json')
-fs.writeFile(tmpfile, '')
+const statefilePath = path.join(tmpdir, 'statefile.json')
+const signingSecretPath = path.join(tmpdir, 'secrets.json')
+fs.writeFile(statefilePath, '')
+fs.writeFile(signingSecretPath, '')
 
-console.log(`tmpfile created at ${tmpfile}`)
+console.log(`statefile created at ${statefilePath}`)
+console.log(`signing secrets file created at ${statefilePath}`)
 
 const instance = findHookplane(tsconfigPath)
 if (instance.isErr()) {
@@ -52,7 +55,8 @@ console.log(
 )
 
 const backend = createLocalBackend({
-    path: tmpfile,
+    statefilePath,
+    signingSecretPath,
 })
 
 const orchestrator = createOrchestrator({
@@ -70,6 +74,7 @@ try {
     console.log('Result: ')
     console.log(result)
 } finally {
-    fs.unlink(tmpfile)
-    console.log(`tmpfile deleted at ${tmpfile}`)
+    fs.unlink(statefilePath)
+    fs.unlink(signingSecretPath)
+    console.log(`tmpfile deleted at ${statefilePath}`)
 }
