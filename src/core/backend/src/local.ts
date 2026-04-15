@@ -151,15 +151,15 @@ export const createLocalBackend =
         signingSecret: {
             read: ({ config, id }) =>
                 ResultAsync.fromPromise(readSigningSecret(config, id), (e) =>
-                    toBackendError(e, 'read', config.statefilePath),
+                    toBackendError(e, 'read', config.signingSecretPath),
                 ),
             write: ({ config, id, data }) =>
                 ResultAsync.fromPromise(writeSigningSecret(config, id, data), (e) =>
-                    toBackendError(e, 'write', config.statefilePath),
+                    toBackendError(e, 'write', config.signingSecretPath),
                 ),
             delete: ({ config, id }) =>
                 ResultAsync.fromPromise(deleteSigningSecret(config, id), (e) =>
-                    toBackendError(e, 'delete', config.statefilePath),
+                    toBackendError(e, 'delete', config.signingSecretPath),
                 ),
         }
     })
