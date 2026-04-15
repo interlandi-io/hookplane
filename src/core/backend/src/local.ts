@@ -167,7 +167,6 @@ async function deleteSigningSecret(
 
 export const createLocalBackend = describeBackend<LocalBackendConfig, void>({
     name: 'local-file',
-    init: async () => {},
     statefile: {
         read: ({ config }) =>
             ResultAsync.fromPromise(readStatefile(config), (e) =>

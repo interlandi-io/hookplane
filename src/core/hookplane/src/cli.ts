@@ -54,7 +54,7 @@ console.log(
     `extracted hookplane instance with providers ${rightState.providers}`,
 )
 
-const backend = createLocalBackend({
+const backend = await createLocalBackend({
     statefilePath,
     signingSecretPath,
 })

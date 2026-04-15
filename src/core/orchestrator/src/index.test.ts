@@ -52,7 +52,7 @@ describe('orchestrator', () => {
             },
         }
 
-        const backend = createLocalBackend({ 
+        const backend = await createLocalBackend({ 
             statefilePath,
             signingSecretPath,
         })

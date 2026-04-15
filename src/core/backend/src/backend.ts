@@ -81,14 +81,17 @@ export interface UnknownError {
     cause?: unknown
 }
 
-export interface BackendDescriptor<TConfig> {
+export interface BackendDescriptor<TConfig, TState> {
     readonly name: string
+    init?: (config: TConfig) => Promise<TState>
     statefile: {
         read(params: {
             config: TConfig
+            state: TState
         }): ResultAsync<StatefileData, BackendError>
         write<P extends ProviderSet>(params: {
             config: TConfig
+            state: TState
             data: Statefile<P>
         }): ResultAsync<void, BackendError>
         delete(params: { config: TConfig }): ResultAsync<void, BackendError>
@@ -96,34 +99,43 @@ export interface BackendDescriptor<TConfig> {
     signingSecret: {
         read(params: {
             config: TConfig
+            state: TState
             id: string
         }): ResultAsync<string, BackendError>
         write(params: {
             config: TConfig
+            state: TState
             id: string
             data: string
         }): ResultAsync<void, BackendError>
         delete(params: { 
             config: TConfig
+            state: TState
             id: string
         }): ResultAsync<void, BackendError>
     }
 }
 
-export function describeBackend<TConfig>(
-    desc: BackendDescriptor<TConfig>,
-): (config: TConfig) => Backend {
-    return (config: TConfig): Backend => ({
-        name: desc.name,
-        statefile: {
-            read: () => desc.statefile.read({ config }),
-            write: (data) => desc.statefile.write({ config, data }),
-            delete: () => desc.statefile.delete({ config }),
-        },
-        signingSecret: {
-            read: (id) => desc.signingSecret.read({ config, id }),
-            write: (id, data) => desc.signingSecret.write({ config, id, data }),
-            delete: (id) => desc.signingSecret.delete({ config, id }),
+export function describeBackend<TConfig, TState>(
+    desc: BackendDescriptor<TConfig, TState>,
+): (config: TConfig) => Promise<Backend> {
+    return async (config: TConfig) => {
+        let state = {} as TState
+        if (desc.init) {
+            state = await desc.init(config)
         }
-    })
+        return {
+            name: desc.name,
+            statefile: {
+                read: () => desc.statefile.read({ config, state }),
+                write: (data) => desc.statefile.write({ config, state, data }),
+                delete: () => desc.statefile.delete({ config }),
+            },
+            signingSecret: {
+                read: (id) => desc.signingSecret.read({ config, state, id }),
+                write: (id, data) => desc.signingSecret.write({ config, state, id, data }),
+                delete: (id) => desc.signingSecret.delete({ config, state, id }),
+            }
+        }
+    }
 }

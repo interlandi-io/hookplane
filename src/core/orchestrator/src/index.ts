@@ -381,13 +381,13 @@ async function transition(
         case 'executed': {
             const { right } = state
             const statefile = fromState(1, right)
-            const result = await backend.statefile.write(statefile)
-            if (result.isErr()) {
+            const statefileResult = await backend.statefile.write(statefile)
+            if (statefileResult.isErr()) {
                 return {
                     tag: 'failed',
                     error: {
                         last: 'executed',
-                        error: result.error,
+                        error: statefileResult.error,
                     },
                     lastValidState: state,
                 }
