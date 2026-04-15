@@ -17,10 +17,12 @@ import os from 'os'
 describe('orchestrator', () => {
     let tmpDir: string
     let statefilePath: string
+    let signingSecretPath: string
 
     beforeAll(async () => {
         tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'orchestrator-test-'))
         statefilePath = path.join(tmpDir, Date.now().toString() + '.statefile')
+        signingSecretPath = path.join(tmpDir, Date.now().toString() + '.secrets')
         fs.writeFile(statefilePath, '')
     })
 
@@ -41,13 +43,19 @@ describe('orchestrator', () => {
                     {
                         relativeUrl: '/hooks/stripe' as RelativeUrl,
                         events: ['checkout.session.completed'],
-                        config: {},
+                        config: {
+                            name: 'my_endpoint',
+                            eventPayload: 'snapshot',
+                        },
                     },
                 ]),
             },
         }
 
-        const backend = createLocalBackend({ path: statefilePath })
+        const backend = createLocalBackend({ 
+            statefilePath,
+            signingSecretPath,
+        })
         const orchestrator = createOrchestrator({
             rightState,
             execute: parallelExecution(),
@@ -59,5 +67,13 @@ describe('orchestrator', () => {
             shouldBootstrap: true,
         })
         console.log(state)
+        if (state.tag === 'failed' && state.error.last === 'executable') {
+            const err = state.error.error
+            for (const [,stepState] of err) {
+                if (stepState.status === 'failure') {
+                    console.log(stepState.error)
+                }
+            }
+        }
     }, 10_000)
 })
