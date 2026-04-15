@@ -22,7 +22,7 @@ export interface Backend {
 
     signingSecret: {
         /** Reads a signing secret from storage */
-        read(id: string): ResultAsync<StatefileData, BackendError>
+        read(id: string): ResultAsync<string, BackendError>
 
         /** Writes a signing secret from storage */
         write<P extends ProviderSet>(
@@ -97,7 +97,7 @@ export interface BackendDescriptor<TConfig> {
         read(params: {
             config: TConfig
             id: string
-        }): ResultAsync<StatefileData, BackendError>
+        }): ResultAsync<string, BackendError>
         write<P extends ProviderSet>(params: {
             config: TConfig
             id: string

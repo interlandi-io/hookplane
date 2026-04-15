@@ -11,10 +11,16 @@ import {
 import { Statefile, ProviderSet } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
+import { z } from 'zod'
 
 export type LocalBackendConfig = {
-    path: string
+    statefilePath: string
+    signingSecretPath: string
 }
+
+const SigningSecretFileSchema = z.object({
+    data: z.record(z.string(), z.string())
+})
 
 function toBackendError(
     e: unknown,
@@ -61,7 +67,7 @@ function toBackendError(
 async function readStatefile(
     config: LocalBackendConfig,
 ): Promise<StatefileData> {
-    const contents = await readFile(config.path, 'utf-8')
+    const contents = await readFile(config.statefilePath, 'utf-8')
     return JSON.parse(contents)
 }
 
@@ -69,12 +75,12 @@ async function writeStatefile<P extends ProviderSet>(
     config: LocalBackendConfig,
     data: Statefile<P>,
 ): Promise<void> {
-    await writeFile(config.path, JSON.stringify(data.data, null, 2), 'utf-8')
+    await writeFile(config.statefilePath, JSON.stringify(data.data, null, 2), 'utf-8')
 }
 
 async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
     try {
-        await unlink(config.path)
+        await unlink(config.statefilePath)
     } catch (e) {
         const error = e as NodeJS.ErrnoException
         if (error.code !== 'ENOENT') {
@@ -83,21 +89,59 @@ async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
     }
 }
 
+async function readSigningSecret(config: LocalBackendConfig, id: string): Promise<string> {
+    const contents = await readFile(config.signingSecretPath, 'utf-8')
+    const secrets = SigningSecretFileSchema.safeParse(contents)
+    if (!secrets.success) {
+        throw {
+            kind: 'BackendError',
+            name: 'UnknownError',
+            message: 'failed to parse signing secrets file',
+            while: 'read'
+        } satisfies BackendError
+    }
+    const secret = secrets.data.data[id]
+    if (!secret) {
+        throw {
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: `sigining secret with id ${id} not found`,
+            while: 'read'
+        } satisfies BackendError
+    }
+
+    return secret
+}
+
 export const createLocalBackend =
     describeBackend<LocalBackendConfig>({
         name: 'local-file',
         statefile: {
             read: ({ config }) =>
                 ResultAsync.fromPromise(readStatefile(config), (e) =>
-                    toBackendError(e, 'read', config.path),
+                    toBackendError(e, 'read', config.statefilePath),
                 ),
             write: ({ config, data }) =>
                 ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-                    toBackendError(e, 'write', config.path),
+                    toBackendError(e, 'write', config.statefilePath),
                 ),
             delete: ({ config }) =>
                 ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-                    toBackendError(e, 'delete', config.path),
+                    toBackendError(e, 'delete', config.statefilePath),
+                ),
+        },
+        signingSecret: {
+            read: ({ config, id }) =>
+                ResultAsync.fromPromise(readSigningSecret(config, id), (e) =>
+                    toBackendError(e, 'read', config.statefilePath),
+                ),
+            write: ({ config, id, data }) =>
+                ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
+                    toBackendError(e, 'write', config.statefilePath),
+                ),
+            delete: ({ config, id }) =>
+                ResultAsync.fromPromise(deleteStatefile(config), (e) =>
+                    toBackendError(e, 'delete', config.statefilePath),
                 ),
         }
     })
