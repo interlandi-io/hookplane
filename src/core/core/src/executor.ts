@@ -34,8 +34,11 @@ export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
-    /** Execute the plan according to the execution strategy. */
-    execute(): Promise<void>
+    /** 
+     * Execute the plan according to the execution strategy.
+     * @param from - The set of events to resume execution from (optional)
+     */
+    execute(from?: ExecutionEventLedger): Promise<ExecutionEventLedger>
 }
 
 export type ExecutionEventLedger = ExecutionEvent[]
@@ -71,7 +74,8 @@ export type StepResult =
  */
 export type ExecuteFn = (
     plan: Plan<ProviderSet>,
-    stepStates: Map<StepId, DerivedStepState>,
+    toRun: Iterable<StepId>,
+    emit: (event: ExecutionEvent) => void,
     dispatch: DispatchFn,
 ) => ResultAsync<void, Error>
 
@@ -198,7 +202,18 @@ export function createExecutor<P extends ProviderSet>(
     return ok({
         getPlan: () => plan,
         execute: async (prevEvents?: ExecutionEventLedger) => {
-            await executeFn(plan, stepStates, dispatchFn)
+            const ledger = prevEvents || []
+            const derivedState = reduceEventLedger(plan, ledger)
+            const toRun = [...derivedState.entries()]
+                .filter(([, state]) => state.status === 'pending') // TODO retry policy here
+                .map(([id,]) => id)
+            await executeFn(
+                plan,
+                toRun,
+                (event) => ledger.push(event),
+                dispatchFn,
+            )
+            return ledger
         },
     })
 }
@@ -354,17 +369,10 @@ export const withResolutionEffect =
 
 function reduceEventLedger(
     plan: Plan<ProviderSet>,
-    events: ExecutionEventLedger,
-): Result<Map<StepId, DerivedStepState>, ExecutorError> {
+    ledger: ExecutionEventLedger,
+): Map<StepId, DerivedStepState> {
     const stepIds = plan.getStepIds()
-    if (stepIds.length == 0) {
-        return err({
-            name: 'EmptyPlanError',
-            message: 'attempted to create Executor for an empty plan',
-        } as EmptyPlanError)
-    }
-
-    const sorted = events.toSorted((a, b) => a.ts - b.ts)
+    const sorted = ledger.toSorted((a, b) => a.ts - b.ts)
     const derived: Map<StepId, DerivedStepState> = new Map(
         stepIds.map(id => [id, { status: 'pending' }])
     )
@@ -383,5 +391,5 @@ function reduceEventLedger(
         }
     }
 
-    return ok(derived)
+    return derived
 }
