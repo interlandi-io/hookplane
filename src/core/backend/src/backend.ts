@@ -7,16 +7,32 @@ export interface Backend {
     /** Name of the backend */
     readonly name: string
 
-    /** Reads the raw statefile data from storage */
-    readStatefile(): ResultAsync<StatefileData, BackendError>
+    statefile: {
+        /** Reads the raw statefile data from storage */
+        read(): ResultAsync<StatefileData, BackendError>
 
-    /** Writes a validated statefile to storage */
-    writeStatefile<P extends ProviderSet>(
-        data: Statefile<P>,
-    ): ResultAsync<void, BackendError>
+        /** Writes a validated statefile to storage */
+        write<P extends ProviderSet>(
+            data: Statefile<P>,
+        ): ResultAsync<void, BackendError>
 
-    /** Deletes the statefile from storage */
-    deleteStatefile(): ResultAsync<void, BackendError>
+        /** Deletes the statefile from storage */
+        delete(): ResultAsync<void, BackendError>
+    }
+
+    signingSecret: {
+        /** Reads a signing secret from storage */
+        read(id: string): ResultAsync<string, BackendError>
+
+        /** Writes a signing secret from storage */
+        write(
+            id: string,
+            data: string,
+        ): ResultAsync<void, BackendError>
+
+        /** Deletes a signing secret from storage */
+        delete(id: string): ResultAsync<void, BackendError>
+    }
 }
 
 export type StatefileOperation = 'read' | 'write' | 'delete'
@@ -65,25 +81,61 @@ export interface UnknownError {
     cause?: unknown
 }
 
-export interface BackendDescriptor<TConfig> {
+export interface BackendDescriptor<TConfig, TState> {
     readonly name: string
-    read(params: {
-        config: TConfig
-    }): ResultAsync<StatefileData, BackendError>
-    write<P extends ProviderSet>(params: {
-        config: TConfig
-        data: Statefile<P>
-    }): ResultAsync<void, BackendError>
-    delete(params: { config: TConfig }): ResultAsync<void, BackendError>
+    init?: (config: TConfig) => Promise<TState>
+    statefile: {
+        read(params: {
+            config: TConfig
+            state: TState
+        }): ResultAsync<StatefileData, BackendError>
+        write<P extends ProviderSet>(params: {
+            config: TConfig
+            state: TState
+            data: Statefile<P>
+        }): ResultAsync<void, BackendError>
+        delete(params: { config: TConfig }): ResultAsync<void, BackendError>
+    },
+    signingSecret: {
+        read(params: {
+            config: TConfig
+            state: TState
+            id: string
+        }): ResultAsync<string, BackendError>
+        write(params: {
+            config: TConfig
+            state: TState
+            id: string
+            data: string
+        }): ResultAsync<void, BackendError>
+        delete(params: { 
+            config: TConfig
+            state: TState
+            id: string
+        }): ResultAsync<void, BackendError>
+    }
 }
 
-export function describeBackend<TConfig>(
-    desc: BackendDescriptor<TConfig>,
-): (config: TConfig) => Backend {
-    return (config: TConfig): Backend => ({
-        name: desc.name,
-        readStatefile: () => desc.read({ config }),
-        writeStatefile: (data) => desc.write({ config, data }),
-        deleteStatefile: () => desc.delete({ config }),
-    })
+export function describeBackend<TConfig, TState>(
+    desc: BackendDescriptor<TConfig, TState>,
+): (config: TConfig) => Promise<Backend> {
+    return async (config: TConfig) => {
+        let state = {} as TState
+        if (desc.init) {
+            state = await desc.init(config)
+        }
+        return {
+            name: desc.name,
+            statefile: {
+                read: () => desc.statefile.read({ config, state }),
+                write: (data) => desc.statefile.write({ config, state, data }),
+                delete: () => desc.statefile.delete({ config }),
+            },
+            signingSecret: {
+                read: (id) => desc.signingSecret.read({ config, state, id }),
+                write: (id, data) => desc.signingSecret.write({ config, state, id, data }),
+                delete: (id) => desc.signingSecret.delete({ config, state, id }),
+            }
+        }
+    }
 }

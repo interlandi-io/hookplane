@@ -175,7 +175,7 @@ async function transition(
             const { rightUnknown, shouldBootstrap } = state
             if (shouldBootstrap) {
                 const bootstrapped = bootstrap(rightUnknown.baseUrl)
-                const result = await backend.writeStatefile(bootstrapped)
+                const result = await backend.statefile.write(bootstrapped)
                 if (result.isErr()) {
                     {
                         return {
@@ -189,7 +189,7 @@ async function transition(
                     }
                 }
             }
-            const leftStatefileData = await backend.readStatefile()
+            const leftStatefileData = await backend.statefile.read()
             if (leftStatefileData.isErr()) {
                 return {
                     tag: 'failed',
@@ -381,13 +381,13 @@ async function transition(
         case 'executed': {
             const { right } = state
             const statefile = fromState(1, right)
-            const result = await backend.writeStatefile(statefile)
-            if (result.isErr()) {
+            const statefileResult = await backend.statefile.write(statefile)
+            if (statefileResult.isErr()) {
                 return {
                     tag: 'failed',
                     error: {
                         last: 'executed',
-                        error: result.error,
+                        error: statefileResult.error,
                     },
                     lastValidState: state,
                 }

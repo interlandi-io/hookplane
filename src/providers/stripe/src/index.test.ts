@@ -1,4 +1,4 @@
-import { stripeProvider } from '.'
+import { stripeProvider } from './index.js'
 import { crudRoundTrip } from '@hookplane/provider/harness'
 
 const apiKey = process.env['STRIPE_API_KEY']!

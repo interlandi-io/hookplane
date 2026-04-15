@@ -20,7 +20,8 @@
     },
     "dependencies": {
         "@hookplane/core": "workspace:*",
-        "neverthrow": "^8.2.0"
+        "neverthrow": "^8.2.0",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",
