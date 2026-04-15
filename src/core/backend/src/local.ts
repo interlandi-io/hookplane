@@ -125,6 +125,12 @@ async function writeSigningSecret(config: LocalBackendConfig, id: string, data: 
     await writeFile(config.signingSecretPath, JSON.stringify(secrets, null, 2), 'utf-8')
 }
 
+async function deleteSigningSecret(config: LocalBackendConfig, id: string): Promise<void> {
+    const secrets = await openSigningSecretFile(config)
+    delete secrets.data[id]
+    await writeFile(config.signingSecretPath, JSON.stringify(secrets, null, 2), 'utf-8')
+}
+
 export const createLocalBackend =
     describeBackend<LocalBackendConfig>({
         name: 'local-file',
@@ -152,7 +158,7 @@ export const createLocalBackend =
                     toBackendError(e, 'write', config.statefilePath),
                 ),
             delete: ({ config, id }) =>
-                ResultAsync.fromPromise(deleteStatefile(config), (e) =>
+                ResultAsync.fromPromise(deleteSigningSecret(config, id), (e) =>
                     toBackendError(e, 'delete', config.statefilePath),
                 ),
         }
