@@ -34,7 +34,7 @@ type Plan<P extends ProviderSet> = {
     /**
      * @returns the provider that owns the `Step` corresponding to `id`
      */
-    getStepProviderById(id: StepId): Result<P[keyof P], Error>
+    getStepProviderByStepId(id: StepId): Result<P[keyof P], Error>
     /**
      * @returns `StepId`s in this `Plan`
      */
@@ -132,7 +132,7 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         providers,
         providerPlans,
         getStepById: (id: StepId) => getStepById(providerPlans, id).map(r => r.step),
-        getStepProviderById: (id: StepId) => {
+        getStepProviderByStepId: (id: StepId) => {
             const result = getStepById(providerPlans, id)
             if (result.isErr()) {
                 return result

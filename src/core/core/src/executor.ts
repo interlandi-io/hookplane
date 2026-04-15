@@ -246,8 +246,19 @@ export const parallelExecution: () => ExecuteFn =
                     cause: step.error,
                 })
             }
+
+            const provider = plan.getStepProviderByStepId(stepId)
+            if (provider.isErr()) {
+                return errAsync(provider.error)
+            }
+
             emit({ tag: 'stepStarted', stepId, ts: Date.now() })
-            const promise = dispatch() // TODO: rework dispatch
+            const promise = dispatch(
+                plan.baseUrl,
+                provider.value,
+                stepId,
+                step.value,
+            ) // TODO: rework dispatch
                 .match(
                 (result) => {
                     emit({ tag: 'stepSucceeded', stepId, ts: Date.now(), result })
