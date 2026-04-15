@@ -24,7 +24,6 @@
     "dependencies": {
         "@hookplane/backend": "workspace:*",
         "@hookplane/core": "workspace:*",
-        "@hookplane/orchestrator": "workspace:*",
         "jiti": "^2.6.1",
         "neverthrow": "^8.2.0",
         "ts-morph": "^27.0.2"

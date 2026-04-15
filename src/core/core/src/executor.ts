@@ -13,7 +13,7 @@ import { Provider, CreateEndpointReturn } from './provider.js'
 import { ProviderSet } from './provider-set.js'
 
 // Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
-// and they make including ExecuteFns and DispatchFns as properties in an Orchestrator difficult.
+// and they make including ExecuteFns and DispatchFns as properties difficult.
 // Use extra care when passing Providers/ProviderSets around, since there aren't any type guards to help you.
 
 /**
