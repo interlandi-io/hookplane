@@ -12,7 +12,7 @@ export type ExtractionError =
  *
  * @param exportName - The exported identifier to read from the module.
  * @param moduleSpecifier - The module path or specifier to import.
- * @returns A `Result` containing the extracted `State` on success, or an `ExtractionError` describing why extraction failed (missing export or missing required fields `baseUrl`, `providers`, or `providerStates`).
+ * @returns A `Result` containing the extracted `State` on success, or an `ExtractionError` describing why extraction failed (missing export or missing required fields `providers` or `providerStates`).
  */
 export async function extract(
     exportName: string,

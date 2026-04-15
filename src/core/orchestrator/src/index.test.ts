@@ -1,10 +1,8 @@
 import {
-    BaseUrl,
     defaultDispatch,
     parallelExecution,
     ProviderSet,
-    RelativeUrl,
-    relativeUrlHeuristic,
+    endpointUrlHeuristic,
     StateUnknown,
 } from '@hookplane/core'
 import { stripeProvider } from '@hookplane/stripe'
@@ -22,7 +20,10 @@ describe('orchestrator', () => {
     beforeAll(async () => {
         tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'orchestrator-test-'))
         statefilePath = path.join(tmpDir, Date.now().toString() + '.statefile')
-        signingSecretPath = path.join(tmpDir, Date.now().toString() + '.secrets')
+        signingSecretPath = path.join(
+            tmpDir,
+            Date.now().toString() + '.secrets',
+        )
         fs.writeFile(statefilePath, '')
     })
 
@@ -32,7 +33,6 @@ describe('orchestrator', () => {
 
     it.skip('runs', async () => {
         const rightState: StateUnknown<ProviderSet> = {
-            baseUrl: 'https://example.com' as BaseUrl,
             providers: {
                 stripe: await stripeProvider({
                     apiKey: process.env['STRIPE_API_KEY']!,
@@ -41,7 +41,7 @@ describe('orchestrator', () => {
             providerStates: {
                 stripe: new Set([
                     {
-                        relativeUrl: '/hooks/stripe' as RelativeUrl,
+                        url: 'https://example.com/hooks/stripe',
                         events: ['checkout.session.completed'],
                         config: {
                             name: 'my_endpoint',
@@ -52,7 +52,7 @@ describe('orchestrator', () => {
             },
         }
 
-        const backend = await createLocalBackend({ 
+        const backend = await createLocalBackend({
             statefilePath,
             signingSecretPath,
         })
@@ -61,7 +61,7 @@ describe('orchestrator', () => {
             execute: parallelExecution(),
             dispatch: defaultDispatch(),
             backend,
-            matchingHeuristic: relativeUrlHeuristic,
+            matchingHeuristic: endpointUrlHeuristic,
         })
         const state = await orchestrator.run({
             shouldBootstrap: true,
@@ -69,7 +69,7 @@ describe('orchestrator', () => {
         console.log(state)
         if (state.tag === 'failed' && state.error.last === 'executable') {
             const err = state.error.error
-            for (const [,stepState] of err) {
+            for (const [, stepState] of err) {
                 if (stepState.status === 'failure') {
                     console.log(stepState.error)
                 }

@@ -2,7 +2,6 @@ import { isDeepStrictEqual } from 'util'
 import { err, ok, Result } from 'neverthrow'
 import { State } from './state.js'
 import { Provider, EndpointState, EndpointIndex } from './provider.js'
-import { BaseUrl } from './url.js'
 import { ProviderSet } from './provider-set.js'
 import {
     downcastEndpointHandle,
@@ -22,7 +21,6 @@ import {
  * ```
  */
 type Plan<P extends ProviderSet> = {
-    baseUrl: BaseUrl
     providers: P
     providerPlans: {
         [K in keyof P]: Map<StepId, Step<P[K]>>
@@ -128,10 +126,10 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     }
 
     return ok({
-        baseUrl: right.baseUrl,
         providers,
         providerPlans,
-        getStepById: (id: StepId) => getStepById(providerPlans, id).map(r => r.step),
+        getStepById: (id: StepId) =>
+            getStepById(providerPlans, id).map((r) => r.step),
         getStepProviderByStepId: (id: StepId) => {
             const result = getStepById(providerPlans, id)
             if (result.isErr()) {
@@ -140,7 +138,9 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
             const providerName = result.value.providerName
             const provider = providers[providerName]
             if (!provider) {
-                return err(new Error(`no provider found with name ${providerName}`))
+                return err(
+                    new Error(`no provider found with name ${providerName}`),
+                )
             }
             return ok(provider)
         },
@@ -159,7 +159,7 @@ const getStepById = <P extends ProviderSet>(
     for (const [providerName, providerPlan] of Object.entries(providerPlans)) {
         const s = providerPlan.get(id)
         if (s) {
-            retProviderName = providerName 
+            retProviderName = providerName
             retStep = s
             existing++
         }

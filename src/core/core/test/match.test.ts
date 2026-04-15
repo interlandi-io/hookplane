@@ -1,20 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { match, relativeUrlHeuristic } from '../src/match'
-import { createRealEndpointHandle } from '../src/endpoint-handle'
-import type {
-    EndpointState,
-    Provider,
-    EndpointIndex,
-    EndpointHandle,
-} from '../src/provider'
-import type { State, StateUnknown } from '../src/state'
-import { ProviderSet } from '../src/provider-set'
+import { match, endpointUrlHeuristic } from '../src/match.js'
+import {
+    createRealEndpointHandle,
+    type EndpointHandle,
+} from '../src/endpoint-handle.js'
+import type { EndpointState, Provider, EndpointIndex } from '../src/provider.js'
+import type { State, StateUnknown } from '../src/state.js'
+import { ProviderSet } from '../src/provider-set.js'
+import { createEndpointUrl } from '../src/url.js'
 
 type TestProvider = Provider<'event1' | 'event2'>
 
-function createEndpointState(relativeUrl: string): EndpointState<TestProvider> {
+function createEndpointState(url: string): EndpointState<TestProvider> {
     return {
-        relativeUrl: relativeUrl as EndpointState<TestProvider>['relativeUrl'],
+        url: createEndpointUrl(url)._unsafeUnwrap(),
         events: ['event1'],
         config: {},
     }
@@ -26,11 +25,9 @@ function createRealHandle(id: string): EndpointHandle {
 
 function createState<P extends ProviderSet>(
     providerStates: StateUnknown<P>['providerStates'],
-    baseUrl = 'https://example.com',
     providers = {} as P,
 ): State<P> {
     const result: State<P> = {
-        baseUrl: baseUrl as State<P>['baseUrl'],
         providers,
         providerStates: {} as State<P>['providerStates'],
     }
@@ -49,11 +46,9 @@ function createState<P extends ProviderSet>(
 
 function createStateUnknown<P extends ProviderSet>(
     providerStates: StateUnknown<P>['providerStates'],
-    baseUrl = 'https://example.com',
     providers = {} as P,
 ): StateUnknown<P> {
     return {
-        baseUrl: baseUrl as StateUnknown<P>['baseUrl'],
         providers,
         providerStates,
     }
@@ -64,12 +59,12 @@ function isOrphanHandle(handle: string): boolean {
 }
 
 describe('match', () => {
-    describe('using relativeUrlHeuristic', () => {
+    describe('using endpointUrlHeuristic', () => {
         it('returns empty providerStates when unknown has no providerStates', () => {
             const unknown = createStateUnknown({})
             const known = createState({})
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             expect(result._unsafeUnwrap().providerStates).toEqual({})
@@ -77,11 +72,13 @@ describe('match', () => {
 
         it('marks all states as orphan when provider is new (not in known)', () => {
             const unknown = createStateUnknown({
-                providerA: new Set([createEndpointState('/webhook1')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
             })
             const known = createState({})
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const states = result._unsafeUnwrap().providerStates['providerA']!
@@ -91,15 +88,19 @@ describe('match', () => {
             }
         })
 
-        it('matches unknown state to known state when relativeUrls match', () => {
+        it('matches unknown state to known state when endpointUrls match', () => {
             const unknown = createStateUnknown({
-                providerA: new Set([createEndpointState('/webhook1')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
             })
             const known = createState({
-                providerA: new Set([createEndpointState('/webhook1')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
             })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const resultStates =
@@ -109,18 +110,22 @@ describe('match', () => {
             const firstEntry = entries[0]!
             const [handle, state] = firstEntry
             expect(isOrphanHandle(handle)).toBe(false)
-            expect(state.relativeUrl).toBe('/webhook1')
+            expect(state.url).toBe('https://example.com/webhook1')
         })
 
         it('marks unknown state as orphan when no match found', () => {
             const unknown = createStateUnknown({
-                providerA: new Set([createEndpointState('/webhook1')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
             })
             const known = createState({
-                providerA: new Set([createEndpointState('/webhook2')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook2'),
+                ]),
             })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const states = result._unsafeUnwrap().providerStates['providerA']!
@@ -132,14 +137,20 @@ describe('match', () => {
 
         it('handles multiple providers correctly', () => {
             const unknown = createStateUnknown({
-                providerA: new Set([createEndpointState('/webhook1')]),
-                providerB: new Set([createEndpointState('/webhook2')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
+                providerB: new Set([
+                    createEndpointState('https://example.com/webhook2'),
+                ]),
             })
             const known = createState({
-                providerA: new Set([createEndpointState('/webhook1')]),
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
             })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const providerA =
@@ -162,77 +173,85 @@ describe('match', () => {
         it('matches multiple unknown states to multiple known states', () => {
             const unknown = createStateUnknown({
                 providerA: new Set([
-                    createEndpointState('/webhook1'),
-                    createEndpointState('/webhook2'),
+                    createEndpointState('https://example.com/webhook1'),
+                    createEndpointState('https://example.com/webhook2'),
                 ]),
             })
             const known = createState({
                 providerA: new Set([
-                    createEndpointState('/webhook1'),
-                    createEndpointState('/webhook2'),
+                    createEndpointState('https://example.com/webhook1'),
+                    createEndpointState('https://example.com/webhook2'),
                 ]),
             })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const states = result._unsafeUnwrap().providerStates['providerA']!
             expect(states.size).toBe(2)
             for (const [handle, state] of states) {
                 expect(isOrphanHandle(handle)).toBe(false)
-                expect(['/webhook1', '/webhook2']).toContain(state.relativeUrl)
+                expect([
+                    'https://example.com/webhook1',
+                    'https://example.com/webhook2',
+                ]).toContain(state.url)
             }
         })
 
         it('correctly handles mixed matched and orphan states', () => {
             const unknown = createStateUnknown({
                 providerA: new Set([
-                    createEndpointState('/webhook1'),
-                    createEndpointState('/webhook3'),
+                    createEndpointState('https://example.com/webhook1'),
+                    createEndpointState('https://example.com/webhook3'),
                 ]),
             })
             const known = createState({
                 providerA: new Set([
-                    createEndpointState('/webhook1'),
-                    createEndpointState('/webhook2'),
+                    createEndpointState('https://example.com/webhook1'),
+                    createEndpointState('https://example.com/webhook2'),
                 ]),
             })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
             const states = result._unsafeUnwrap().providerStates['providerA']!
             expect(states.size).toBe(2)
 
-            const matchedStates = Array.from(states.entries()).filter(
-                ([h]) => !isOrphanHandle(h),
-            )
-            const orphanStates = Array.from(states.entries()).filter(([h]) =>
-                isOrphanHandle(h),
+            const entries = Array.from(states.entries())
+            const matchedEntries = entries.filter(([h]) => !isOrphanHandle(h))
+            const orphanEntries = entries.filter(([h]) => isOrphanHandle(h))
+
+            expect(matchedEntries.length).toBe(1)
+            expect(matchedEntries[0]![1].url).toBe(
+                'https://example.com/webhook1',
             )
 
-            expect(matchedStates.length).toBe(1)
-            expect(matchedStates[0]![1].relativeUrl).toBe('/webhook1')
-
-            expect(orphanStates.length).toBe(1)
-            expect(orphanStates[0]![1].relativeUrl).toBe('/webhook3')
+            expect(orphanEntries.length).toBe(1)
+            expect(orphanEntries[0]![1].url).toBe(
+                'https://example.com/webhook3',
+            )
         })
 
-        it('preserves baseUrl and providers from unknown', () => {
+        it('preserves providers from unknown', () => {
             const unknown = createStateUnknown(
-                { providerA: new Set([createEndpointState('/webhook1')]) },
-                'https://unknown.com',
+                {
+                    providerA: new Set([
+                        createEndpointState('https://example.com/webhook1'),
+                    ]),
+                },
                 { providerA: {} } as unknown as { providerA: Provider },
             )
-            const known = createState(
-                { providerA: new Set([createEndpointState('/webhook1')]) },
-                'https://known.com',
-            )
+            const known = createState({
+                providerA: new Set([
+                    createEndpointState('https://example.com/webhook1'),
+                ]),
+            })
 
-            const result = match(relativeUrlHeuristic, unknown, known)
+            const result = match(endpointUrlHeuristic, unknown, known)
 
             expect(result.isOk()).toBe(true)
-            expect(result._unsafeUnwrap().baseUrl).toBe('https://unknown.com')
+            expect(result._unsafeUnwrap().providers).toBe(unknown.providers)
         })
     })
 })

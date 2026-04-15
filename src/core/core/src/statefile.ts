@@ -2,16 +2,10 @@
  * Statefile parsing and validation for Hookplane.
  *
  * A statefile represents a complete snapshot of an application's endpoint
- * configuration. It contains a base URL and the state of all endpoints
- * registered with each provider.
+ * configuration. It contains the state of all endpoints registered with each provider.
  */
 import z, { ZodError } from 'zod'
-import {
-    BaseUrl,
-    createBaseUrl,
-    createRelativeUrl,
-    RelativeUrl,
-} from './url.js'
+import { createEndpointUrl, type EndpointUrl } from './url.js'
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set.js'
 import { State } from './state.js'
@@ -19,22 +13,14 @@ import { EndpointIndex, EndpointState, Provider } from './provider.js'
 import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle.js'
 
 /**
- * Zod schema for base URLs.
+ * Zod schema for endpoint URLs.
  *
  * Validates that the URL is a valid http/https URL and transforms it
- * to a branded BaseUrl type.
+ * to a branded EndpointUrl type.
  */
-const BaseUrlSchema = refineString<BaseUrl>(createBaseUrl, 'invalid base URL')
-
-/**
- * Zod schema for relative URLs.
- *
- * Validates that the URL starts with "/" and transforms it to a
- * branded RelativeUrl type.
- */
-const RelativeUrlSchema = refineString<RelativeUrl>(
-    createRelativeUrl,
-    'invalid relative URL',
+const EndpointUrlSchema = refineString<EndpointUrl>(
+    createEndpointUrl,
+    'invalid endpoint URL',
 )
 
 /**
@@ -51,10 +37,10 @@ const EndpointHandleSchema = refineString<EndpointHandle>(
  * Zod schema for endpoint state.
  *
  * Represents the configuration of a single endpoint including its
- * relative URL, subscribed events, and provider-specific config.
+ * URL, subscribed events, and provider-specific config.
  */
 const EndpointStateSchema: z.ZodType<EndpointState<Provider>> = z.object({
-    relativeUrl: RelativeUrlSchema,
+    url: EndpointUrlSchema,
     events: z.array(z.string()),
     config: z.record(z.string(), z.unknown()),
 })
@@ -78,12 +64,10 @@ const ProviderStateSchema = z.record(EndpointHandleSchema, EndpointSchema)
  *
  * Structure:
  * - version: The statefile version
- * - baseUrl: The application's base URL
  * - providerStates: A record of providers, each containing endpoints keyed by handle
  */
 const StatefileSchema = z.object({
     version: z.literal(1),
-    baseUrl: BaseUrlSchema,
     providerStates: z.record(z.string(), ProviderStateSchema),
 })
 
@@ -223,11 +207,10 @@ export function parseStatefile<P extends ProviderSet>(
     })
 }
 
-export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
+export function bootstrap(): Statefile<ProviderSet> {
     const providers: ProviderSet = {}
     const data = {
         version: 1,
-        baseUrl,
         providerStates: {},
     } as const
 
@@ -249,7 +232,7 @@ export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
  *
  * @example
  * ```typescript
- * const state = { baseUrl, providers, providerStates }
+ * const state = { providers, providerStates }
  * const statefile = fromState(1, state)
  * // serialize statefile.data to JSON for storage
  * ```
@@ -269,7 +252,6 @@ export function fromState<P extends ProviderSet>(
                         },
                     ] as [
                         typeof handle,
-                        // This is fine, right?
                         Statefile<P>['data']['providerStates'][string][keyof Statefile<P>['data']['providerStates'][string]],
                     ]
                 },
@@ -285,7 +267,6 @@ export function fromState<P extends ProviderSet>(
 
     const data = {
         version,
-        baseUrl: state.baseUrl,
         providerStates,
     }
 
@@ -349,7 +330,6 @@ const toState =
         ) as State<P>['providerStates']
 
         return ok({
-            baseUrl: data.baseUrl,
             providers,
             providerStates,
         } satisfies State<P>)

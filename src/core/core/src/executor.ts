@@ -9,12 +9,7 @@
  */
 import { ok, err, Result, ResultAsync, errAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan.js'
-import {
-    Provider,
-    composeEndpointUrl,
-    CreateEndpointReturn,
-} from './provider.js'
-import { type BaseUrl } from './url.js'
+import { Provider, CreateEndpointReturn } from './provider.js'
 import { ProviderSet } from './provider-set.js'
 
 // Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
@@ -26,7 +21,7 @@ import { ProviderSet } from './provider-set.js'
  *
  * @example
  * ```typescript
- * const executor = createExecutor(plan, parallelExecution(), defaultDispatch(baseUrl))
+ * const executor = createExecutor(plan, parallelExecution(), defaultDispatch())
  * executor.execute()
  * ```
  */
@@ -34,7 +29,7 @@ export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
-    /** 
+    /**
      * Execute the plan according to the execution strategy.
      * @param from - The set of events to resume execution from (optional)
      */
@@ -86,9 +81,6 @@ export type ExecuteFn = (
  * @param step - The step to execute (create, delete, or update)
  */
 export type DispatchFn = (
-    // TODO this is a huge bug.
-    // Executor will just use whatever baseUrl is given, rather than the right one for the step.
-    baseUrl: BaseUrl,
     provider: Provider,
     stepId: StepId,
     step: Step<Provider>,
@@ -150,7 +142,7 @@ export interface UpdateError extends Error {
  * // Golden path: pull current state, create plan, execute it
  *
  * // 1. Pull current state from providers
- * const current = await pull(baseUrl, providers)
+ * const current = await sync(providers)
  * if (current.isErr()) throw current.error
  *
  * // 2. Create plan to reach desired state
@@ -160,7 +152,7 @@ export interface UpdateError extends Error {
  * const executor = createExecutor(
  *   plan,
  *   parallelExecution(),
- *   defaultDispatch(plan.baseUrl),
+ *   defaultDispatch(),
  * )
  *
  * if (executor.isErr()) {
@@ -184,7 +176,7 @@ export interface UpdateError extends Error {
  *
  * @param plan - From `createPlan(left, right)`
  * @param executeFn - Strategy like `parallelExecution()`
- * @param dispatchFn - Like `defaultDispatch(plan.baseUrl)`
+ * @param dispatchFn - Like `defaultDispatch()`
  */
 export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
@@ -198,7 +190,7 @@ export function createExecutor<P extends ProviderSet>(
             const derivedState = reduceEventLedger(plan, ledger)
             const toRun = [...derivedState.entries()]
                 .filter(([, state]) => state.status === 'pending') // TODO retry policy here
-                .map(([id,]) => id)
+                .map(([id]) => id)
             await executeFn(
                 plan,
                 toRun,
@@ -220,12 +212,7 @@ export function createExecutor<P extends ProviderSet>(
  */
 export const parallelExecution: () => ExecuteFn =
     () =>
-    (
-        plan,
-        toRun,
-        emit,
-        dispatch,
-    ): ResultAsync<void, Error> => {
+    (plan, toRun, emit, dispatch): ResultAsync<void, Error> => {
         const promises: Promise<void>[] = []
 
         for (const stepId of toRun) {
@@ -245,18 +232,22 @@ export const parallelExecution: () => ExecuteFn =
             }
 
             emit({ tag: 'stepStarted', stepId, ts: Date.now() })
-            const promise = dispatch(
-                plan.baseUrl,
-                provider.value,
-                stepId,
-                step.value,
-            ) // TODO: rework dispatch
-                .match(
+            const promise = dispatch(provider.value, stepId, step.value).match(
                 (result) => {
-                    emit({ tag: 'stepSucceeded', stepId, ts: Date.now(), result })
+                    emit({
+                        tag: 'stepSucceeded',
+                        stepId,
+                        ts: Date.now(),
+                        result,
+                    })
                 },
                 (error) => {
-                    emit({ tag: 'stepFailed', stepId, ts: Date.now(), error })
+                    emit({
+                        tag: 'stepFailed',
+                        stepId,
+                        ts: Date.now(),
+                        error,
+                    })
                 },
             )
             promises.push(promise)
@@ -270,17 +261,14 @@ export const parallelExecution: () => ExecuteFn =
 /**
  * Default dispatch that calls provider.createEndpoint, deleteEndpoint, or updateEndpoint.
  *
- * Composes URLs from `baseUrl + endpoint.relativeUrl`.
- *
  * @example
  * ```typescript
- * const dispatch = defaultDispatch(plan.baseUrl)
+ * const dispatch = defaultDispatch()
  * ```
  */
 export const defaultDispatch =
     <P extends ProviderSet>() =>
     <K extends keyof P>(
-        baseUrl: BaseUrl,
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,
@@ -291,7 +279,7 @@ export const defaultDispatch =
                     .createEndpoint({
                         providerState: provider.state,
                         providerConfig: provider.config,
-                        url: composeEndpointUrl(baseUrl, step.state),
+                        url: step.state.url,
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
@@ -336,7 +324,7 @@ export const defaultDispatch =
                         providerState: provider.state,
                         providerConfig: provider.config,
                         handle: step.handle,
-                        url: composeEndpointUrl(baseUrl, step.state),
+                        url: step.state.url,
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
@@ -353,13 +341,11 @@ export const defaultDispatch =
         }
     }
 
-
-/** @see ResolutionEffect */    
-export const withResolutionEffect = 
+/** @see ResolutionEffect */
+export const withResolutionEffect =
     (dispatch: DispatchFn, effect: ResolutionEffect): DispatchFn =>
-    (...args) => dispatch(...args)
-        .andThrough((result) => effect([...args], result))
-
+    (...args) =>
+        dispatch(...args).andThrough((result) => effect([...args], result))
 
 function reduceEventLedger(
     plan: Plan<ProviderSet>,
@@ -368,7 +354,7 @@ function reduceEventLedger(
     const stepIds = plan.getStepIds()
     const sorted = ledger.toSorted((a, b) => a.ts - b.ts)
     const derived: Map<StepId, DerivedStepState> = new Map(
-        stepIds.map(id => [id, { status: 'pending' }])
+        stepIds.map((id) => [id, { status: 'pending' }]),
     )
 
     for (const event of sorted) {
@@ -377,10 +363,16 @@ function reduceEventLedger(
                 derived.set(event.stepId, { status: 'inFlight' })
                 break
             case 'stepSucceeded':
-                derived.set(event.stepId, { status: 'success', result: event.result })
+                derived.set(event.stepId, {
+                    status: 'success',
+                    result: event.result,
+                })
                 break
             case 'stepFailed':
-                derived.set(event.stepId, { status: 'failure', error: event.error })
+                derived.set(event.stepId, {
+                    status: 'failure',
+                    error: event.error,
+                })
                 break
         }
     }

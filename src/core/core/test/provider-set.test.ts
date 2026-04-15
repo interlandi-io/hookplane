@@ -1,7 +1,8 @@
 import { okAsync } from 'neverthrow'
 import { describe, it, expect } from 'vitest'
-import { createProviderSet } from '~/provider-set'
-import { createRelativeUrl, Provider } from '~/provider'
+import { createProviderSet } from '~/provider-set.js'
+import { Provider } from '~/provider.js'
+import { createEndpointUrl } from '~/url.js'
 
 const TestProvider = (
     name: string,
@@ -16,7 +17,7 @@ const TestProvider = (
     },
     readEndpoint: () =>
         okAsync({
-            relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+            url: createEndpointUrl('https://example.com/')._unsafeUnwrap(),
             events: [],
             config: {},
         }),

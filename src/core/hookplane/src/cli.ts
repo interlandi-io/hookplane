@@ -3,7 +3,7 @@
 import {
     parallelExecution,
     defaultDispatch,
-    relativeUrlHeuristic,
+    endpointUrlHeuristic,
 } from '@hookplane/core'
 import { extract } from './extract.js'
 import { findHookplane } from './find-hookplane.js'
@@ -64,7 +64,7 @@ const orchestrator = createOrchestrator({
     execute: parallelExecution(),
     dispatch: defaultDispatch(),
     backend,
-    matchingHeuristic: relativeUrlHeuristic,
+    matchingHeuristic: endpointUrlHeuristic,
 })
 
 try {

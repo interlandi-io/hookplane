@@ -9,12 +9,11 @@ describe('extract', () => {
             )
         }
         const state = result.value.state
-        expect(state.baseUrl).toBe('https://example.com')
         expect(state.providers['stripe']).toBeDefined()
         expect(state.providerStates['stripe']).toBeDefined()
         const arr = [...state.providerStates['stripe']!.values()]
         expect(arr[0]).toBeDefined()
-        expect(arr[0]!.relativeUrl).toBe('/hooks/stripe')
+        expect(arr[0]!.url).toBe('https://example.com/hooks/stripe')
         expect(arr[0]!.events[0]).toBe('checkout.session.completed')
     })
 })

@@ -8,7 +8,6 @@ export type Hookplane = {
 
 const HookplaneSchemaApprox = z.object({
     state: z.object({
-        baseUrl: z.string(),
         providers: z.object(),
         providerStates: z.object(),
     }),

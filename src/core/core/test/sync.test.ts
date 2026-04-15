@@ -1,27 +1,29 @@
-import { errAsync } from 'neverthrow'
-import { sync } from '~/sync'
-import { okAsync } from 'neverthrow'
+import { errAsync, okAsync } from 'neverthrow'
+import { sync } from '~/sync.js'
 import {
-    createBaseUrl,
     createEndpointHandle,
-    createEndpointUrl,
-    createRelativeUrl,
     EndpointIndex,
     EndpointState,
     Provider,
     NotFoundError,
-    type EndpointHandle,
-} from '~/provider'
+} from '~/provider.js'
+import { createEndpointUrl } from '~/url.js'
+import type { EndpointHandle } from '~/endpoint-handle.js'
 
 const endpoints: EndpointIndex<typeof MockProvider> = new Map()
 let handleCounter = 0
-const MockProvider: Provider<'testEvent', object, object, object> = {
+const MockProvider: Provider<
+    'testEvent',
+    Record<string, unknown>,
+    Record<string, unknown>,
+    Record<string, unknown>
+> = {
     name: 'Mock',
     events: {
         testEvent: {},
     },
     config: {},
-    state: {},
+    state: {} as Record<string, unknown>,
     setup() {
         return okAsync({})
     },
@@ -29,11 +31,8 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
         const handle = createEndpointHandle(
             `handle-${handleCounter++}`,
         )._unsafeUnwrap()
-        const relativeUrl = createRelativeUrl(
-            new URL(url).pathname,
-        )._unsafeUnwrap()
         endpoints.set(handle, {
-            relativeUrl,
+            url,
             events,
             config: endpointConfig,
         })
@@ -51,11 +50,8 @@ const MockProvider: Provider<'testEvent', object, object, object> = {
     updateEndpoint({ url, handle, events, endpointConfig }) {
         const endpoint = endpoints.get(handle)
         if (endpoint) {
-            const relativeUrl = createRelativeUrl(
-                new URL(url).pathname,
-            )._unsafeUnwrap()
             endpoints.set(handle, {
-                relativeUrl,
+                url,
                 events,
                 config: endpointConfig,
             })
@@ -90,18 +86,16 @@ describe('sync', () => {
     })
 
     it('pulls endpoints correctly', async () => {
-        const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
         MockProvider.createEndpoint({
             url: createEndpointUrl(
-                baseUrl,
-                createRelativeUrl('/webhook')._unsafeUnwrap(),
+                'https://example.com/webhook',
             )._unsafeUnwrap(),
             events: ['testEvent'],
             providerState: MockProvider.state,
             providerConfig: MockProvider.config,
             endpointConfig: {},
         })
-        const state = await sync(baseUrl, providers)
+        const state = await sync(providers)
 
         expect(state.isOk()).toBe(true)
         expect(state._unsafeUnwrap().providerStates['MockProvider']).toEqual(
@@ -109,8 +103,9 @@ describe('sync', () => {
                 [
                     'handle-0' as EndpointHandle,
                     {
-                        relativeUrl:
-                            createRelativeUrl('/webhook')._unsafeUnwrap(),
+                        url: createEndpointUrl(
+                            'https://example.com/webhook',
+                        )._unsafeUnwrap(),
                         events: ['testEvent'] as ['testEvent'],
                         config: {},
                     } as EndpointState<typeof MockProvider>,
@@ -158,8 +153,7 @@ describe('sync', () => {
         }
 
         const errorProviders = { ErrorProvider: errorProvider }
-        const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
-        const result = await sync(baseUrl, errorProviders)
+        const result = await sync(errorProviders)
 
         expect(result.isErr()).toBe(true)
         const error = result._unsafeUnwrapErr()

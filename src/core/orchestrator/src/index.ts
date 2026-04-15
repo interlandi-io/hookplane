@@ -22,11 +22,7 @@ import {
     bootstrap,
     fromState,
 } from '@hookplane/core'
-import {
-    Backend,
-    StatefileData,
-    BackendError,
-} from '@hookplane/backend'
+import { Backend, StatefileData, BackendError } from '@hookplane/backend'
 
 export type Orchestrator = {
     run(params: RunParams): Promise<OrchestratorState>
@@ -153,12 +149,7 @@ export function createOrchestrator(desc: OrchestratorDescriptor): Orchestrator {
 
 async function transition(
     state: OrchestratorStateNonTerminal,
-    {
-        execute,
-        dispatch,
-        backend,
-        matchingHeuristic,
-    }: OrchestratorDescriptor,
+    { execute, dispatch, backend, matchingHeuristic }: OrchestratorDescriptor,
 ): Promise<OrchestratorState> {
     switch (state.tag) {
         case 'ready': {
@@ -174,7 +165,7 @@ async function transition(
         case 'initialized': {
             const { rightUnknown, shouldBootstrap } = state
             if (shouldBootstrap) {
-                const bootstrapped = bootstrap(rightUnknown.baseUrl)
+                const bootstrapped = bootstrap()
                 const result = await backend.statefile.write(bootstrapped)
                 if (result.isErr()) {
                     {
@@ -243,10 +234,7 @@ async function transition(
 
         case 'statefile-parsed': {
             const { leftPrior, rightUnknown } = state
-            const leftActual = await sync(
-                leftPrior.baseUrl,
-                leftPrior.providers,
-            )
+            const leftActual = await sync(leftPrior.providers)
             if (leftActual.isErr()) {
                 return {
                     tag: 'failed',
