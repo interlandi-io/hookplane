@@ -7,7 +7,7 @@
  * 3. Call `executor.execute()`
  * 4. Monitor progress with `executor.getStepStates()`
  */
-import { ok, err, Result, ResultAsync, errAsync } from 'neverthrow'
+import { ok, Result, ResultAsync, errAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan.js'
 import { Provider, CreateEndpointReturn } from './provider.js'
 import { ProviderSet } from './provider-set.js'

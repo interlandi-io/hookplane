@@ -4,6 +4,7 @@ import {
     ProviderSet,
     endpointUrlHeuristic,
     StateUnknown,
+    EndpointUrl,
 } from '@hookplane/core'
 import { stripeProvider } from '@hookplane/stripe'
 import { createOrchestrator } from './index.js'
@@ -41,7 +42,7 @@ describe('orchestrator', () => {
             providerStates: {
                 stripe: new Set([
                     {
-                        url: 'https://example.com/hooks/stripe',
+                        url: 'https://example.com/hooks/stripe' as EndpointUrl,
                         events: ['checkout.session.completed'],
                         config: {
                             name: 'my_endpoint',
