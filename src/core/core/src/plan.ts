@@ -127,23 +127,20 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         baseUrl: right.baseUrl,
         providers,
         providerPlans,
-        getStepById: (id: StepId) => getStepAndProviderById(providerPlans, id).map(r => r.step),
+        getStepById: (id: StepId) => getStepById(providerPlans, id),
         getStepIds: getStepIds(providerPlans),
         isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
 }
 
-const getStepAndProviderById =
+const getStepById =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans'], id: StepId) => {
         let existing = 0
         let step: Step<Provider> | undefined = undefined
-        let provider: string | undefined
-        for (const e of Object.entries(providerPlans)) {
-            const [providerName, providerPlan] = e as [string, Map<StepId, Step<Provider>>] // Typescript!!!!
+        for (const providerPlan of Object.values(providerPlans)) {
             const s = providerPlan.get(id)
             if (s) {
                 step = s
-                provider = providerName
                 existing++
             }
         }
@@ -154,7 +151,7 @@ const getStepAndProviderById =
             return err(new Error(`no step found by id ${id}`))
         }
 
-        return ok({ step, provider: provider! })
+        return ok(step)
     }
 
 const getStepIds =
