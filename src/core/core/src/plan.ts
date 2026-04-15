@@ -127,15 +127,14 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
         baseUrl: right.baseUrl,
         providers,
         providerPlans,
-        getStepById: getStepById(providerPlans),
+        getStepById: (id: StepId) => getStepById(providerPlans, id),
         getStepIds: getStepIds(providerPlans),
         isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
 }
 
 const getStepById =
-    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-    (id: StepId) => {
+    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans'], id: StepId) => {
         let existing = 0
         let step: Step<Provider> | undefined = undefined
         for (const providerPlan of Object.values(providerPlans)) {
