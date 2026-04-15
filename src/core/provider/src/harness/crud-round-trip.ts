@@ -35,6 +35,24 @@ export async function crudRoundTrip<
         updatedRelativeUrl,
     )._unsafeUnwrap()
 
+    it('0) Delete all existing endpoints', async () => {
+        const indexResult = await provider.indexEndpoints({
+            providerState: provider.state,
+            providerConfig: provider.config,
+        })
+        expect(indexResult.isOk()).toBe(true)
+        const index = indexResult._unsafeUnwrap()
+
+        for (const [handle] of index.entries()) {
+            const deleteResult = await provider.deleteEndpoint({
+                providerState: provider.state,
+                providerConfig: provider.config,
+                handle,
+            })
+            expect(deleteResult.isOk()).toBe(true)
+        }
+    })
+
     it('1) Returns empty index', async () => {
         const indexResult = await provider.indexEndpoints({
             providerState: provider.state,
