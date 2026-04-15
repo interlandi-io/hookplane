@@ -162,6 +162,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
+            },
             isEmpty() {
                 throw 'unimplemented'
             },
@@ -236,6 +239,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
+            },
             isEmpty() {
                 throw 'unimplemented'
             },
@@ -299,6 +305,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
+            },
             isEmpty() {
                 throw 'unimplemented'
             },
@@ -315,33 +324,5 @@ describe('executor', () => {
         expect(endpoints.size).toBe(1)
         const endpoint = endpoints.get('handle-0')
         expect(endpoint?.config).toEqual({ newConfig: true })
-    })
-
-    it('should return error for empty plan', () => {
-        const providers = { MockProvider }
-        const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
-            providers,
-            providerPlans: {
-                MockProvider: new Map(),
-            },
-            getStepById() {
-                return err(new Error('not found'))
-            },
-            getStepIds() {
-                return []
-            },
-            isEmpty() {
-                throw 'unimplemented'
-            },
-        }
-
-        const executor = createExecutor(
-            plan,
-            parallelExecution(),
-            defaultDispatch(),
-        )
-        expect(executor.isErr()).toBe(true)
-        expect(executor._unsafeUnwrapErr().name).toBe('EmptyPlanError')
     })
 })

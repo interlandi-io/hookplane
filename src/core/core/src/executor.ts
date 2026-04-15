@@ -107,15 +107,7 @@ export type ResolutionEffect = (
     result: StepResult,
 ) => ResultAsync<void, DispatchError>
 
-export type ExecutorError = EmptyPlanError
-
-/**
- * Returned when creating an executor for an empty plan.
- */
-export interface EmptyPlanError extends Error {
-    name: 'EmptyPlanError'
-    message: 'attempted to create Executor for an empty plan'
-}
+export type ExecutorError = void
 
 export type DispatchError =
     | InvalidStepIdError
