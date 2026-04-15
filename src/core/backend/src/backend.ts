@@ -19,6 +19,20 @@ export interface Backend {
         /** Deletes the statefile from storage */
         delete(): ResultAsync<void, BackendError>
     }
+
+    signingSecret: {
+        /** Reads a signing secret from storage */
+        read(id: string): ResultAsync<StatefileData, BackendError>
+
+        /** Writes a signing secret from storage */
+        write<P extends ProviderSet>(
+            id: string,
+            data: Statefile<P>,
+        ): ResultAsync<void, BackendError>
+
+        /** Deletes a signing secret from storage */
+        delete(id: string): ResultAsync<void, BackendError>
+    }
 }
 
 export type StatefileOperation = 'read' | 'write' | 'delete'
@@ -78,6 +92,21 @@ export interface BackendDescriptor<TConfig> {
             data: Statefile<P>
         }): ResultAsync<void, BackendError>
         delete(params: { config: TConfig }): ResultAsync<void, BackendError>
+    },
+    signingSecret: {
+        read(params: {
+            config: TConfig
+            id: string
+        }): ResultAsync<StatefileData, BackendError>
+        write<P extends ProviderSet>(params: {
+            config: TConfig
+            id: string
+            data: Statefile<P>
+        }): ResultAsync<void, BackendError>
+        delete(params: { 
+            config: TConfig
+            id: string
+        }): ResultAsync<void, BackendError>
     }
 }
 
@@ -90,6 +119,11 @@ export function describeBackend<TConfig>(
             read: () => desc.statefile.read({ config }),
             write: (data) => desc.statefile.write({ config, data }),
             delete: () => desc.statefile.delete({ config }),
+        },
+        signingSecret: {
+            read: (id) => desc.signingSecret.read({ config, id }),
+            write: (id, data) => desc.signingSecret.write({ config, id, data }),
+            delete: (id) => desc.signingSecret.delete({ config, id }),
         }
     })
 }
