@@ -16,6 +16,7 @@ import { z } from 'zod'
 export type LocalBackendConfig = {
     statefilePath: string
     signingSecretPath: string
+    bootstrapSigningSecrets?: boolean
 }
 
 const SigningSecretFileSchema = z.object({
@@ -132,8 +133,9 @@ async function deleteSigningSecret(config: LocalBackendConfig, id: string): Prom
 }
 
 export const createLocalBackend =
-    describeBackend<LocalBackendConfig>({
+    describeBackend<LocalBackendConfig, void>({
         name: 'local-file',
+        init: async () => {},
         statefile: {
             read: ({ config }) =>
                 ResultAsync.fromPromise(readStatefile(config), (e) =>

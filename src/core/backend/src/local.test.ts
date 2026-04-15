@@ -37,7 +37,6 @@ describe('createLocalBackend', () => {
                         events: ['payment.succeeded'],
                         config: {},
                     },
-                    signingSecret: 'secret123',
                 },
             },
         },
@@ -48,7 +47,6 @@ describe('createLocalBackend', () => {
         toState: () => {
             throw new Error('Not implemented in test')
         },
-        getSigningSecrets: () => new Map(),
     }
 
     describe('read', () => {
