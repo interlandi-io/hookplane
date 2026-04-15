@@ -60,13 +60,10 @@ const EndpointStateSchema: z.ZodType<EndpointState<Provider>> = z.object({
 })
 
 /**
- * Zod schema for an endpoint including optional signing secret.
- *
- * The signing secret is used to validate webhook signatures from the provider.
+ * Zod schema for an endpoint.
  */
 const EndpointSchema = z.object({
     state: EndpointStateSchema,
-    signingSecret: z.string().nullish(),
 })
 
 /**
@@ -109,21 +106,7 @@ export type Statefile<P extends ProviderSet> = {
     data: z.infer<typeof StatefileSchema>
     /** Converts the statefile to a State object for use in the application */
     toState(): Result<State<P>, StatefileError>
-    /** Extracts a signing secret map from the statefile */
-    getSigningSecrets(): SigningSecretMap<P>
 }
-
-/**
- * A map of signing secrets for endpoints.
- *
- * Used to preserve signing secrets when converting between State and Statefile.
- *
- * @deprecated
- */
-export type SigningSecretMap<P extends ProviderSet> = Map<
-    keyof P,
-    Map<EndpointHandle, string>
->
 
 /**
  * Union of all possible errors that can occur when parsing a statefile.
@@ -237,7 +220,6 @@ export function parseStatefile<P extends ProviderSet>(
     return ok({
         data: parsed.data,
         toState: toState(providers, parsed.data),
-        getSigningSecrets: getSigningSecrets(parsed.data),
     })
 }
 
@@ -252,7 +234,6 @@ export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
     return {
         data,
         toState: toState(providers, data),
-        getSigningSecrets: getSigningSecrets(data),
     }
 }
 
@@ -264,34 +245,27 @@ export function bootstrap(baseUrl: BaseUrl): Statefile<ProviderSet> {
  *
  * @param version - The statefile version (currently only 1)
  * @param state - The State to convert
- * @param signingSecrets - Optional map of signing secrets to include in the statefile
  * @returns A Statefile with the same data as the input State
  *
  * @example
  * ```typescript
  * const state = { baseUrl, providers, providerStates }
- * const statefile = fromState(1, state, signingSecrets)
+ * const statefile = fromState(1, state)
  * // serialize statefile.data to JSON for storage
  * ```
  */
 export function fromState<P extends ProviderSet>(
     version: 1,
     state: State<P>,
-    /** @deprecated */
-    signingSecrets?: SigningSecretMap<P>,
 ): Statefile<P> {
     const providerStatesEntries = Object.entries(state.providerStates).map(
         ([providerName, endpointIndex]: [string, EndpointIndex<Provider>]) => {
             const entries = Array.from(endpointIndex.entries()).map(
                 ([handle, endpointState]) => {
-                    const signingSecret = signingSecrets
-                        ?.get(providerName)
-                        ?.get(handle)
                     return [
                         handle,
                         {
                             state: endpointState,
-                            signingSecret,
                         },
                     ] as [
                         typeof handle,
@@ -318,7 +292,6 @@ export function fromState<P extends ProviderSet>(
     return {
         data,
         toState: toState(state.providers, data),
-        getSigningSecrets: getSigningSecrets(data),
     }
 }
 
@@ -380,33 +353,6 @@ const toState =
             providers,
             providerStates,
         } satisfies State<P>)
-    }
-
-/** @deprecated */
-const getSigningSecrets =
-    <P extends ProviderSet>(
-        data: z.infer<typeof StatefileSchema>,
-    ): (() => SigningSecretMap<P>) =>
-    () => {
-        const map: SigningSecretMap<P> = new Map()
-        for (const [providerName, providerState] of Object.entries(
-            data.providerStates,
-        )) {
-            map.set(providerName, new Map())
-            for (const [handle, { signingSecret }] of Object.entries(
-                providerState,
-            )) {
-                if (signingSecret) {
-                    // Endpoint handle has already been validated by constructor.
-                    map.get(providerName)!.set(
-                        handle as EndpointHandle,
-                        signingSecret,
-                    )
-                }
-            }
-        }
-
-        return map
     }
 
 function validateProviderName(name: string, providers: ProviderSet): boolean {

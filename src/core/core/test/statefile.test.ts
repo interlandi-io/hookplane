@@ -496,62 +496,6 @@ describe('parseStatefile', () => {
             const url = result._unsafeUnwrap().data.baseUrl
             expect(url).toBe('https://example.com')
         })
-
-        it('allows optional signingSecret', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {
-                        stripe: {
-                            'endpoint-1': {
-                                state: {
-                                    relativeUrl: '/webhook',
-                                    events: ['payment.succeeded'],
-                                    config: {},
-                                },
-                                signingSecret: 'whsec_abc123',
-                            },
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isOk()).toBe(true)
-            expect(
-                result._unsafeUnwrap().data.providerStates['stripe']![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.signingSecret,
-            ).toBe('whsec_abc123')
-        })
-
-        it('allows nullish signingSecret', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {
-                        stripe: {
-                            'endpoint-1': {
-                                state: {
-                                    relativeUrl: '/webhook',
-                                    events: ['payment.succeeded'],
-                                    config: {},
-                                },
-                            },
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isOk()).toBe(true)
-        })
     })
 
     describe('bootstrap', () => {
@@ -563,7 +507,6 @@ describe('parseStatefile', () => {
                 Array.from(Object.keys(statefile.data.providerStates)),
             ).toHaveLength(0)
             expect(statefile.toState().isOk()).toBe(true)
-            expect(statefile.getSigningSecrets).not.toThrow()
         })
     })
 
@@ -877,151 +820,6 @@ describe('parseStatefile', () => {
             ).toBe('/webhook')
         })
 
-        it('includes signingSecrets when provided', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-
-            const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
-                providers,
-                providerStates: {
-                    stripe: new Map([
-                        [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
-                            {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook',
-                                    )._unsafeUnwrap(),
-                                events: ['payment.succeeded'],
-                                config: {},
-                            },
-                        ],
-                    ]),
-                },
-            }
-
-            const signingSecrets = new Map([
-                [
-                    'stripe',
-                    new Map([
-                        [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
-                            'whsec_abc123',
-                        ],
-                    ]),
-                ],
-            ])
-
-            const result = fromState(1, state, signingSecrets)
-
-            expect(
-                result.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.signingSecret,
-            ).toBe('whsec_abc123')
-        })
-
-        it('handles missing signingSecrets (undefined)', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-
-            const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
-                providers,
-                providerStates: {
-                    stripe: new Map([
-                        [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
-                            {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook',
-                                    )._unsafeUnwrap(),
-                                events: ['payment.succeeded'],
-                                config: {},
-                            },
-                        ],
-                    ]),
-                },
-            }
-
-            const result = fromState(1, state)
-
-            expect(
-                result.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.signingSecret,
-            ).toBeUndefined()
-        })
-
-        it('handles partial signingSecrets map', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-                createMockProvider('github', ['push']),
-            ])
-
-            const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
-                providers,
-                providerStates: {
-                    stripe: new Map([
-                        [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
-                            {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook',
-                                    )._unsafeUnwrap(),
-                                events: ['payment.succeeded'],
-                                config: {},
-                            },
-                        ],
-                    ]),
-                    github: new Map([
-                        [
-                            createEndpointHandle('endpoint-2')._unsafeUnwrap(),
-                            {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/github',
-                                    )._unsafeUnwrap(),
-                                events: ['push'],
-                                config: {},
-                            },
-                        ],
-                    ]),
-                },
-            }
-
-            const signingSecrets = new Map([
-                [
-                    'stripe',
-                    new Map([
-                        [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
-                            'whsec_abc123',
-                        ],
-                    ]),
-                ],
-            ])
-
-            const result = fromState(1, state, signingSecrets)
-
-            expect(
-                result.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.signingSecret,
-            ).toBe('whsec_abc123')
-            expect(
-                result.data.providerStates.github![
-                    createEndpointHandle('endpoint-2')._unsafeUnwrap()
-                ]!.signingSecret,
-            ).toBeUndefined()
-        })
-
         it('roundtrips through parseStatefile and toState', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
@@ -1038,7 +836,6 @@ describe('parseStatefile', () => {
                                 events: ['payment.succeeded'],
                                 config: { foo: 'bar' },
                             },
-                            signingSecret: 'whsec_secret',
                         },
                     },
                 },
@@ -1062,74 +859,6 @@ describe('parseStatefile', () => {
                     createEndpointHandle('endpoint-1')._unsafeUnwrap()
                 ]!.state.events,
             ).toEqual(['payment.succeeded'])
-        })
-
-        it('roundtrips signing secrets via getSigningSecrets', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-                createMockProvider('github', ['push', 'pull_request']),
-            ])
-
-            const originalStatefile = {
-                version: 1,
-                baseUrl: 'https://example.com',
-                providerStates: {
-                    stripe: {
-                        'endpoint-1': {
-                            state: {
-                                relativeUrl: '/webhook',
-                                events: ['payment.succeeded'],
-                                config: {},
-                            },
-                            signingSecret: 'whsec_stripe',
-                        },
-                    },
-                    github: {
-                        'endpoint-2': {
-                            state: {
-                                relativeUrl: '/github',
-                                events: ['push'],
-                                config: {},
-                            },
-                            signingSecret: 'whsec_github',
-                        },
-                        'endpoint-3': {
-                            state: {
-                                relativeUrl: '/github-pr',
-                                events: ['pull_request'],
-                                config: {},
-                            },
-                        },
-                    },
-                },
-            }
-
-            const parseResult = parseStatefile(originalStatefile, providers)
-            expect(parseResult.isOk()).toBe(true)
-
-            const statefile = parseResult._unsafeUnwrap()
-            const signingSecrets1 = statefile.getSigningSecrets()
-
-            expect(signingSecrets1.get('stripe')).toBeDefined()
-            expect(
-                signingSecrets1
-                    .get('stripe')!
-                    .get(createEndpointHandle('endpoint-1')._unsafeUnwrap()),
-            ).toBe('whsec_stripe')
-            expect(signingSecrets1.get('github')).toBeDefined()
-            expect(
-                signingSecrets1
-                    .get('github')!
-                    .get(createEndpointHandle('endpoint-2')._unsafeUnwrap()),
-            ).toBe('whsec_github')
-            expect(
-                signingSecrets1
-                    .get('github')!
-                    .get(createEndpointHandle('endpoint-3')._unsafeUnwrap()),
-            ).toBeUndefined()
-
-            const newStateResult = statefile.toState()
-            expect(newStateResult.isOk()).toBe(true)
         })
 
         it('handles multiple providers', () => {
