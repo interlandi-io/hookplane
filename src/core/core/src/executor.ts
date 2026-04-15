@@ -91,6 +91,19 @@ export type DispatchFn = (
     step: Step<Provider>,
 ) => ResultAsync<StepResult, DispatchError>
 
+/**
+ * Called when a Step's dispatch Promise resolves (success state)
+ * Importantly, this is not called in the failure case.
+ *
+ * @param stepId - The step's unique ID
+ * @param step - The step that transitioned
+ * @returns Any errors that may have occurred during execution.
+ */
+export type ResolutionEffect = (
+    dispatchArgs: Parameters<DispatchFn>,
+    result: StepResult,
+) => Promise<DispatchError | undefined>
+
 export type ExecutorError = EmptyPlanError
 
 /**
@@ -348,3 +361,9 @@ export const defaultDispatch =
                     )
         }
     }
+
+
+export const withResolutionEffect = 
+    (dispatch: DispatchFn, effect: ResolutionEffect): DispatchFn =>
+    (...args) => dispatch(...args)
+        .andTee((result) => effect([...args], result))
