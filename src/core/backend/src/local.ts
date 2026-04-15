@@ -89,7 +89,7 @@ async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
     }
 }
 
-async function readSigningSecret(config: LocalBackendConfig, id: string): Promise<string> {
+async function openSigningSecretFile(config: LocalBackendConfig): Promise<z.infer<typeof SigningSecretFileSchema>> {
     const contents = await readFile(config.signingSecretPath, 'utf-8')
     const secrets = SigningSecretFileSchema.safeParse(contents)
     if (!secrets.success) {
@@ -100,7 +100,13 @@ async function readSigningSecret(config: LocalBackendConfig, id: string): Promis
             while: 'read'
         } satisfies BackendError
     }
-    const secret = secrets.data.data[id]
+
+    return secrets.data
+}
+
+async function readSigningSecret(config: LocalBackendConfig, id: string): Promise<string> {
+    const secrets = await openSigningSecretFile(config)
+    const secret = secrets.data[id]
     if (!secret) {
         throw {
             kind: 'BackendError',
@@ -111,6 +117,12 @@ async function readSigningSecret(config: LocalBackendConfig, id: string): Promis
     }
 
     return secret
+}
+
+async function writeSigningSecret(config: LocalBackendConfig, id: string, data: string): Promise<void> {
+    const secrets = await openSigningSecretFile(config)
+    secrets.data[id] = data
+    await writeFile(config.signingSecretPath, JSON.stringify(secrets, null, 2), 'utf-8')
 }
 
 export const createLocalBackend =
@@ -136,7 +148,7 @@ export const createLocalBackend =
                     toBackendError(e, 'read', config.statefilePath),
                 ),
             write: ({ config, id, data }) =>
-                ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
+                ResultAsync.fromPromise(writeSigningSecret(config, id, data), (e) =>
                     toBackendError(e, 'write', config.statefilePath),
                 ),
             delete: ({ config, id }) =>

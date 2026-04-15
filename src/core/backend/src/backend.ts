@@ -25,9 +25,9 @@ export interface Backend {
         read(id: string): ResultAsync<string, BackendError>
 
         /** Writes a signing secret from storage */
-        write<P extends ProviderSet>(
+        write(
             id: string,
-            data: Statefile<P>,
+            data: string,
         ): ResultAsync<void, BackendError>
 
         /** Deletes a signing secret from storage */
@@ -98,10 +98,10 @@ export interface BackendDescriptor<TConfig> {
             config: TConfig
             id: string
         }): ResultAsync<string, BackendError>
-        write<P extends ProviderSet>(params: {
+        write(params: {
             config: TConfig
             id: string
-            data: Statefile<P>
+            data: string
         }): ResultAsync<void, BackendError>
         delete(params: { 
             config: TConfig
