@@ -91,6 +91,9 @@ importers:
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+      ts-morph:
+        specifier: ^27.0.2
+        version: 27.0.2
     devDependencies:
       '@hookplane/stripe':
         specifier: workspace:*
