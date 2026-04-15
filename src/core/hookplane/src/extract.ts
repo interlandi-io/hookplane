@@ -1,6 +1,15 @@
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
-import { Hookplane, validateHookplaneInstance } from '@hookplane/core'
+import { Hookplane, } from './hookplane.js'
+import z from 'zod'
+
+const HookplaneSchemaApprox: z.ZodType<Hookplane> = z.object({
+    state: z.object({
+        providers: z.object(),
+        providerStates: z.object(),
+    }),
+    backend: z.any()
+})
 
 export type ExtractionError =
     | { name: 'ModuleError'; cause: Error }
@@ -40,11 +49,13 @@ export async function extract(
         })
     }
 
-    const maybeError = validateHookplaneInstance(hookplane)
-    if (maybeError) {
+
+    const result = HookplaneSchemaApprox.safeParse(hookplane)
+    if (!result.success) {
         return err({
             name: 'InvalidHookplaneInstance',
-            message: 'invalid hookplane instance: ' + maybeError.message,
+            message: 'invalid hookplane instance: ' + result.error.message,
+            source: result.error,
             filePath: moduleSpecifier,
         })
     }
