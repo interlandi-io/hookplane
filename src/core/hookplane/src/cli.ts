@@ -12,10 +12,7 @@ import {
 } from '@hookplane/core'
 import { extract } from './extract.js'
 import { findHookplane } from './find-hookplane.js'
-import { Backend, createLocalBackend } from '@hookplane/backend'
-import fs from 'fs/promises'
-import path from 'path'
-import os from 'os'
+import { Backend } from '@hookplane/backend'
 
 const tsconfigPath = process.argv[2]
 if (!tsconfigPath) {
@@ -24,15 +21,6 @@ if (!tsconfigPath) {
 }
 
 console.log(`using tsconfig at path ${tsconfigPath}`)
-
-const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
-const statefilePath = path.join(tmpdir, 'statefile.json')
-const signingSecretPath = path.join(tmpdir, 'secrets.json')
-await fs.writeFile(statefilePath, '')
-await fs.writeFile(signingSecretPath, '')
-
-console.log(`statefile created at ${statefilePath}`)
-console.log(`signing secrets file created at ${statefilePath}`)
 
 const instance = findHookplane(tsconfigPath)
 if (instance.isErr()) {
@@ -59,10 +47,7 @@ console.log(
         .join('\n')
 )
 
-const backend = await createLocalBackend({
-    statefilePath,
-    signingSecretPath,
-})
+const backend = hookplane.value.backend
 const bootstrapContent = bootstrap()
 await backend.statefile.write(bootstrapContent).then(r => r._unsafeUnwrap())
 
@@ -108,5 +93,3 @@ async function getActual<P extends ProviderSet>(providers: P): Promise<State<P>>
     return actual.value
 }
 
-await fs.unlink(statefilePath)
-await fs.unlink(signingSecretPath)

@@ -1,4 +1,5 @@
 export { createLocalBackend, type LocalBackendConfig } from './local.js'
+export { createTempBackend } from './temp.js'
 export type {
     StatefileData,
     Backend,
