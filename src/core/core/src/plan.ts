@@ -2,7 +2,6 @@ import { isDeepStrictEqual } from 'util'
 import { err, ok, Result } from 'neverthrow'
 import { State } from './state.js'
 import { Provider, EndpointState, EndpointIndex } from './provider.js'
-import { BaseUrl } from './url.js'
 import { ProviderSet } from './provider-set.js'
 import {
     downcastEndpointHandle,
@@ -22,7 +21,6 @@ import {
  * ```
  */
 type Plan<P extends ProviderSet> = {
-    baseUrl: BaseUrl
     providers: P
     providerPlans: {
         [K in keyof P]: Map<StepId, Step<P[K]>>
@@ -31,6 +29,10 @@ type Plan<P extends ProviderSet> = {
      * @returns the `Step` corresponding to `id`
      */
     getStepById(id: StepId): Result<Step<P[keyof P]>, Error>
+    /**
+     * @returns the provider that owns the `Step` corresponding to `id`
+     */
+    getStepProviderByStepId(id: StepId): Result<P[keyof P], Error>
     /**
      * @returns `StepId`s in this `Plan`
      */
@@ -124,36 +126,56 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     }
 
     return ok({
-        baseUrl: right.baseUrl,
         providers,
         providerPlans,
-        getStepById: getStepById(providerPlans),
+        getStepById: (id: StepId) =>
+            getStepById(providerPlans, id).map((r) => r.step),
+        getStepProviderByStepId: (id: StepId) => {
+            const result = getStepById(providerPlans, id)
+            if (result.isErr()) {
+                return result
+            }
+            const providerName = result.value.providerName
+            const provider = providers[providerName]
+            if (!provider) {
+                return err(
+                    new Error(`no provider found with name ${providerName}`),
+                )
+            }
+            return ok(provider)
+        },
         getStepIds: getStepIds(providerPlans),
         isEmpty: () => getStepIds(providerPlans)().length === 0,
     })
 }
 
-const getStepById =
-    <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>
-    (id: StepId) => {
-        let existing = 0
-        let step: Step<Provider> | undefined = undefined
-        for (const providerPlan of Object.values(providerPlans)) {
-            const s = providerPlan.get(id)
-            if (s) {
-                step = s
-                existing++
-            }
+const getStepById = <P extends ProviderSet>(
+    providerPlans: Plan<P>['providerPlans'],
+    id: StepId,
+) => {
+    let existing = 0
+    let retStep: Step<Provider> | undefined = undefined
+    let retProviderName: keyof P | undefined = undefined
+    for (const [providerName, providerPlan] of Object.entries(providerPlans)) {
+        const s = providerPlan.get(id)
+        if (s) {
+            retProviderName = providerName
+            retStep = s
+            existing++
         }
-
-        if (existing > 1) {
-            return err(new Error(`more than one step shares id ${id}`))
-        } else if (existing < 1 || step == undefined) {
-            return err(new Error(`no step found by id ${id}`))
-        }
-
-        return ok(step)
     }
+
+    if (existing > 1) {
+        return err(new Error(`more than one step shares id ${id}`))
+    } else if (existing < 1 || retStep == undefined) {
+        return err(new Error(`no step found by id ${id}`))
+    }
+
+    return ok({
+        step: retStep,
+        providerName: retProviderName!,
+    })
+}
 
 const getStepIds =
     <P extends ProviderSet>(providerPlans: Plan<P>['providerPlans']) =>

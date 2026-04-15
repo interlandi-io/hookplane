@@ -1,16 +1,17 @@
 import { errAsync, okAsync } from 'neverthrow'
-import { createExecutor, parallelExecution, defaultDispatch } from '~/executor'
-import { err, ok } from 'neverthrow'
 import {
-    Provider,
-    createEndpointHandle,
-    createBaseUrl,
-    createRelativeUrl,
-    NotFoundError,
+    createExecutor,
+    parallelExecution,
+    defaultDispatch,
+} from '~/executor.js'
+import { err, ok } from 'neverthrow'
+import { Provider, NotFoundError } from '~/provider.js'
+import {
+    createRealEndpointHandle,
     type EndpointHandle,
-    type RelativeUrl,
-} from '~/provider'
-import { Plan, StepId, createStepId } from '~/plan'
+} from '~/endpoint-handle.js'
+import { Plan, StepId, createStepId } from '~/plan.js'
+import { createEndpointUrl, type EndpointUrl } from '~/url.js'
 
 interface EndpointRecord {
     url: string
@@ -20,24 +21,23 @@ interface EndpointRecord {
 
 const endpoints: Map<string, EndpointRecord> = new Map()
 let handleCounter = 0
-
 const MockProvider: Provider<
     'testEvent',
     Record<string, unknown>,
     Record<string, unknown>,
     Record<string, unknown>
 > = {
-    name: 'mockProvider',
-    config: {},
-    state: {},
+    name: 'Mock',
     events: {
         testEvent: {},
     },
+    config: {},
+    state: {} as Record<string, unknown>,
     setup() {
         return okAsync({})
     },
     createEndpoint({ url, events, endpointConfig }) {
-        const handle = createEndpointHandle(
+        const handle = createRealEndpointHandle(
             `handle-${handleCounter++}`,
         )._unsafeUnwrap()
         endpoints.set(handle, { url, events, config: endpointConfig })
@@ -48,27 +48,11 @@ const MockProvider: Provider<
     readEndpoint({ handle }) {
         const endpoint = endpoints.get(handle)
         if (endpoint) {
-            const relativeUrl = createRelativeUrl(
-                new URL(endpoint.url).pathname,
-            )._unsafeUnwrap()
             return okAsync({
-                relativeUrl,
+                url: endpoint.url as EndpointUrl,
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
             })
-        } else {
-            return errAsync({
-                name: 'NotFoundError',
-                message: 'resource not found',
-                source: new Error('Endpoint not found'),
-            } as NotFoundError)
-        }
-    },
-    updateEndpoint({ handle, url, events, endpointConfig }) {
-        const existing = endpoints.get(handle)
-        if (existing) {
-            endpoints.set(handle, { url, events, config: endpointConfig })
-            return okAsync()
         } else {
             return errAsync({
                 name: 'NotFoundError',
@@ -81,18 +65,31 @@ const MockProvider: Provider<
         endpoints.delete(handle)
         return okAsync()
     },
+    updateEndpoint({ url, handle, events, endpointConfig }) {
+        const endpoint = endpoints.get(handle)
+        if (endpoint) {
+            endpoints.set(handle, { url, events, config: endpointConfig })
+            return okAsync()
+        } else {
+            return errAsync({
+                name: 'NotFoundError',
+                message: 'resource not found',
+                source: new Error(),
+            } as NotFoundError)
+        }
+    },
     indexEndpoints() {
         const index = new Map<
             EndpointHandle,
             {
-                relativeUrl: RelativeUrl
+                url: EndpointUrl
                 events: ['testEvent']
                 config: Record<string, unknown>
             }
         >()
         for (const [handle, endpoint] of endpoints) {
-            index.set(createEndpointHandle(handle)._unsafeUnwrap(), {
-                relativeUrl: createRelativeUrl('/')._unsafeUnwrap(),
+            index.set(createRealEndpointHandle(handle)._unsafeUnwrap(), {
+                url: createEndpointUrl(endpoint.url)._unsafeUnwrap(),
                 events: endpoint.events as ['testEvent'],
                 config: endpoint.config,
             })
@@ -105,6 +102,10 @@ const MockProvider: Provider<
             data: {},
         })
     },
+}
+
+const providers = {
+    MockProvider,
 }
 
 describe('executor', () => {
@@ -122,8 +123,9 @@ describe('executor', () => {
                     {
                         kind: 'create' as const,
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/webhook')._unsafeUnwrap(),
+                            url: createEndpointUrl(
+                                'https://example.com/webhook',
+                            )._unsafeUnwrap(),
                             events: ['testEvent'] as ['testEvent'],
                             config: { secret: 'abc' },
                         },
@@ -134,8 +136,9 @@ describe('executor', () => {
                     {
                         kind: 'create' as const,
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/api')._unsafeUnwrap(),
+                            url: createEndpointUrl(
+                                'https://example.com/api',
+                            )._unsafeUnwrap(),
                             events: ['testEvent'] as ['testEvent'],
                             config: { apiKey: 'xyz' },
                         },
@@ -144,7 +147,6 @@ describe('executor', () => {
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -162,6 +164,9 @@ describe('executor', () => {
                     ids.push(...pp.keys())
                 }
                 return ids
+            },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
             },
             isEmpty() {
                 throw 'unimplemented'
@@ -201,7 +206,7 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-0',
                         )._unsafeUnwrap(),
                     },
@@ -210,7 +215,7 @@ describe('executor', () => {
                     createStepId(1),
                     {
                         kind: 'delete' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-1',
                         )._unsafeUnwrap(),
                     },
@@ -218,7 +223,6 @@ describe('executor', () => {
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -236,6 +240,9 @@ describe('executor', () => {
                     ids.push(...pp.keys())
                 }
                 return ids
+            },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
             },
             isEmpty() {
                 throw 'unimplemented'
@@ -267,12 +274,13 @@ describe('executor', () => {
                     createStepId(0),
                     {
                         kind: 'update' as const,
-                        handle: createEndpointHandle(
+                        handle: createRealEndpointHandle(
                             'handle-0',
                         )._unsafeUnwrap(),
                         state: {
-                            relativeUrl:
-                                createRelativeUrl('/webhook')._unsafeUnwrap(),
+                            url: createEndpointUrl(
+                                'https://example.com/webhook',
+                            )._unsafeUnwrap(),
                             events: ['testEvent'] as ['testEvent'],
                             config: { newConfig: true },
                         },
@@ -281,7 +289,6 @@ describe('executor', () => {
             ]),
         }
         const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
             providers,
             providerPlans: providerPlans as Plan<
                 typeof providers
@@ -300,6 +307,9 @@ describe('executor', () => {
                 }
                 return ids
             },
+            getStepProviderByStepId: () => {
+                return ok(MockProvider)
+            },
             isEmpty() {
                 throw 'unimplemented'
             },
@@ -316,33 +326,5 @@ describe('executor', () => {
         expect(endpoints.size).toBe(1)
         const endpoint = endpoints.get('handle-0')
         expect(endpoint?.config).toEqual({ newConfig: true })
-    })
-
-    it('should return error for empty plan', () => {
-        const providers = { MockProvider }
-        const plan: Plan<typeof providers> = {
-            baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
-            providers,
-            providerPlans: {
-                MockProvider: new Map(),
-            },
-            getStepById() {
-                return err(new Error('not found'))
-            },
-            getStepIds() {
-                return []
-            },
-            isEmpty() {
-                throw 'unimplemented'
-            },
-        }
-
-        const executor = createExecutor(
-            plan,
-            parallelExecution(),
-            defaultDispatch(),
-        )
-        expect(executor.isErr()).toBe(true)
-        expect(executor._unsafeUnwrapErr().name).toBe('EmptyPlanError')
     })
 })

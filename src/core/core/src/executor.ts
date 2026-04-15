@@ -7,18 +7,13 @@
  * 3. Call `executor.execute()`
  * 4. Monitor progress with `executor.getStepStates()`
  */
-import { ok, err, Result, ResultAsync } from 'neverthrow'
+import { ok, Result, ResultAsync, errAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan.js'
-import {
-    Provider,
-    composeEndpointUrl,
-    CreateEndpointReturn,
-} from './provider.js'
-import { type BaseUrl } from './url.js'
+import { Provider, CreateEndpointReturn } from './provider.js'
 import { ProviderSet } from './provider-set.js'
 
 // Note: The generics were stripped from many types in this file because they aren't really used at the call sites,
-// and they make including ExecuteFns and DispatchFns as properties in an Orchestrator difficult.
+// and they make including ExecuteFns and DispatchFns as properties difficult.
 // Use extra care when passing Providers/ProviderSets around, since there aren't any type guards to help you.
 
 /**
@@ -26,7 +21,7 @@ import { ProviderSet } from './provider-set.js'
  *
  * @example
  * ```typescript
- * const executor = createExecutor(plan, parallelExecution(), defaultDispatch(baseUrl))
+ * const executor = createExecutor(plan, parallelExecution(), defaultDispatch())
  * executor.execute()
  * ```
  */
@@ -34,23 +29,25 @@ export interface Executor<P extends ProviderSet> {
     /** The plan this executor was created with. */
     getPlan(): Plan<P>
 
-    /** Current states of all steps. Check this after execute() to see results. */
-    getStepStates(): Map<StepId, StepState>
-
-    /** Execute the plan according to the execution strategy. */
-    execute(): Promise<void>
+    /**
+     * Execute the plan according to the execution strategy.
+     * @param from - The set of events to resume execution from (optional)
+     */
+    execute(from?: ExecutionEventLedger): Promise<ExecutionEventLedger>
 }
 
-export type ExecutorState<P extends ProviderSet> = {
-    plan: Plan<P>
-    stepStates: Map<StepId, StepState>
-    dispatchFn: DispatchFn
-}
+export type ExecutionEventLedger = ExecutionEvent[]
+
+export type ExecutionEvent =
+    | { tag: 'stepStarted'; stepId: StepId; ts: number }
+    | { tag: 'stepSucceeded'; stepId: StepId; ts: number; result: StepResult }
+    | { tag: 'stepFailed'; stepId: StepId; ts: number; error: DispatchError }
 
 /**
  * The status of a step during execution.
+ * @internal
  */
-export type StepState =
+type DerivedStepState =
     | { status: 'pending' }
     | { status: 'inFlight' }
     | { status: 'success'; result: StepResult }
@@ -72,7 +69,8 @@ export type StepResult =
  */
 export type ExecuteFn = (
     plan: Plan<ProviderSet>,
-    stepStates: Map<StepId, StepState>,
+    toRun: Iterable<StepId>,
+    emit: (event: ExecutionEvent) => void,
     dispatch: DispatchFn,
 ) => ResultAsync<void, Error>
 
@@ -83,23 +81,25 @@ export type ExecuteFn = (
  * @param step - The step to execute (create, delete, or update)
  */
 export type DispatchFn = (
-    // TODO this is a huge bug.
-    // Executor will just use whatever baseUrl is given, rather than the right one for the step.
-    baseUrl: BaseUrl,
     provider: Provider,
     stepId: StepId,
     step: Step<Provider>,
 ) => ResultAsync<StepResult, DispatchError>
 
-export type ExecutorError = EmptyPlanError
-
 /**
- * Returned when creating an executor for an empty plan.
+ * Called when a Step's dispatch Promise resolves (success state)
+ * Importantly, this is not called in the failure case.
+ *
+ * @param stepId - The step's unique ID
+ * @param step - The step that transitioned
+ * @returns Any errors that may have occurred during execution.
  */
-export interface EmptyPlanError extends Error {
-    name: 'EmptyPlanError'
-    message: 'attempted to create Executor for an empty plan'
-}
+export type ResolutionEffect = (
+    dispatchArgs: Parameters<DispatchFn>,
+    result: StepResult,
+) => ResultAsync<void, DispatchError>
+
+export type ExecutorError = void
 
 export type DispatchError =
     | InvalidStepIdError
@@ -142,7 +142,7 @@ export interface UpdateError extends Error {
  * // Golden path: pull current state, create plan, execute it
  *
  * // 1. Pull current state from providers
- * const current = await pull(baseUrl, providers)
+ * const current = await sync(providers)
  * if (current.isErr()) throw current.error
  *
  * // 2. Create plan to reach desired state
@@ -152,7 +152,7 @@ export interface UpdateError extends Error {
  * const executor = createExecutor(
  *   plan,
  *   parallelExecution(),
- *   defaultDispatch(plan.baseUrl),
+ *   defaultDispatch(),
  * )
  *
  * if (executor.isErr()) {
@@ -176,34 +176,28 @@ export interface UpdateError extends Error {
  *
  * @param plan - From `createPlan(left, right)`
  * @param executeFn - Strategy like `parallelExecution()`
- * @param dispatchFn - Like `defaultDispatch(plan.baseUrl)`
+ * @param dispatchFn - Like `defaultDispatch()`
  */
 export function createExecutor<P extends ProviderSet>(
     plan: Plan<P>,
     executeFn: ExecuteFn,
     dispatchFn: DispatchFn,
 ): Result<Executor<P>, ExecutorError> {
-    const stepIds = plan.getStepIds()
-    if (stepIds.length == 0) {
-        return err({
-            name: 'EmptyPlanError',
-            message: 'attempted to create Executor for an empty plan',
-        } as EmptyPlanError)
-    }
-    const stepStates = new Map(
-        stepIds.map((id) => [id, { status: 'pending' } as StepState]),
-    )
-    const state: ExecutorState<P> = {
-        stepStates,
-        plan,
-        dispatchFn,
-    }
-
     return ok({
-        getPlan: () => state.plan,
-        getStepStates: () => state.stepStates,
-        execute: async () => {
-            await executeFn(state.plan, state.stepStates, state.dispatchFn)
+        getPlan: () => plan,
+        execute: async (from?: ExecutionEventLedger) => {
+            const ledger = from || []
+            const derivedState = reduceEventLedger(plan, ledger)
+            const toRun = [...derivedState.entries()]
+                .filter(([, state]) => state.status === 'pending') // TODO retry policy here
+                .map(([id]) => id)
+            await executeFn(
+                plan,
+                toRun,
+                (event) => ledger.push(event),
+                dispatchFn,
+            )
+            return ledger
         },
     })
 }
@@ -216,46 +210,47 @@ export function createExecutor<P extends ProviderSet>(
  * const executor = createExecutor(plan, parallelExecution(), dispatch)
  * ```
  */
-export const parallelExecution =
-    <P extends ProviderSet>() =>
-    (
-        plan: Plan<P>,
-        stepStates: Map<StepId, StepState>,
-        dispatch: DispatchFn,
-    ): ResultAsync<void, Error> => {
+export const parallelExecution: () => ExecuteFn =
+    () =>
+    (plan, toRun, emit, dispatch): ResultAsync<void, Error> => {
         const promises: Promise<void>[] = []
 
-        for (const [providerKey, providerPlan] of Object.entries(
-            plan.providerPlans,
-        )) {
-            for (const [stepId, step] of providerPlan) {
-                const currentState = stepStates.get(stepId)
-                // TODO: Currently, this just skips steps already in flight.
-                // Maybe we want to do something with this later.
-                if (
-                    currentState?.status == 'inFlight' ||
-                    currentState?.status == 'success'
-                )
-                    continue
-
-                const provider = plan.providers[providerKey as keyof P]!
-                stepStates.set(stepId, { status: 'inFlight' })
-
-                const promise = dispatch(
-                    plan.baseUrl,
-                    provider,
+        for (const stepId of toRun) {
+            const step = plan.getStepById(stepId)
+            if (step.isErr()) {
+                return errAsync({
+                    name: 'InvalidStepIdError',
+                    message: 'invalid step id',
                     stepId,
-                    step as Step<P[keyof P]>,
-                ).match(
-                    (result) => {
-                        stepStates.set(stepId, { status: 'success', result })
-                    },
-                    (error) => {
-                        stepStates.set(stepId, { status: 'failure', error })
-                    },
-                )
-                promises.push(promise)
+                    cause: step.error,
+                })
             }
+
+            const provider = plan.getStepProviderByStepId(stepId)
+            if (provider.isErr()) {
+                return errAsync(provider.error)
+            }
+
+            emit({ tag: 'stepStarted', stepId, ts: Date.now() })
+            const promise = dispatch(provider.value, stepId, step.value).match(
+                (result) => {
+                    emit({
+                        tag: 'stepSucceeded',
+                        stepId,
+                        ts: Date.now(),
+                        result,
+                    })
+                },
+                (error) => {
+                    emit({
+                        tag: 'stepFailed',
+                        stepId,
+                        ts: Date.now(),
+                        error,
+                    })
+                },
+            )
+            promises.push(promise)
         }
 
         return ResultAsync.fromSafePromise(Promise.allSettled(promises)).map(
@@ -266,17 +261,14 @@ export const parallelExecution =
 /**
  * Default dispatch that calls provider.createEndpoint, deleteEndpoint, or updateEndpoint.
  *
- * Composes URLs from `baseUrl + endpoint.relativeUrl`.
- *
  * @example
  * ```typescript
- * const dispatch = defaultDispatch(plan.baseUrl)
+ * const dispatch = defaultDispatch()
  * ```
  */
 export const defaultDispatch =
     <P extends ProviderSet>() =>
     <K extends keyof P>(
-        baseUrl: BaseUrl,
         provider: P[K],
         stepId: StepId,
         step: Step<P[K]>,
@@ -287,7 +279,7 @@ export const defaultDispatch =
                     .createEndpoint({
                         providerState: provider.state,
                         providerConfig: provider.config,
-                        url: composeEndpointUrl(baseUrl, step.state),
+                        url: step.state.url,
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
@@ -332,7 +324,7 @@ export const defaultDispatch =
                         providerState: provider.state,
                         providerConfig: provider.config,
                         handle: step.handle,
-                        url: composeEndpointUrl(baseUrl, step.state),
+                        url: step.state.url,
                         events: step.state.events,
                         endpointConfig: step.state.config,
                     })
@@ -348,3 +340,42 @@ export const defaultDispatch =
                     )
         }
     }
+
+/** @see ResolutionEffect */
+export const withResolutionEffect =
+    (dispatch: DispatchFn, effect: ResolutionEffect): DispatchFn =>
+    (...args) =>
+        dispatch(...args).andThrough((result) => effect([...args], result))
+
+function reduceEventLedger(
+    plan: Plan<ProviderSet>,
+    ledger: ExecutionEventLedger,
+): Map<StepId, DerivedStepState> {
+    const stepIds = plan.getStepIds()
+    const sorted = ledger.toSorted((a, b) => a.ts - b.ts)
+    const derived: Map<StepId, DerivedStepState> = new Map(
+        stepIds.map((id) => [id, { status: 'pending' }]),
+    )
+
+    for (const event of sorted) {
+        switch (event.tag) {
+            case 'stepStarted':
+                derived.set(event.stepId, { status: 'inFlight' })
+                break
+            case 'stepSucceeded':
+                derived.set(event.stepId, {
+                    status: 'success',
+                    result: event.result,
+                })
+                break
+            case 'stepFailed':
+                derived.set(event.stepId, {
+                    status: 'failure',
+                    error: event.error,
+                })
+                break
+        }
+    }
+
+    return derived
+}

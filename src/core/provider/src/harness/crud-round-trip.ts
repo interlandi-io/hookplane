@@ -2,9 +2,7 @@ import { it, expect } from 'vitest'
 import {
     Provider,
     EndpointHandle,
-    createBaseUrl,
     createEndpointUrl,
-    createRelativeUrl,
     EndpointConfigOf,
 } from '@hookplane/core'
 
@@ -20,19 +18,13 @@ export async function crudRoundTrip<
 
     let createdHandle: EndpointHandle
 
-    const testBaseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
-    const testRelativeUrl = createRelativeUrl('/webhook')._unsafeUnwrap()
     const testEndpointUrl = createEndpointUrl(
-        testBaseUrl,
-        testRelativeUrl,
+        'https://example.com/webhook',
     )._unsafeUnwrap()
     const testEvents = Array.from(Object.keys(provider.events))
 
-    const updatedRelativeUrl =
-        createRelativeUrl('/updated-webhook')._unsafeUnwrap()
     const updatedEndpointUrl = createEndpointUrl(
-        testBaseUrl,
-        updatedRelativeUrl,
+        'https://example.com/updated-webhook',
     )._unsafeUnwrap()
 
     it('0) Delete all existing endpoints', async () => {
@@ -89,7 +81,7 @@ export async function crudRoundTrip<
         const firstEntry = entries[0]!
         const [, state] = firstEntry
 
-        expect(testRelativeUrl).toBe(state.relativeUrl)
+        expect(testEndpointUrl).toBe(state.url)
         // expect(testEvents).toEqual(state.events)
         expect(testConfig).toEqual(state.config)
     })
@@ -102,7 +94,7 @@ export async function crudRoundTrip<
         })
         expect(readResult.isOk()).toBe(true)
         const state = readResult._unsafeUnwrap()
-        expect(testRelativeUrl).toBe(state.relativeUrl)
+        expect(testEndpointUrl).toBe(state.url)
         // expect(testEvents).toEqual(state.events) // TODO maybe the most frustrating case of vitest bullshit ever
         expect(testConfig).toEqual(state.config)
     })
@@ -127,7 +119,7 @@ export async function crudRoundTrip<
         })
         expect(readResult.isOk()).toBe(true)
         const state = readResult._unsafeUnwrap()
-        expect(updatedRelativeUrl).toBe(state.relativeUrl)
+        expect(updatedEndpointUrl).toBe(state.url)
         expect(testEvents).toEqual(state.events)
         expect(testConfig).toEqual(state.config)
     })

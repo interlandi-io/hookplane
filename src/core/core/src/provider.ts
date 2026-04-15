@@ -6,14 +6,7 @@
  *
  */
 import { Result, ResultAsync } from 'neverthrow'
-import {
-    type RelativeUrl,
-    type EndpointUrl,
-    createBaseUrl,
-    createRelativeUrl,
-    createEndpointUrl,
-    composeEndpointUrl,
-} from './url.js'
+import { EndpointUrl } from './url.js'
 import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle.js'
 
 /**
@@ -364,7 +357,7 @@ interface UnknownError extends Error {
 }
 
 type EndpointState<P extends Provider> = {
-    relativeUrl: RelativeUrl
+    url: EndpointUrl
     events: EventTypeOf<P>[]
     config: EndpointConfigOf<P>
 }
@@ -451,8 +444,4 @@ export {
     type RequestPayloadSchemaValidationError,
     type UnknownError,
     createRealEndpointHandle as createEndpointHandle,
-    createBaseUrl,
-    createRelativeUrl,
-    createEndpointUrl,
-    composeEndpointUrl,
 }

@@ -4,16 +4,12 @@ import {
     fromState,
     parseStatefile,
     ProviderNotFoundError,
-    ProviderNotUsedError,
-} from '~/statefile'
-import { createBaseUrl, createRelativeUrl } from '~/url'
-import {
-    createEndpointHandle,
-    EndpointHandle,
-    EndpointState,
-    type Provider,
-} from '~/provider'
-import { createProviderSet, type ProviderSet } from '~/provider-set'
+} from '~/statefile.js'
+import { createEndpointUrl } from '~/url.js'
+import { createRealEndpointHandle } from '~/endpoint-handle.js'
+import type { EndpointHandle } from '~/endpoint-handle.js'
+import type { EndpointState, Provider } from '~/provider.js'
+import { createProviderSet, type ProviderSet } from '~/provider-set.js'
 import { okAsync } from 'neverthrow'
 
 function createMockProvider(name: string, events: string[]): Provider {
@@ -33,7 +29,9 @@ function createMockProvider(name: string, events: string[]): Provider {
         },
         readEndpoint: () => {
             return okAsync({
-                relativeUrl: createRelativeUrl('/webhook')._unsafeUnwrap(),
+                url: createEndpointUrl(
+                    'https://example.com/webhook',
+                )._unsafeUnwrap(),
                 events: [],
                 config: {},
             } satisfies EndpointState<Provider>)
@@ -72,68 +70,27 @@ describe('parseStatefile', () => {
             expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
         })
 
-        it('returns error for missing baseUrl', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    providerStates: {
-                        stripe: {
-                            'endpoint-1': {
-                                state: {
-                                    relativeUrl: '/webhook',
-                                    events: ['payment.succeeded'],
-                                    config: {},
-                                },
-                            },
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
-        })
-
         it('returns error for missing providerStates', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
-            const result = parseStatefile(
-                { version: 1, baseUrl: 'https://example.com' },
-                providers,
-            )
+            const result = parseStatefile({ version: 1 }, providers)
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
         })
 
-        it('returns error for wrong type for baseUrl', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                { baseUrl: 123, providerStates: {} },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
-        })
-
-        it('returns error for wrong type for relativeUrl', () => {
+        it('returns error for wrong type for url', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: 123,
+                                    url: 123,
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -154,12 +111,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: 'not-an-array',
                                     config: {},
                                 },
@@ -180,12 +136,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: 'not-an-object',
                                 },
@@ -206,7 +161,6 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: 'not-an-object',
                 },
                 providers,
@@ -224,12 +178,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         unknown: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -253,12 +206,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -267,7 +219,7 @@ describe('parseStatefile', () => {
                         nonexistent: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['push'],
                                     config: {},
                                 },
@@ -290,12 +242,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -304,7 +255,7 @@ describe('parseStatefile', () => {
                         github: {
                             'endpoint-2': {
                                 state: {
-                                    relativeUrl: '/github',
+                                    url: 'https://example.com/github',
                                     events: ['push'],
                                     config: {},
                                 },
@@ -327,12 +278,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -356,12 +306,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: { foo: 'bar' },
                                 },
@@ -370,7 +319,7 @@ describe('parseStatefile', () => {
                         github: {
                             'endpoint-2': {
                                 state: {
-                                    relativeUrl: '/github',
+                                    url: 'https://example.com/github',
                                     events: ['push', 'pull_request'],
                                     config: {},
                                 },
@@ -382,7 +331,6 @@ describe('parseStatefile', () => {
             )
             expect(result.isOk()).toBe(true)
             const statefile = result._unsafeUnwrap()
-            expect(statefile.data.baseUrl).toBe('https://example.com')
             expect(Object.keys(statefile.data.providerStates)).toEqual([
                 'stripe',
                 'github',
@@ -396,7 +344,6 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {},
                 },
                 providers,
@@ -412,12 +359,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: [],
                                     config: {},
                                 },
@@ -430,7 +376,7 @@ describe('parseStatefile', () => {
             expect(result.isOk()).toBe(true)
             expect(
                 result._unsafeUnwrap().data.providerStates['stripe']![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
                 ]!.state.events,
             ).toEqual([])
         })
@@ -442,19 +388,18 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook-one',
+                                    url: 'https://example.com/webhook-one',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
                             },
                             'endpoint-2': {
                                 state: {
-                                    relativeUrl: '/webhook-two',
+                                    url: 'https://example.com/webhook-two',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -470,19 +415,18 @@ describe('parseStatefile', () => {
             expect(Object.keys(endpoints!)).toHaveLength(2)
         })
 
-        it('returns baseUrl as BaseUrl type', () => {
+        it('returns url as EndpointUrl type', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
             ])
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhooks/stripe',
+                                    url: 'https://example.com/webhooks/stripe',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -493,16 +437,17 @@ describe('parseStatefile', () => {
                 providers,
             )
             expect(result.isOk()).toBe(true)
-            const url = result._unsafeUnwrap().data.baseUrl
-            expect(url).toBe('https://example.com')
+            const url =
+                result._unsafeUnwrap().data.providerStates['stripe']![
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.url
+            expect(url).toBe('https://example.com/webhooks/stripe')
         })
     })
 
     describe('bootstrap', () => {
         it('bootstraps', () => {
-            const baseUrl = createBaseUrl('https://example.com')._unsafeUnwrap()
-            const statefile = bootstrap(baseUrl)
-            expect(statefile.data.baseUrl).toEqual(baseUrl)
+            const statefile = bootstrap()
             expect(
                 Array.from(Object.keys(statefile.data.providerStates)),
             ).toHaveLength(0)
@@ -511,35 +456,6 @@ describe('parseStatefile', () => {
     })
 
     describe('toState', () => {
-        it('returns State with correct baseUrl', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {
-                        stripe: {
-                            'endpoint-1': {
-                                state: {
-                                    relativeUrl: '/webhook',
-                                    events: ['payment.succeeded'],
-                                    config: {},
-                                },
-                            },
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isOk()).toBe(true)
-            const toStateResult = result._unsafeUnwrap().toState()
-            expect(toStateResult.isOk()).toBe(true)
-            const state = toStateResult._unsafeUnwrap()
-            expect(state.baseUrl).toBe('https://example.com')
-        })
-
         it('returns State with providers', () => {
             const providers = createTestProviderSet([
                 createMockProvider('stripe', ['payment.succeeded']),
@@ -547,12 +463,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -574,12 +489,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'handle-1': {
                                 state: {
-                                    relativeUrl: '/webhook',
+                                    url: 'https://example.com/webhook',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -606,19 +520,18 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'endpoint-a': {
                                 state: {
-                                    relativeUrl: '/webhook-a',
+                                    url: 'https://example.com/webhook-a',
                                     events: ['payment.succeeded'],
                                     config: { a: 1 },
                                 },
                             },
                             'endpoint-b': {
                                 state: {
-                                    relativeUrl: '/webhook-b',
+                                    url: 'https://example.com/webhook-b',
                                     events: ['payment.failed'],
                                     config: { b: 2 },
                                 },
@@ -635,16 +548,16 @@ describe('parseStatefile', () => {
             expect(stripeEndpoints.size).toBe(2)
 
             const endpointA = stripeEndpoints.get(
-                createEndpointHandle('endpoint-a')._unsafeUnwrap(),
+                createRealEndpointHandle('endpoint-a')._unsafeUnwrap(),
             )
-            expect(endpointA?.relativeUrl).toBe('/webhook-a')
+            expect(endpointA?.url).toBe('https://example.com/webhook-a')
             expect(endpointA?.events).toEqual(['payment.succeeded'])
             expect(endpointA?.config).toEqual({ a: 1 })
 
             const endpointB = stripeEndpoints.get(
-                createEndpointHandle('endpoint-b')._unsafeUnwrap(),
+                createRealEndpointHandle('endpoint-b')._unsafeUnwrap(),
             )
-            expect(endpointB?.relativeUrl).toBe('/webhook-b')
+            expect(endpointB?.url).toBe('https://example.com/webhook-b')
             expect(endpointB?.events).toEqual(['payment.failed'])
             expect(endpointB?.config).toEqual({ b: 2 })
         })
@@ -657,12 +570,11 @@ describe('parseStatefile', () => {
             const result = parseStatefile(
                 {
                     version: 1,
-                    baseUrl: 'https://example.com',
                     providerStates: {
                         stripe: {
                             'stripe-1': {
                                 state: {
-                                    relativeUrl: '/stripe',
+                                    url: 'https://example.com/stripe',
                                     events: ['payment.succeeded'],
                                     config: {},
                                 },
@@ -671,7 +583,7 @@ describe('parseStatefile', () => {
                         github: {
                             'github-1': {
                                 state: {
-                                    relativeUrl: '/github',
+                                    url: 'https://example.com/github',
                                     events: ['push'],
                                     config: {},
                                 },
@@ -689,97 +601,6 @@ describe('parseStatefile', () => {
             expect(state.providerStates['stripe']!.size).toBe(1)
             expect(state.providerStates['github']!.size).toBe(1)
         })
-
-        // Not necessary, see source
-        it.skip('returns ProviderNotUsedError when provider not in statefile', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {},
-                },
-                providers,
-            )
-            expect(result.isOk()).toBe(true)
-            const toStateResult = result._unsafeUnwrap().toState()
-            expect(toStateResult.isErr()).toBe(true)
-            expect(toStateResult._unsafeUnwrapErr().name).toBe(
-                'ProviderNotUsedError',
-            )
-            expect(
-                (toStateResult._unsafeUnwrapErr() as ProviderNotUsedError)
-                    .provider,
-            ).toBe('stripe')
-        })
-
-        // Not necessary, see source
-        it.skip('returns ProviderNotUsedError when multiple providers unused', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-                createMockProvider('github', ['push']),
-                createMockProvider('slack', ['message']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {},
-                },
-                providers,
-            )
-            expect(result.isOk()).toBe(true)
-            const toStateResult = result._unsafeUnwrap().toState()
-            expect(toStateResult.isErr()).toBe(true)
-            expect(toStateResult._unsafeUnwrapErr().name).toBe(
-                'ProviderNotUsedError',
-            )
-        })
-    })
-
-    describe('error priority', () => {
-        it('schema validation errors come first', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    baseUrl: 123,
-                    providerStates: {},
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('SchemaValidationError')
-        })
-
-        it('provider not found comes before invalid event', () => {
-            const providers = createTestProviderSet([
-                createMockProvider('stripe', ['payment.succeeded']),
-            ])
-            const result = parseStatefile(
-                {
-                    version: 1,
-                    baseUrl: 'https://example.com',
-                    providerStates: {
-                        nonexistent: {
-                            'endpoint-1': {
-                                state: {
-                                    relativeUrl: '/webhook',
-                                    events: ['nonexistent.event'],
-                                    config: {},
-                                },
-                            },
-                        },
-                    },
-                },
-                providers,
-            )
-            expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('ProviderNotFoundError')
-        })
     })
 
     describe('fromState', () => {
@@ -789,17 +610,17 @@ describe('parseStatefile', () => {
             ])
 
             const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
                 providers,
                 providerStates: {
                     stripe: new Map([
                         [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-1',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/webhook',
+                                )._unsafeUnwrap(),
                                 events: ['payment.succeeded'],
                                 config: {},
                             },
@@ -811,13 +632,12 @@ describe('parseStatefile', () => {
             const result = fromState(1, state)
 
             expect(result.data.version).toBe(1)
-            expect(result.data.baseUrl).toBe('https://example.com')
             expect(result.data.providerStates.stripe).toBeDefined()
             expect(
                 result.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/webhook')
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/webhook')
         })
 
         it('roundtrips through parseStatefile and toState', () => {
@@ -827,12 +647,11 @@ describe('parseStatefile', () => {
 
             const originalStatefile = {
                 version: 1,
-                baseUrl: 'https://example.com',
                 providerStates: {
                     stripe: {
                         'endpoint-1': {
                             state: {
-                                relativeUrl: '/webhook',
+                                url: 'https://example.com/webhook',
                                 events: ['payment.succeeded'],
                                 config: { foo: 'bar' },
                             },
@@ -848,15 +667,14 @@ describe('parseStatefile', () => {
             const statefile = fromState(1, state)
 
             expect(statefile.data.version).toBe(1)
-            expect(statefile.data.baseUrl).toBe('https://example.com')
             expect(
                 statefile.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/webhook')
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/webhook')
             expect(
                 statefile.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
                 ]!.state.events,
             ).toEqual(['payment.succeeded'])
         })
@@ -868,17 +686,17 @@ describe('parseStatefile', () => {
             ])
 
             const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
                 providers,
                 providerStates: {
                     stripe: new Map([
                         [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-1',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/stripe',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/stripe',
+                                )._unsafeUnwrap(),
                                 events: ['payment.succeeded'],
                                 config: {},
                             },
@@ -886,12 +704,13 @@ describe('parseStatefile', () => {
                     ]),
                     github: new Map([
                         [
-                            createEndpointHandle('endpoint-2')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-2',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/github',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/github',
+                                )._unsafeUnwrap(),
                                 events: ['push'],
                                 config: {},
                             },
@@ -908,14 +727,14 @@ describe('parseStatefile', () => {
             ])
             expect(
                 result.data.providerStates.stripe![
-                    createEndpointHandle('endpoint-1')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/stripe')
+                    createRealEndpointHandle('endpoint-1')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/stripe')
             expect(
                 result.data.providerStates.github![
-                    createEndpointHandle('endpoint-2')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/github')
+                    createRealEndpointHandle('endpoint-2')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/github')
         })
 
         it('handles multiple endpoints per provider', () => {
@@ -927,28 +746,29 @@ describe('parseStatefile', () => {
             ])
 
             const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
                 providers,
                 providerStates: {
                     stripe: new Map([
                         [
-                            createEndpointHandle('endpoint-a')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-a',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook-a',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/webhook-a',
+                                )._unsafeUnwrap(),
                                 events: ['payment.succeeded'],
                                 config: { a: 1 },
                             },
                         ],
                         [
-                            createEndpointHandle('endpoint-b')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-b',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook-b',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/webhook-b',
+                                )._unsafeUnwrap(),
                                 events: ['payment.failed'],
                                 config: { b: 2 },
                             },
@@ -966,14 +786,14 @@ describe('parseStatefile', () => {
             ])
             expect(
                 stripeEndpoints[
-                    createEndpointHandle('endpoint-a')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/webhook-a')
+                    createRealEndpointHandle('endpoint-a')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/webhook-a')
             expect(
                 stripeEndpoints[
-                    createEndpointHandle('endpoint-b')._unsafeUnwrap()
-                ]!.state.relativeUrl,
-            ).toBe('/webhook-b')
+                    createRealEndpointHandle('endpoint-b')._unsafeUnwrap()
+                ]!.state.url,
+            ).toBe('https://example.com/webhook-b')
         })
 
         it('handles empty providerStates', () => {
@@ -982,7 +802,6 @@ describe('parseStatefile', () => {
             ])
 
             const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
                 providers,
                 providerStates: {},
             }
@@ -998,17 +817,17 @@ describe('parseStatefile', () => {
             ])
 
             const state = {
-                baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
                 providers,
                 providerStates: {
                     stripe: new Map([
                         [
-                            createEndpointHandle('endpoint-1')._unsafeUnwrap(),
+                            createRealEndpointHandle(
+                                'endpoint-1',
+                            )._unsafeUnwrap(),
                             {
-                                relativeUrl:
-                                    createRelativeUrl(
-                                        '/webhook',
-                                    )._unsafeUnwrap(),
+                                url: createEndpointUrl(
+                                    'https://example.com/webhook',
+                                )._unsafeUnwrap(),
                                 events: ['payment.succeeded'],
                                 config: {},
                             },
@@ -1020,7 +839,6 @@ describe('parseStatefile', () => {
             const result = fromState(1, state)
             const recoveredState = result.toState()._unsafeUnwrap()
 
-            expect(recoveredState.baseUrl).toBe('https://example.com')
             expect(recoveredState.providers).toBe(providers)
             expect(recoveredState.providerStates['stripe']).toBeInstanceOf(Map)
             expect(recoveredState.providerStates['stripe']!.size).toBe(1)

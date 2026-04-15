@@ -2,7 +2,7 @@ import z from 'zod'
 import { errAsync, ok, okAsync, ResultAsync } from 'neverthrow'
 import {
     createEndpointHandle,
-    createRelativeUrl,
+    createEndpointUrl,
     describeProvider,
     EndpointHandle,
     EndpointUrl,
@@ -46,7 +46,7 @@ const Provider = describeProvider<
     },
     readEndpoint: () => {
         return okAsync({
-            relativeUrl: createRelativeUrl('/hooks')._unsafeUnwrap(),
+            url: createEndpointUrl('https://example.com/hooks')._unsafeUnwrap(),
             events: [],
             config: {
                 fields: [],

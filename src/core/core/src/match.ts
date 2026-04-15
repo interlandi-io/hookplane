@@ -88,11 +88,10 @@ export function match<P extends ProviderSet>(
     }
 
     return ok({
-        baseUrl: unknown.baseUrl,
         providers: unknown.providers,
         providerStates,
     })
 }
 
-export const relativeUrlHeuristic: Heuristic = (unknown, known) =>
-    unknown.relativeUrl === known.relativeUrl
+export const endpointUrlHeuristic: Heuristic = (unknown, known) =>
+    unknown.url === known.url

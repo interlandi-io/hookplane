@@ -4,9 +4,8 @@ import { StatefileData } from '~/backend.js'
 import {
     Statefile,
     ProviderSet,
-    createBaseUrl,
     createEndpointHandle,
-    createRelativeUrl,
+    createEndpointUrl,
 } from '@hookplane/core'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -37,13 +36,13 @@ describe('createLocalBackend', () => {
 
     const mockData: StatefileData = {
         version: 1,
-        baseUrl: createBaseUrl('https://example.com')._unsafeUnwrap(),
         providerStates: {
             stripe: {
                 [createEndpointHandle('endpoint-1')._unsafeUnwrap()]: {
                     state: {
-                        relativeUrl:
-                            createRelativeUrl('/webhook')._unsafeUnwrap(),
+                        url: createEndpointUrl(
+                            'https://example.com/webhook',
+                        )._unsafeUnwrap(),
                         events: ['payment.succeeded'],
                         config: {},
                     },

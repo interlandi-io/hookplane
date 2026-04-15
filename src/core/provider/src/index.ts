@@ -171,8 +171,6 @@ export type {
     EndpointUrl,
     EndpointIndex,
     PayloadOf,
-    BaseUrl,
-    RelativeUrl,
     EventDefinition,
     ProviderError,
     ProcessRequestParams,
@@ -191,10 +189,4 @@ export type {
     RequestPayloadSchemaValidationError,
     UnknownError,
 } from '@hookplane/core'
-export {
-    createEndpointHandle,
-    createBaseUrl,
-    createRelativeUrl,
-    createEndpointUrl,
-    composeEndpointUrl,
-} from '@hookplane/core'
+export { createEndpointHandle, createEndpointUrl } from '@hookplane/core'
