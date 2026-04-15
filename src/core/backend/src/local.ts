@@ -86,16 +86,18 @@ async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
 export const createLocalBackend =
     describeBackend<LocalBackendConfig>({
         name: 'local-file',
-        read: ({ config }) =>
-            ResultAsync.fromPromise(readStatefile(config), (e) =>
-                toBackendError(e, 'read', config.path),
-            ),
-        write: ({ config, data }) =>
-            ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-                toBackendError(e, 'write', config.path),
-            ),
-        delete: ({ config }) =>
-            ResultAsync.fromPromise(deleteStatefile(config), (e) =>
-                toBackendError(e, 'delete', config.path),
-            ),
+        statefile: {
+            read: ({ config }) =>
+                ResultAsync.fromPromise(readStatefile(config), (e) =>
+                    toBackendError(e, 'read', config.path),
+                ),
+            write: ({ config, data }) =>
+                ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
+                    toBackendError(e, 'write', config.path),
+                ),
+            delete: ({ config }) =>
+                ResultAsync.fromPromise(deleteStatefile(config), (e) =>
+                    toBackendError(e, 'delete', config.path),
+                ),
+        }
     })
