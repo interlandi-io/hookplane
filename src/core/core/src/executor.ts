@@ -7,7 +7,7 @@
  * 3. Call `executor.execute()`
  * 4. Monitor progress with `executor.getStepStates()`
  */
-import { ok, err, Result, ResultAsync } from 'neverthrow'
+import { ok, err, Result, ResultAsync, errAsync } from 'neverthrow'
 import { Plan, Step, StepId } from './plan.js'
 import {
     Provider,
@@ -226,46 +226,37 @@ export function createExecutor<P extends ProviderSet>(
  * const executor = createExecutor(plan, parallelExecution(), dispatch)
  * ```
  */
-export const parallelExecution =
-    <P extends ProviderSet>() =>
+export const parallelExecution: () => ExecuteFn =
+    () =>
     (
-        plan: Plan<P>,
-        stepStates: Map<StepId, StepState>,
-        dispatch: DispatchFn,
+        plan,
+        toRun,
+        emit,
+        dispatch,
     ): ResultAsync<void, Error> => {
         const promises: Promise<void>[] = []
 
-        for (const [providerKey, providerPlan] of Object.entries(
-            plan.providerPlans,
-        )) {
-            for (const [stepId, step] of providerPlan) {
-                const currentState = stepStates.get(stepId)
-                // TODO: Currently, this just skips steps already in flight.
-                // Maybe we want to do something with this later.
-                if (
-                    currentState?.status == 'inFlight' ||
-                    currentState?.status == 'success'
-                )
-                    continue
-
-                const provider = plan.providers[providerKey as keyof P]!
-                stepStates.set(stepId, { status: 'inFlight' })
-
-                const promise = dispatch(
-                    plan.baseUrl,
-                    provider,
+        for (const stepId of toRun) {
+            const step = plan.getStepById(stepId)
+            if (step.isErr()) {
+                return errAsync({
+                    name: 'InvalidStepIdError',
+                    message: 'invalid step id',
                     stepId,
-                    step as Step<P[keyof P]>,
-                ).match(
-                    (result) => {
-                        stepStates.set(stepId, { status: 'success', result })
-                    },
-                    (error) => {
-                        stepStates.set(stepId, { status: 'failure', error })
-                    },
-                )
-                promises.push(promise)
+                    cause: step.error,
+                })
             }
+            emit({ tag: 'stepStarted', stepId, ts: Date.now() })
+            const promise = dispatch() // TODO: rework dispatch
+                .match(
+                (result) => {
+                    emit({ tag: 'stepSucceeded', stepId, ts: Date.now(), result })
+                },
+                (error) => {
+                    emit({ tag: 'stepFailed', stepId, ts: Date.now(), error })
+                },
+            )
+            promises.push(promise)
         }
 
         return ResultAsync.fromSafePromise(Promise.allSettled(promises)).map(
