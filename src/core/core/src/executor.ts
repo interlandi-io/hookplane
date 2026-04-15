@@ -102,7 +102,7 @@ export type DispatchFn = (
 export type ResolutionEffect = (
     dispatchArgs: Parameters<DispatchFn>,
     result: StepResult,
-) => Promise<DispatchError | undefined>
+) => ResultAsync<void, DispatchError>
 
 export type ExecutorError = EmptyPlanError
 
@@ -363,7 +363,8 @@ export const defaultDispatch =
     }
 
 
+/** @see ResolutionEffect */    
 export const withResolutionEffect = 
     (dispatch: DispatchFn, effect: ResolutionEffect): DispatchFn =>
     (...args) => dispatch(...args)
-        .andTee((result) => effect([...args], result))
+        .andThrough((result) => effect([...args], result))
