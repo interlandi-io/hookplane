@@ -201,8 +201,8 @@ export function createExecutor<P extends ProviderSet>(
 ): Result<Executor<P>, ExecutorError> {
     return ok({
         getPlan: () => plan,
-        execute: async (prevEvents?: ExecutionEventLedger) => {
-            const ledger = prevEvents || []
+        execute: async (from?: ExecutionEventLedger) => {
+            const ledger = from || []
             const derivedState = reduceEventLedger(plan, ledger)
             const toRun = [...derivedState.entries()]
                 .filter(([, state]) => state.status === 'pending') // TODO retry policy here
