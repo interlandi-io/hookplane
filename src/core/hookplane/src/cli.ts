@@ -1,14 +1,18 @@
 #!/usr/bin/node
 
 import {
-    parallelExecution,
-    defaultDispatch,
     endpointUrlHeuristic,
+    State,
+    ProviderSet,
+    parseStatefile,
+    sync,
+    createPlan,
+    match,
+    bootstrap,
 } from '@hookplane/core'
 import { extract } from './extract.js'
 import { findHookplane } from './find-hookplane.js'
-import { createOrchestrator } from '@hookplane/orchestrator'
-import { createLocalBackend } from '@hookplane/backend'
+import { Backend, createLocalBackend } from '@hookplane/backend'
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
@@ -24,8 +28,8 @@ console.log(`using tsconfig at path ${tsconfigPath}`)
 const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
 const statefilePath = path.join(tmpdir, 'statefile.json')
 const signingSecretPath = path.join(tmpdir, 'secrets.json')
-fs.writeFile(statefilePath, '')
-fs.writeFile(signingSecretPath, '')
+await fs.writeFile(statefilePath, '')
+await fs.writeFile(signingSecretPath, '')
 
 console.log(`statefile created at ${statefilePath}`)
 console.log(`signing secrets file created at ${statefilePath}`)
@@ -48,33 +52,61 @@ if (hookplane.isErr()) {
     process.exit(1)
 }
 
-const { state: rightState } = hookplane.value
-
 console.log(
-    `extracted hookplane instance with providers ${rightState.providers}`,
+    'extracted hookplane instance with the following providers:\n' + 
+    Object.keys(hookplane.value.state.providers)
+        .map((p) => ` - ${p}`)
+        .join('\n')
 )
 
 const backend = await createLocalBackend({
     statefilePath,
     signingSecretPath,
 })
+const bootstrapContent = bootstrap()
+await backend.statefile.write(bootstrapContent).then(r => r._unsafeUnwrap())
 
-const orchestrator = createOrchestrator({
-    rightState,
-    execute: parallelExecution(),
-    dispatch: defaultDispatch(),
-    backend,
-    matchingHeuristic: endpointUrlHeuristic,
-})
+const desiredUnknown = hookplane.value.state
 
-try {
-    const result = await orchestrator.run({
-        shouldBootstrap: true,
-    })
-    console.log('Result: ')
-    console.log(result)
-} finally {
-    fs.unlink(statefilePath)
-    fs.unlink(signingSecretPath)
-    console.log(`tmpfile deleted at ${statefilePath}`)
+const prior = await getPrior(backend, desiredUnknown.providers)
+const actual = await getActual(desiredUnknown.providers)
+const desired = match(endpointUrlHeuristic, desiredUnknown, actual)._unsafeUnwrap()
+
+const syncPlan = createPlan(prior, actual)
+const targetPlan = createPlan(actual, desired)
+
+console.log(syncPlan)
+console.log(targetPlan)
+
+
+async function getPrior<P extends ProviderSet>(backend: Backend, providers: P): Promise<State<P>> {
+    const data = await backend.statefile.read()
+    if (data.isErr()) {
+        console.error('failed to read state file from backend: ', data.error.message)
+        process.exit(1)
+    }
+    const statefile = parseStatefile(data.value, providers)
+    if (statefile.isErr()) {
+        console.error('failed to parse statefile from backend: ', statefile.error.message)
+        process.exit(1)
+    }
+    const prior = statefile.value.toState()
+    if (prior.isErr()) {
+        console.error('failed to deserialize statefile from backend: ', prior.error.message)
+        process.exit(1)
+    }
+
+    return prior.value
 }
+
+async function getActual<P extends ProviderSet>(providers: P): Promise<State<P>> {
+    const actual = await sync(providers)
+    if (actual.isErr()) {
+        console.error(actual.error.message)
+        process.exit(1)
+    }
+    return actual.value
+}
+
+await fs.unlink(statefilePath)
+await fs.unlink(signingSecretPath)
