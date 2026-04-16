@@ -1,31 +1,11 @@
 #!/usr/bin/node
 
-import {
-    endpointUrlHeuristic,
-    State,
-    ProviderSet,
-    parseStatefile,
-    sync,
-    createPlan,
-    match,
-    bootstrap,
-    Plan,
-    StepId,
-    Step,
-    Provider,
-    EndpointIndex,
-    createExecutor,
-    parallelExecution,
-    defaultDispatch,
-} from '@hookplane/core'
-import { extract } from './extract.js'
-import { Backend } from '@hookplane/backend'
+import type { Provider, ProviderSet } from '@hookplane/core'
+import { State, Plan, StepId, Step, EndpointIndex } from '@hookplane/core'
 import { defineCommand, runMain } from 'citty'
 import { styleText } from 'util'
-import { Hookplane } from '../hookplane.js'
-import { findHookplane } from './find-hookplane.js'
+import { getHookplane, states, plan, execute } from './utils/index.js'
 import { Table } from 'voici.js'
-import ora from 'ora'
 
 const defaultArgs = {
     'tsconfig-path': {
@@ -127,7 +107,7 @@ const main = defineCommand({
                     }
                     for (const [name, provider] of Object.entries(
                         hookplane.state.providers,
-                    )) {
+                    ) as [string, ProviderSet[keyof ProviderSet]][]) {
                         console.log()
                         const endpoints = await provider.indexEndpoints({
                             providerConfig: provider.config,
@@ -197,128 +177,6 @@ const main = defineCommand({
 })
 
 runMain(main)
-
-async function getHookplane(tsconfigPath: string) {
-    let spinner = ora('Finding Hookplane instance').start()
-    const instance = findHookplane(tsconfigPath)
-    if (instance.isErr()) {
-        spinner.fail()
-        console.error('failed to locate hookplane instance: ', instance.error)
-        process.exit(1)
-    }
-    spinner.succeed()
-    const { exportName, filePath } = instance.value
-
-    // console.log(`found hookplane instance at ${filePath}`)
-
-    spinner = ora('Extracting Hookplane instance').start()
-    const hookplane = await extract(exportName, filePath)
-    if (hookplane.isErr()) {
-        spinner.fail()
-        console.error(
-            'failed to extract hookplane instance from state: ',
-            hookplane.error,
-        )
-        process.exit(1)
-    }
-    spinner.succeed()
-
-    return { hookplane: hookplane.value, filePath }
-}
-
-async function states(hookplane: Hookplane) {
-    const backend = hookplane.backend
-    const bootstrapContent = bootstrap()
-    await backend.statefile
-        .write(bootstrapContent)
-        .then((r) => r._unsafeUnwrap())
-
-    const desiredUnknown = hookplane.state
-
-    const prior = await getPrior(backend, desiredUnknown.providers)
-    const actual = await getActual(desiredUnknown.providers)
-    const desired = match(
-        endpointUrlHeuristic,
-        desiredUnknown,
-        actual,
-    )._unsafeUnwrap()
-
-    return { prior, actual, desired }
-}
-
-async function plan(
-    prior: State<ProviderSet>,
-    actual: State<ProviderSet>,
-    desired: State<ProviderSet>,
-) {
-    // console.log(
-    //     'extracted hookplane instance with the following providers:\n' +
-    //     Object.keys(hookplane.state.providers)
-    //         .map((p) => ` - ${p}`)
-    //         .join('\n')
-    // )
-    const syncPlan = createPlan(prior, actual)._unsafeUnwrap()
-    const targetPlan = createPlan(actual, desired)._unsafeUnwrap()
-
-    return { syncPlan, targetPlan }
-}
-
-async function getPrior<P extends ProviderSet>(
-    backend: Backend,
-    providers: P,
-): Promise<State<P>> {
-    const data = await backend.statefile.read()
-    if (data.isErr()) {
-        console.error(
-            'failed to read state file from backend: ',
-            data.error.message,
-        )
-        process.exit(1)
-    }
-    const statefile = parseStatefile(data.value, providers)
-    if (statefile.isErr()) {
-        console.error(
-            'failed to parse statefile from backend: ',
-            statefile.error.message,
-        )
-        process.exit(1)
-    }
-    const prior = statefile.value.toState()
-    if (prior.isErr()) {
-        console.error(
-            'failed to deserialize statefile from backend: ',
-            prior.error.message,
-        )
-        process.exit(1)
-    }
-
-    return prior.value
-}
-
-async function getActual<P extends ProviderSet>(
-    providers: P,
-): Promise<State<P>> {
-    const actual = await sync(providers)
-    if (actual.isErr()) {
-        console.error(actual.error.message)
-        process.exit(1)
-    }
-    return actual.value
-}
-
-async function execute(plan: Plan<ProviderSet>) {
-    const executor = createExecutor(
-        plan,
-        parallelExecution(),
-        defaultDispatch(),
-    )
-    if (executor.isErr()) {
-        console.error('Failed to create plan executor')
-        process.exit(1)
-    }
-    const events = await executor.value.execute()
-    console.dir(events)
-}
 
 function displayPlan(plan: Plan<ProviderSet>, actual: State<ProviderSet>) {
     for (const e of Object.entries(plan.providerPlans)) {
