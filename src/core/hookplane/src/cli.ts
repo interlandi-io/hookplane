@@ -9,60 +9,100 @@ import {
     createPlan,
     match,
     bootstrap,
+    Plan,
+    StepId,
+    Step,
+    Provider,
 } from '@hookplane/core'
 import { extract } from './extract.js'
-import { findHookplane } from './find-hookplane.js'
 import { Backend } from '@hookplane/backend'
+import { defineCommand, runMain } from 'citty'
+import { styleText } from 'util'
+import { Hookplane } from './hookplane.js'
+import { findHookplane } from './find-hookplane.js'
 
-const tsconfigPath = process.argv[2]
-if (!tsconfigPath) {
-    console.error('no tsconfig path specified')
-    process.exit(1)
+const main = defineCommand({
+    meta: { name: 'hookplane', version: '0.1.0' },
+    subCommands: {
+        'plan': defineCommand({
+            meta: {
+                name: 'plan',
+                description: 'Compute a plan, but do not execute it'
+            },
+            args: {
+                'tsconfig-path': {
+                    name: 'tsconfig-path',
+                    type: 'string',
+                    description: 'Path to tsconfig.json',
+                    default: './tsconfig.json' ,
+                },
+            },
+            run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
+                const hookplane = await getHookplane(tsconfigPath)
+                const { prior, actual, desired } = await states(hookplane)
+                const { syncPlan, targetPlan } = await plan(prior, actual, desired)
+                console.log('\nSync Plan:')
+                displayPlan(syncPlan, actual)
+                console.log('\nTarget Plan:')
+                displayPlan(targetPlan, actual)
+            }
+        })
+    }}) 
+
+runMain(main)
+
+async function getHookplane(tsconfigPath: string) {
+    const instance = findHookplane(tsconfigPath)
+    if (instance.isErr()) {
+        console.error('failed to locate hookplane instance: ', instance.error)
+        process.exit(1)
+    }
+    const { exportName, filePath } = instance.value
+
+    // console.log(`found hookplane instance at ${filePath}`)
+
+    const hookplane = await extract(exportName, filePath)
+    if (hookplane.isErr()) {
+        console.error(
+            'failed to extract hookplane instance from state: ',
+            hookplane.error,
+        )
+        process.exit(1)
+    }
+
+    return hookplane.value
 }
 
-console.log(`using tsconfig at path ${tsconfigPath}`)
+async function states(hookplane: Hookplane) {
+    const backend = hookplane.backend
+    const bootstrapContent = bootstrap()
+    await backend.statefile.write(bootstrapContent).then(r => r._unsafeUnwrap())
 
-const instance = findHookplane(tsconfigPath)
-if (instance.isErr()) {
-    console.error('failed to locate hookplane instance: ', instance.error)
-    process.exit(1)
-}
-const { exportName, filePath } = instance.value
+    const desiredUnknown = hookplane.state
 
-console.log(`found hookplane instance at ${filePath}`)
+    const prior = await getPrior(backend, desiredUnknown.providers)
+    const actual = await getActual(desiredUnknown.providers)
+    const desired = match(endpointUrlHeuristic, desiredUnknown, actual)._unsafeUnwrap()
 
-const hookplane = await extract(exportName, filePath)
-if (hookplane.isErr()) {
-    console.error(
-        'failed to extract hookplane instance from state: ',
-        hookplane.error,
-    )
-    process.exit(1)
+    return { prior, actual, desired }
 }
 
-console.log(
-    'extracted hookplane instance with the following providers:\n' + 
-    Object.keys(hookplane.value.state.providers)
-        .map((p) => ` - ${p}`)
-        .join('\n')
-)
+async function plan(
+    prior: State<ProviderSet>,
+    actual: State<ProviderSet>,
+    desired: State<ProviderSet>,
+) {
+    // console.log(
+    //     'extracted hookplane instance with the following providers:\n' + 
+    //     Object.keys(hookplane.state.providers)
+    //         .map((p) => ` - ${p}`)
+    //         .join('\n')
+    // )
+    const syncPlan = createPlan(prior, actual)._unsafeUnwrap()
+    const targetPlan = createPlan(actual, desired)._unsafeUnwrap()
 
-const backend = hookplane.value.backend
-const bootstrapContent = bootstrap()
-await backend.statefile.write(bootstrapContent).then(r => r._unsafeUnwrap())
-
-const desiredUnknown = hookplane.value.state
-
-const prior = await getPrior(backend, desiredUnknown.providers)
-const actual = await getActual(desiredUnknown.providers)
-const desired = match(endpointUrlHeuristic, desiredUnknown, actual)._unsafeUnwrap()
-
-const syncPlan = createPlan(prior, actual)
-const targetPlan = createPlan(actual, desired)
-
-console.log(syncPlan)
-console.log(targetPlan)
-
+    return { syncPlan, targetPlan }
+}
 
 async function getPrior<P extends ProviderSet>(backend: Backend, providers: P): Promise<State<P>> {
     const data = await backend.statefile.read()
@@ -93,3 +133,30 @@ async function getActual<P extends ProviderSet>(providers: P): Promise<State<P>>
     return actual.value
 }
 
+function displayPlan(plan: Plan<ProviderSet>, actual: State<ProviderSet>) {
+    for (const e of Object.entries(plan.providerPlans)) {
+        const [providerName, providerPlan] = e as [string, Map<StepId, Step<Provider>>]
+        console.log(styleText(['bold', 'blue'], providerName))
+        const steps: string[] = []
+        for (const step of providerPlan.values()) {
+            let kind: string
+            let url: string
+            switch (step.kind) {
+                case 'create':
+                    kind = styleText('green', 'Create')
+                    url = step.state.url
+                    break
+                case 'delete':
+                    kind = styleText('red', 'Delete')
+                    url = actual.providerStates[providerName]?.get(step.handle)?.url || ''
+                    break
+                case 'update':
+                    kind = styleText('yellow', 'Update')
+                    url = step.state.url
+                    break
+            } 
+            steps.push(`    ${kind} ${styleText(['blue', 'underline'], url)}`)
+        }
+        console.log(steps.join('\n'))
+    }
+}
