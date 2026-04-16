@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "private": true,
     "bin": {
-        "hp": "dist/cli.js"
+        "hp": "dist/cli/cli.js"
     },
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
@@ -24,9 +24,13 @@
     "dependencies": {
         "@hookplane/backend": "workspace:*",
         "@hookplane/core": "workspace:*",
+        "citty": "^0.2.2",
+        "dotenv": "^17.4.2",
         "jiti": "^2.6.1",
         "neverthrow": "^8.2.0",
+        "ora": "^9.3.0",
         "ts-morph": "^27.0.2",
+        "voici.js": "^3.0.0",
         "zod": "^4.3.6"
     },
     "devDependencies": {

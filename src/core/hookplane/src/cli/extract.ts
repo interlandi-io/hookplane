@@ -1,6 +1,6 @@
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
-import { Hookplane, } from './hookplane.js'
+import { Hookplane } from '../hookplane.js'
 import z from 'zod'
 
 const HookplaneSchemaApprox: z.ZodType<Hookplane> = z.object({
@@ -8,7 +8,7 @@ const HookplaneSchemaApprox: z.ZodType<Hookplane> = z.object({
         providers: z.object(),
         providerStates: z.object(),
     }),
-    backend: z.any()
+    backend: z.any(),
 })
 
 export type ExtractionError =
@@ -48,7 +48,6 @@ export async function extract(
             filePath: moduleSpecifier,
         })
     }
-
 
     const result = HookplaneSchemaApprox.safeParse(hookplane)
     if (!result.success) {
