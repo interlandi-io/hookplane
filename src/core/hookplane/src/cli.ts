@@ -14,10 +14,13 @@ import {
     Step,
     Provider,
     EndpointIndex,
+    createExecutor,
+    parallelExecution,
+    defaultDispatch,
 } from '@hookplane/core'
 import { extract } from './extract.js'
 import { Backend } from '@hookplane/backend'
-import { defineCommand, runMain } from 'citty'
+import { defineCommand, runCommand, runMain } from 'citty'
 import { styleText } from 'util'
 import { Hookplane } from './hookplane.js'
 import { findHookplane } from './find-hookplane.js'
@@ -34,7 +37,7 @@ const defaultArgs = {
 } as const
 
 const main = defineCommand({
-    meta: { name: 'hookplane', version: '0.1.0' },
+    meta: { name: 'hp', version: '0.1.0', description: 'Hookplane CLI' },
     subCommands: {
         'plan': defineCommand({
             meta: {
@@ -118,6 +121,33 @@ const main = defineCommand({
                 }
             }
         }),
+        'push': defineCommand({
+             meta: {
+                name: 'push',
+                description: 'Push your Hookplane config to providers',
+            },
+            args: {
+                ...defaultArgs,
+                'dry-run': {
+                    name: 'dry-run',
+                    type: 'boolean',
+                    description: 'Equilvalent to hp plan',
+                    default: false,
+                },
+            },
+            run: async ({ args: { 'tsconfig-path': tsconfigPath, 'dry-run': dryRun } }) => {
+                const { hookplane } = await getHookplane(tsconfigPath)
+                const { prior, actual, desired } = await states(hookplane)
+                const { syncPlan, targetPlan } = await plan(prior, actual, desired)
+                if (!syncPlan.isEmpty()) {
+                    console.warn(styleText('yellow', 'Drift detected'))
+                    console.error('Unable to continue')
+                    // TODO
+                    return
+                }
+                await execute(targetPlan)
+            }
+        })
     }}) 
 
 runMain(main)
@@ -208,6 +238,20 @@ async function getActual<P extends ProviderSet>(providers: P): Promise<State<P>>
         process.exit(1)
     }
     return actual.value
+}
+
+async function execute(plan: Plan<ProviderSet>) {
+    const executor = createExecutor(
+        plan,
+        parallelExecution(),
+        defaultDispatch(),
+    )
+    if (executor.isErr()) {
+        console.error('Failed to create plan executor')
+        process.exit(1)
+    }
+    const events = await executor.value.execute()
+    console.dir(events)
 }
 
 function displayPlan(plan: Plan<ProviderSet>, actual: State<ProviderSet>) {
