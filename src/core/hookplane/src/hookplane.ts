@@ -11,7 +11,7 @@ import { Backend, createTempBackend } from '@hookplane/backend'
 
 export type Hookplane = {
     state: StateUnknown<ProviderSet>
-    backend: Backend,
+    backend: Backend
 }
 
 type HookplaneParams<TProviderSet extends ProviderSet> = {
@@ -58,7 +58,7 @@ export async function hookplane<TProviderSet extends ProviderSet>(
         providersUnvalidated,
     )._unsafeUnwrap() as TProviderSet
 
-    const backend =  params.backend ?? await createTempBackend()
+    const backend = params.backend ?? (await createTempBackend())
 
     return {
         state: {

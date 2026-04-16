@@ -25,10 +25,7 @@ export interface Backend {
         read(id: string): ResultAsync<string, BackendError>
 
         /** Writes a signing secret from storage */
-        write(
-            id: string,
-            data: string,
-        ): ResultAsync<void, BackendError>
+        write(id: string, data: string): ResultAsync<void, BackendError>
 
         /** Deletes a signing secret from storage */
         delete(id: string): ResultAsync<void, BackendError>
@@ -95,7 +92,7 @@ export interface BackendDescriptor<TConfig, TState> {
             data: Statefile<P>
         }): ResultAsync<void, BackendError>
         delete(params: { config: TConfig }): ResultAsync<void, BackendError>
-    },
+    }
     signingSecret: {
         read(params: {
             config: TConfig
@@ -108,7 +105,7 @@ export interface BackendDescriptor<TConfig, TState> {
             id: string
             data: string
         }): ResultAsync<void, BackendError>
-        delete(params: { 
+        delete(params: {
             config: TConfig
             state: TState
             id: string
@@ -133,9 +130,11 @@ export function describeBackend<TConfig, TState>(
             },
             signingSecret: {
                 read: (id) => desc.signingSecret.read({ config, state, id }),
-                write: (id, data) => desc.signingSecret.write({ config, state, id, data }),
-                delete: (id) => desc.signingSecret.delete({ config, state, id }),
-            }
+                write: (id, data) =>
+                    desc.signingSecret.write({ config, state, id, data }),
+                delete: (id) =>
+                    desc.signingSecret.delete({ config, state, id }),
+            },
         }
     }
 }
