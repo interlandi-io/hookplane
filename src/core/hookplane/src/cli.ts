@@ -21,6 +21,7 @@ import { styleText } from 'util'
 import { Hookplane } from './hookplane.js'
 import { findHookplane } from './find-hookplane.js'
 import { Table } from 'voici.js'
+import ora from 'ora'
 
 const defaultArgs = {
     'tsconfig-path': {
@@ -41,7 +42,7 @@ const main = defineCommand({
             },
             args: defaultArgs,
             run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
-                const hookplane = await getHookplane(tsconfigPath)
+                const { hookplane } = await getHookplane(tsconfigPath)
                 const { prior, actual, desired } = await states(hookplane)
                 const { syncPlan, targetPlan } = await plan(prior, actual, desired)
                 console.log('\nSync Plan:')
@@ -57,18 +58,13 @@ const main = defineCommand({
             },
             args: defaultArgs,
             run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
-                const instance = findHookplane(tsconfigPath)
-                if (instance.isErr()) {
-                    console.error('failed to locate hookplane instance: ', instance.error)
-                    process.exit(1)
-                }
-                const { filePath: hookplanePath } = instance.value
-                const hookplane = await getHookplane(tsconfigPath)
+                const { hookplane, filePath: hookplanePath } = await getHookplane(tsconfigPath)
                 const data = [
                     { Name: 'TSConfig Path', Value: tsconfigPath, Description: 'Path to tsconfig.json' },
                     { Name: 'Hookplane Path', Value: hookplanePath, Description: 'Located Hookplane file' },
                     { Name: 'Backend', Value: hookplane.backend.name, Description: 'Hookplane backend' },
                 ]
+                console.log()
                 new Table(data).print()
             }
         })
@@ -77,25 +73,31 @@ const main = defineCommand({
 runMain(main)
 
 async function getHookplane(tsconfigPath: string) {
+    let spinner = ora('Finding Hookplane instance').start()
     const instance = findHookplane(tsconfigPath)
     if (instance.isErr()) {
+        spinner.fail()
         console.error('failed to locate hookplane instance: ', instance.error)
         process.exit(1)
     }
+    spinner.succeed()
     const { exportName, filePath } = instance.value
 
     // console.log(`found hookplane instance at ${filePath}`)
 
+    spinner = ora('Extracting Hookplane instance').start()
     const hookplane = await extract(exportName, filePath)
     if (hookplane.isErr()) {
+        spinner.fail()
         console.error(
             'failed to extract hookplane instance from state: ',
             hookplane.error,
         )
         process.exit(1)
     }
+    spinner.succeed()
 
-    return hookplane.value
+    return { hookplane: hookplane.value, filePath }
 }
 
 async function states(hookplane: Hookplane) {
