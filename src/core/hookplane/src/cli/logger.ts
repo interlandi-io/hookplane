@@ -2,21 +2,21 @@ import { styleText } from 'util'
 import ora from 'ora'
 import { Result } from 'neverthrow'
 
-let logState = { 
+let logState = {
     debug: false,
     info: false,
     warn: false,
-    error: false, 
+    error: false,
 }
 
-export type LogLevel = keyof typeof logState 
+export type LogLevel = keyof typeof logState
 
 export function enableLogLevel(level: LogLevel) {
     logState[level] = true
 }
 
 export function disableLogLevel(level: LogLevel) {
-    logState[level] = false 
+    logState[level] = false
 }
 
 export function setLogState(next: typeof logState) {
@@ -24,18 +24,18 @@ export function setLogState(next: typeof logState) {
 }
 
 export function initLogger(state: Partial<typeof logState>) {
-    logState = { 
+    logState = {
         debug: false,
         info: true,
         warn: true,
         error: true,
-        ...state
+        ...state,
     }
     logger.debug(`Log Config:
-    debug: ${logState.debug ? 'on': 'off'}
-    info: ${logState.info ? 'on': 'off'}
-    warn: ${logState.warn ? 'on': 'off'}
-    error: ${logState.error ? 'on': 'off'}
+    debug: ${logState.debug ? 'on' : 'off'}
+    info: ${logState.info ? 'on' : 'off'}
+    warn: ${logState.warn ? 'on' : 'off'}
+    error: ${logState.error ? 'on' : 'off'}
 `)
 }
 

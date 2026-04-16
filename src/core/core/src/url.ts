@@ -35,7 +35,10 @@ export function createEndpointUrl(
     } catch (e) {
         return err({
             name: 'InvalidEndpointUrlError',
-            message: e instanceof Error ? `${url} is invalid: ${e.message}` : `invalid endpoint URL: ${url}`,
+            message:
+                e instanceof Error
+                    ? `${url} is invalid: ${e.message}`
+                    : `invalid endpoint URL: ${url}`,
             cause: e instanceof Error ? e : undefined,
         } satisfies InvalidEndpointUrlError)
     }

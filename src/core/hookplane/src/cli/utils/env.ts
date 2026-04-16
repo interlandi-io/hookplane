@@ -10,7 +10,7 @@ export function loadEnv(envFile?: string) {
 
     for (const path of paths) {
         if (existsSync(path)) {
-            config({ 
+            config({
                 path,
                 quiet: true,
             })

@@ -158,8 +158,10 @@ describe('sync', () => {
         expect(result.isErr()).toBe(true)
         const error = result._unsafeUnwrapErr()
         expect(error.name).toBe('SyncError')
-        expect(error.message.includes(
-            'failed to index endpoints for provider ErrorProvider',
-        )).toBe(true)
+        expect(
+            error.message.includes(
+                'failed to index endpoints for provider ErrorProvider',
+            ),
+        ).toBe(true)
     })
 })

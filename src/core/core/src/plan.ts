@@ -283,10 +283,10 @@ function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
  * @param right The right map of subscriptions.
  * @returns A diff of the two maps.
  */
-function normalizeAndDiff<P extends Provider>(provider: Provider, {
-    left,
-    right,
-}: ProviderComparison<P>): Result<Set<Step<P>>, PlanError> {
+function normalizeAndDiff<P extends Provider>(
+    provider: Provider,
+    { left, right }: ProviderComparison<P>,
+): Result<Set<Step<P>>, PlanError> {
     const steps: Set<Step<P>> = new Set()
 
     for (const [leftHandle, leftState] of left) {
@@ -304,14 +304,14 @@ function normalizeAndDiff<P extends Provider>(provider: Provider, {
             const leftNormalized = {
                 ...leftState,
                 config: provider.normalizeEndpointConfig
-                ? provider.normalizeEndpointConfig(leftState.config)
-                : leftState.config
+                    ? provider.normalizeEndpointConfig(leftState.config)
+                    : leftState.config,
             }
             const rightNormalized = {
                 ...rightState,
                 config: provider.normalizeEndpointConfig
-                ? provider.normalizeEndpointConfig(rightState.config)
-                : rightState.config
+                    ? provider.normalizeEndpointConfig(rightState.config)
+                    : rightState.config,
             }
             if (!isDeepStrictEqual(leftNormalized, rightNormalized)) {
                 steps.add({
