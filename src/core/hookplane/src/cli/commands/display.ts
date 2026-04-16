@@ -22,6 +22,7 @@ export function displayPlan(
         for (const step of providerPlan.values()) {
             let kind: string
             let url: string
+            let other: string = ''
             switch (step.kind) {
                 case 'create':
                     kind = styleText('green', 'Create')
@@ -36,9 +37,13 @@ export function displayPlan(
                 case 'update':
                     kind = styleText('yellow', 'Update')
                     url = step.state.url
+                    const indent = new Array(8).fill(' ').join('')
+                    const config = indent + JSON.stringify(step.state.config, null, 4).replaceAll('\n', '\n' + indent)
+                    other = 
+                        ` (${step.state.events.join(', ')})\n${config}`
                     break
             }
-            steps.push(`    ${kind} ${styleText(['blue', 'underline'], url)}`)
+            steps.push(`    ${kind} ${styleText(['blue', 'underline'], url)}${other}`)
         }
         console.log(steps.join('\n'))
     }
