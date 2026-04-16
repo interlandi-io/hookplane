@@ -10,7 +10,8 @@ export type EndpointUrl = string & { __brand: 'endpointUrl' }
  */
 export interface InvalidEndpointUrlError extends Error {
     name: 'InvalidEndpointUrlError'
-    message: `invalid endpoint URL: ${string}`
+    message: string
+    cause?: Error
 }
 
 /**
@@ -25,16 +26,17 @@ export function createEndpointUrl(
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         return err({
             name: 'InvalidEndpointUrlError',
-            message: `invalid endpoint URL: ${url}`,
+            message: `URL does not start with protocol: ${url}`,
         } satisfies InvalidEndpointUrlError)
     }
 
     try {
         new URL(url)
-    } catch {
+    } catch (e) {
         return err({
             name: 'InvalidEndpointUrlError',
-            message: `invalid endpoint URL: ${url}`,
+            message: e instanceof Error ? `${url} is invalid: ${e.message}` : `invalid endpoint URL: ${url}`,
+            cause: e instanceof Error ? e : undefined,
         } satisfies InvalidEndpointUrlError)
     }
 
