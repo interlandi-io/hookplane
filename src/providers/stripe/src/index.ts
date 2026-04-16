@@ -189,12 +189,11 @@ const stripeProvider = describeProvider<
                     `event(s) ${invalidEvents.join(', ')} are/is invalid`,
                 )
             }
-            const pathname = new URL(endpointUrl).pathname
-            const url = createEndpointUrl(pathname)
+            const url = createEndpointUrl(endpointUrl)
             if (url.isErr()) {
                 throw {
                     name: 'InvalidResponseError',
-                    message: `received invalid response from server: invalid url: ${endpointUrl}`,
+                    message: `received invalid response from server: ${endpointUrl} is invalid ${url.error.message}`,
                     source: url.error,
                 } satisfies InvalidResponseError
             }
@@ -276,6 +275,15 @@ const stripeProvider = describeProvider<
             }),
             toProviderError,
         ).map(() => index)
+    },
+    normalizeEndpointConfig(config) {
+        const description = config.description ? config.description : ''
+        const metadata = config.metadata ? config.metadata : {}
+        return {
+            ...config,
+            description,
+            metadata,
+        }
     },
     processRequest: ({
         request,

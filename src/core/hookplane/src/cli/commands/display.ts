@@ -38,12 +38,18 @@ export function displayPlan(
                     kind = styleText('yellow', 'Update')
                     url = step.state.url
                     const indent = new Array(8).fill(' ').join('')
-                    const config = indent + JSON.stringify(step.state.config, null, 4).replaceAll('\n', '\n' + indent)
-                    other = 
-                        ` (${step.state.events.join(', ')})\n${config}`
+                    const config =
+                        indent +
+                        JSON.stringify(step.state.config, null, 4).replaceAll(
+                            '\n',
+                            '\n' + indent,
+                        )
+                    other = ` (${step.state.events.join(', ')})\n${config}`
                     break
             }
-            steps.push(`    ${kind} ${styleText(['blue', 'underline'], url)}${other}`)
+            steps.push(
+                `    ${kind} ${styleText(['blue', 'underline'], url)}${other}`,
+            )
         }
         console.log(steps.join('\n'))
     }

@@ -579,4 +579,83 @@ describe('plan', () => {
             'InvalidOrphanEndpointHandleError',
         )
     })
+
+    it('normalizes endpoint configs', () => {
+        const NormalizingProvider = (
+            config: object,
+        ): Provider<'testEvent', object, { value?: string }, object> => ({
+            name: 'NormalizingProvider',
+            config,
+            events: { testEvent: {} },
+            state: {},
+            setup: () => okAsync({}),
+            createEndpoint: () => {
+                throw new Error('not implemented')
+            },
+            readEndpoint: () => {
+                throw new Error('not implemented')
+            },
+            updateEndpoint: () => {
+                throw new Error('not implemented')
+            },
+            deleteEndpoint: () => {
+                throw new Error('not implemented')
+            },
+            indexEndpoints: () => {
+                throw new Error('not implemented')
+            },
+            normalizeEndpointConfig: (config) => {
+                if (!config.value) {
+                    return { value: '' }
+                } else {
+                    return config
+                }
+            },
+        })
+
+        const left: State<{
+            normalizingProvider: ReturnType<typeof NormalizingProvider>
+        }> = {
+            providers: { normalizingProvider: NormalizingProvider({}) },
+            providerStates: {
+                normalizingProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            url: createEndpointUrl(
+                                'https://example.com/',
+                            )._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
+            },
+        }
+
+        const right: State<{
+            normalizingProvider: ReturnType<typeof NormalizingProvider>
+        }> = {
+            providers: { normalizingProvider: NormalizingProvider({}) },
+            providerStates: {
+                normalizingProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            url: createEndpointUrl(
+                                'https://example.com/',
+                            )._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: { value: '' },
+                        },
+                    ],
+                ]),
+            },
+        }
+
+        const result = createPlan(left, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
+        expect(plan.providerPlans.normalizingProvider!).toHaveLength(0)
+    })
 })

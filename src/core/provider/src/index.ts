@@ -69,6 +69,13 @@ type ProviderDescriptor<
         TProviderState
     >['indexEndpoints']
 
+    normalizeEndpointConfig?: Provider<
+        TEventType,
+        TProviderConfig,
+        TEndpointConfig,
+        TProviderState
+    >['normalizeEndpointConfig']
+
     processRequest: Provider<
         TEventType,
         TProviderConfig,
