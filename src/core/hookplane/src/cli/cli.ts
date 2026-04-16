@@ -8,6 +8,7 @@ import {
     pushCommand,
 } from './commands/index.js'
 import { initLogger } from './logger.js'
+import { loadEnv } from './utils/index.js'
 
 const main = defineCommand({
     meta: { name: 'hp', version: '0.1.0', description: 'Hookplane CLI' },
