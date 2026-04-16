@@ -7,6 +7,11 @@ export function displayPlan(
     plan: Plan<ProviderSet>,
     actual: State<ProviderSet>,
 ) {
+    if (plan.isEmpty()) {
+        console.log(styleText(['cyan', 'bold'], '(empty)'))
+        return
+    }
+
     for (const e of Object.entries(plan.providerPlans)) {
         const [providerName, providerPlan] = e as [
             string,
