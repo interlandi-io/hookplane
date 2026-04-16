@@ -110,6 +110,30 @@ interface Provider<
     ): ResultAsync<EndpointIndex<this>, ProviderError>
 
     /**
+     * An optional hook for stripping sentinel values returned by the provider's API before diffing.
+     * Hookplane compares remote state against your declared config to determine whether an update is needed.
+     * This hook lets you coerce provider-specific "empty" values (like `""` or `{}`) into undefined so they don't trigger spurious updates.
+     *
+     * For example, if you create a Stripe endpoint without passing metadata and query it from Stripe, you get
+     * ```typescript
+     * {
+     *     metadata: {}
+     * }
+     * ```
+     * instead of
+     * ```typescript
+     * {
+     *     metadata: undefined
+     * }
+     * ```
+     * To make sure diffs stay deterministic/consistent, `{}` must be coerced into `undefined`.
+     *
+     * @param config The config to be normalized
+     * @returns The noramlized config
+     */
+    normalizeEndpointConfig?(config: TEndpointConfig): TEndpointConfig
+
+    /**
      * @todo This feature does not exist yet.
      * Performs any or all of the following:
      * 1) Validate the schema of an incoming request.
