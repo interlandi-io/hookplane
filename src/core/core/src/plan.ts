@@ -43,10 +43,19 @@ type Plan<P extends ProviderSet> = {
     isEmpty(): boolean
 }
 
-export type PlanError = InvalidOrphanEndpointHandleError
+export type PlanError = 
+    | InvalidOrphanEndpointHandleError
+    | InvalidStateError 
 
-export interface InvalidOrphanEndpointHandleError extends Error {
+export interface InvalidOrphanEndpointHandleError {
+    kind: 'PlanError'
     name: 'InvalidOrphanEndpointHandleError'
+    message: string
+}
+
+export interface InvalidStateError {
+    kind: 'PlanError'
+    name: 'InvalidStateError'
     message: string
 }
 
@@ -115,7 +124,11 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     )) {
         const provider = providers[providerKey]
         if (!provider) {
-            throw 'TODO'
+            return err({
+                kind: 'PlanError',
+                name: 'InvalidStateError',
+                message: `provider ${providerKey} not found in state`
+            } satisfies PlanError)
         }
         providerPlans[providerKey] = new Map()
         const steps = normalizeAndDiff(provider, providerComparison)
@@ -293,6 +306,7 @@ function normalizeAndDiff<P extends Provider>(
         const realHandle = downcastEndpointHandle(leftHandle)
         if (realHandle == undefined) {
             return err({
+                kind: 'PlanError',
                 name: 'InvalidOrphanEndpointHandleError',
                 message: 'left state contains an orphan endpoint handle',
             } satisfies InvalidOrphanEndpointHandleError)
