@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import { Table } from 'voici.js'
 import { getHookplane } from '../utils/index.js'
+import { logger } from '../logger.js'
 import { defaultArgs } from '../common.js'
 
 export const configCommand = defineCommand({
@@ -10,8 +11,12 @@ export const configCommand = defineCommand({
     },
     args: defaultArgs,
     run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
-        const { hookplane, filePath: hookplanePath } =
-            await getHookplane(tsconfigPath)
+        const hookplaneResult = await getHookplane(tsconfigPath)
+        if (hookplaneResult.isErr()) {
+            logger.error(hookplaneResult.error.message)
+            process.exit(1)
+        }
+        const { hookplane, filePath: hookplanePath } = hookplaneResult.value
         const data = [
             {
                 Name: 'TSConfig Path',
@@ -29,7 +34,7 @@ export const configCommand = defineCommand({
                 Description: 'Hookplane backend',
             },
         ]
-        console.log()
+        console.log('')
         new Table(data).print()
     },
 })

@@ -1,6 +1,7 @@
 import type { Provider, ProviderSet } from '@hookplane/core'
 import { State, Plan, StepId, Step, EndpointIndex } from '@hookplane/core'
 import { styleText } from 'util'
+import { logger } from '../logger.js'
 
 export function displayPlan(
     plan: Plan<ProviderSet>,
@@ -43,7 +44,7 @@ export function displayEndpointIndex(
     index: EndpointIndex<Provider>,
 ) {
     if (index.size === 0) {
-        console.log(
+        logger.warn(
             `No endpoints provisioned for ${styleText('blue', providerName)}`,
         )
         return

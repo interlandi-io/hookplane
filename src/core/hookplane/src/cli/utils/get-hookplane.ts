@@ -1,6 +1,8 @@
-import ora from 'ora'
+import { err, ok, Result } from 'neverthrow'
 import { extract } from '../extract.js'
 import { findHookplane } from '../find-hookplane.js'
+import type { HookplaneInstance } from '../find-hookplane.js'
+import { withSpinner } from '../logger.js'
 import type { Hookplane } from '../../index.js'
 
 export interface HookplaneResult {
@@ -10,28 +12,29 @@ export interface HookplaneResult {
 
 export async function getHookplane(
     tsconfigPath: string,
-): Promise<HookplaneResult> {
-    let spinner = ora('Finding Hookplane instance').start()
-    const instance = findHookplane(tsconfigPath)
+): Promise<Result<HookplaneResult, Error>> {
+    const instance = await withSpinner(
+        'Finding Hookplane instance',
+        async () => {
+            const result = findHookplane(tsconfigPath)
+            return result.mapErr((e) => e as Error)
+        },
+    )
     if (instance.isErr()) {
-        spinner.fail()
-        console.error('failed to locate hookplane instance: ', instance.error)
-        process.exit(1)
+        return err(new Error('failed to locate hookplane instance'))
     }
-    spinner.succeed()
-    const { exportName, filePath } = instance.value
+    const { exportName, filePath } = instance.value as HookplaneInstance
 
-    spinner = ora('Extracting Hookplane instance').start()
-    const hookplane = await extract(exportName, filePath)
+    const hookplane = await withSpinner(
+        'Extracting Hookplane instance',
+        async () => {
+            const result = await extract(exportName, filePath)
+            return result.mapErr((e) => e as Error)
+        },
+    )
     if (hookplane.isErr()) {
-        spinner.fail()
-        console.error(
-            'failed to extract hookplane instance from state: ',
-            hookplane.error,
-        )
-        process.exit(1)
+        return err(new Error('failed to extract hookplane instance'))
     }
-    spinner.succeed()
 
-    return { hookplane: hookplane.value, filePath }
+    return ok({ hookplane: hookplane.value, filePath })
 }

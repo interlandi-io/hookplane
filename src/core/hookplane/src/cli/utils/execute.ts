@@ -1,3 +1,4 @@
+import { err, ok, Result } from 'neverthrow'
 import {
     createExecutor,
     defaultDispatch,
@@ -6,16 +7,18 @@ import {
     ProviderSet,
 } from '@hookplane/core'
 
-export async function execute(plan: Plan<ProviderSet>) {
+export async function execute(
+    plan: Plan<ProviderSet>,
+): Promise<Result<void, Error>> {
     const executor = createExecutor(
         plan,
         parallelExecution(),
         defaultDispatch(),
     )
     if (executor.isErr()) {
-        console.error('Failed to create plan executor')
-        process.exit(1)
+        return err(new Error('Failed to create plan executor'))
     }
     const events = await executor.value.execute()
     console.dir(events)
+    return ok(undefined)
 }

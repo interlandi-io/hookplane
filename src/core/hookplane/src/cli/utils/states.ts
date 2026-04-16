@@ -1,4 +1,4 @@
-import { Backend } from '@hookplane/backend'
+import { err, ok, Result } from 'neverthrow'
 import {
     bootstrap,
     endpointUrlHeuristic,
@@ -16,22 +16,40 @@ export interface StateOutput {
     desired: State<ProviderSet>
 }
 
-export async function states(hookplane: Hookplane): Promise<StateOutput> {
+export async function states(
+    hookplane: Hookplane,
+): Promise<Result<StateOutput, Error>> {
     const backend = hookplane.backend
     const bootstrapContent = bootstrap()
-    await backend.statefile
-        .write(bootstrapContent)
-        .then((r: { _unsafeUnwrap(): unknown }) => r._unsafeUnwrap())
+    const writeResult = await backend.statefile.write(bootstrapContent)
+    if (writeResult.isErr()) {
+        return err(new Error(writeResult.error.message))
+    }
 
     const desiredUnknown = hookplane.state
 
-    const prior = await getPrior(backend, desiredUnknown.providers)
-    const actual = await getActual(desiredUnknown.providers)
+    const priorResult = await getPrior(backend, desiredUnknown.providers)
+    if (priorResult.isErr()) {
+        return err(priorResult.error)
+    }
+
+    const actualResult = await getActual(desiredUnknown.providers)
+    if (actualResult.isErr()) {
+        return err(actualResult.error)
+    }
+
     const desired = match(
         endpointUrlHeuristic,
         desiredUnknown,
-        actual,
-    )._unsafeUnwrap()
+        actualResult.value,
+    )
+    if (desired.isErr()) {
+        return err(new Error(desired.error.message))
+    }
 
-    return { prior, actual, desired }
+    return ok({
+        prior: priorResult.value,
+        actual: actualResult.value,
+        desired: desired.value,
+    })
 }

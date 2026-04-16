@@ -1,3 +1,4 @@
+import { err, ok, Result } from 'neverthrow'
 import { createPlan, Plan, ProviderSet, State } from '@hookplane/core'
 
 export interface PlanOutput {
@@ -9,9 +10,19 @@ export async function plan(
     prior: State<ProviderSet>,
     actual: State<ProviderSet>,
     desired: State<ProviderSet>,
-): Promise<PlanOutput> {
-    const syncPlan = createPlan(prior, actual)._unsafeUnwrap()
-    const targetPlan = createPlan(actual, desired)._unsafeUnwrap()
+): Promise<Result<PlanOutput, Error>> {
+    const syncPlanResult = createPlan(prior, actual)
+    if (syncPlanResult.isErr()) {
+        return err(new Error(syncPlanResult.error.message))
+    }
 
-    return { syncPlan, targetPlan }
+    const targetPlanResult = createPlan(actual, desired)
+    if (targetPlanResult.isErr()) {
+        return err(new Error(targetPlanResult.error.message))
+    }
+
+    return ok({
+        syncPlan: syncPlanResult.value,
+        targetPlan: targetPlanResult.value,
+    })
 }
