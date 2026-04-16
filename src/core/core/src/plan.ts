@@ -43,9 +43,7 @@ type Plan<P extends ProviderSet> = {
     isEmpty(): boolean
 }
 
-export type PlanError = 
-    | InvalidOrphanEndpointHandleError
-    | InvalidStateError 
+export type PlanError = InvalidOrphanEndpointHandleError | InvalidStateError
 
 export interface InvalidOrphanEndpointHandleError {
     kind: 'PlanError'
@@ -127,7 +125,7 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
             return err({
                 kind: 'PlanError',
                 name: 'InvalidStateError',
-                message: `provider ${providerKey} not found in state`
+                message: `provider ${providerKey} not found in state`,
             } satisfies PlanError)
         }
         providerPlans[providerKey] = new Map()
