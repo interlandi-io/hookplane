@@ -113,8 +113,12 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     for (const [providerKey, providerComparison] of Object.entries(
         comparison.providerComparisons,
     )) {
+        const provider = providers[providerKey]
+        if (!provider) {
+            throw 'TODO'
+        }
         providerPlans[providerKey] = new Map()
-        const steps = matchAndDiff(providerComparison)
+        const steps = normalizeAndDiff(provider, providerComparison)
         if (steps.isErr()) {
             return err(steps.error)
         }
@@ -279,7 +283,7 @@ function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
  * @param right The right map of subscriptions.
  * @returns A diff of the two maps.
  */
-function matchAndDiff<P extends Provider>({
+function normalizeAndDiff<P extends Provider>(provider: Provider, {
     left,
     right,
 }: ProviderComparison<P>): Result<Set<Step<P>>, PlanError> {
@@ -296,7 +300,20 @@ function matchAndDiff<P extends Provider>({
 
         const rightState = right.get(leftHandle)
         if (rightState) {
-            if (!isDeepStrictEqual(leftState, rightState)) {
+            // See provider.normalizeEndpointConfig docstring
+            const leftNormalized = {
+                ...leftState,
+                config: provider.normalizeEndpointConfig
+                ? provider.normalizeEndpointConfig(leftState.config)
+                : leftState.config
+            }
+            const rightNormalized = {
+                ...rightState,
+                config: provider.normalizeEndpointConfig
+                ? provider.normalizeEndpointConfig(rightState.config)
+                : rightState.config
+            }
+            if (!isDeepStrictEqual(leftNormalized, rightNormalized)) {
                 steps.add({
                     kind: 'update',
                     handle: realHandle,
