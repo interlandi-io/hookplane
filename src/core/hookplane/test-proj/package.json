@@ -12,6 +12,6 @@
     "type": "module",
     "dependencies": {
         "hookplane": "file:../../hookplane",
-        "@hookplane/stripe": "file:../../../providers/stripe",
+        "@hookplane/stripe": "file:../../../providers/stripe"
     }
 }

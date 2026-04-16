@@ -21,8 +21,7 @@ export async function sync<P extends ProviderSet>(
             providerState: provider.state,
         })
         if (endpointIndex.isErr()) {
-            return err({
-                name: 'SyncError',
+            return err({ name: 'SyncError',
                 message: `failed to index endpoints for provider ${provider.name}: ${endpointIndex.error.message}`,
                 source: endpointIndex.error,
                 providerName: provider.name,

@@ -1,9 +1,13 @@
 import {
     describeProvider,
     createEndpointHandle,
-    createRelativeUrl,
+    createEndpointUrl,
     ProviderError,
     UnknownError,
+    AuthError,
+    RateLimitError,
+    NetworkError,
+    ServerError,
     RequestSignatureValidationError,
     InvalidResponseError,
     ProcessRequestReturn,
@@ -28,9 +32,74 @@ type StripeProviderState = {
     stripe: Stripe
 }
 
-// TODO: map these to the actual Provider error types
 function toProviderError(e: unknown): ProviderError {
     const source = e instanceof Error ? e : new Error(String(e))
+
+    if (source.message && typeof source === 'object' && 'type' in source) {
+        const stripeError = source as {
+            type: string
+            message?: string
+            code?: string
+            requestId?: string
+        }
+        const stripeType = stripeError.type as string | undefined
+        const stripeMessage = stripeError.message
+        const stripeCode = stripeError.code
+        const requestId = stripeError.requestId
+
+        const details = [
+            stripeMessage && `stripe: ${stripeMessage}`,
+            stripeCode && `code: ${stripeCode}`,
+            requestId && `request_id: ${requestId}`,
+        ]
+            .filter(Boolean)
+            .join(', ')
+
+        switch (stripeType) {
+            case 'StripeAuthenticationError':
+            case 'StripePermissionError':
+                return {
+                    name: 'AuthError',
+                    message: details || 'authentication failed',
+                    source,
+                } as AuthError
+
+            case 'StripeRateLimitError':
+                return {
+                    name: 'RateLimitError',
+                    message: details || 'rate limited',
+                    source,
+                } as RateLimitError
+
+            case 'StripeConnectionError':
+                return {
+                    name: 'NetworkError',
+                    message: details || 'network request failed',
+                    source,
+                } as NetworkError
+
+            case 'StripeAPIError':
+                return {
+                    name: 'ServerError',
+                    message: details || 'server error',
+                    source,
+                    statusCode: 500,
+                } as ServerError
+
+            case 'StripeInvalidRequestError':
+            case 'StripeCardError':
+            case 'StripeIdempotencyError':
+                return {
+                    name: 'InvalidResponseError',
+                    message: details || 'received invalid response from server',
+                    source,
+                } as InvalidResponseError
+
+            default:
+                break
+        }
+    }
+
     return {
         name: 'UnknownError',
         message: `an error occurred: ${source.message}`,
@@ -121,16 +190,16 @@ const stripeProvider = describeProvider<
                 )
             }
             const pathname = new URL(endpointUrl).pathname
-            const relativeUrl = createRelativeUrl(pathname)
-            if (relativeUrl.isErr()) {
+            const url = createEndpointUrl(pathname)
+            if (url.isErr()) {
                 throw {
                     name: 'InvalidResponseError',
                     message: `received invalid response from server: invalid url: ${endpointUrl}`,
-                    source: relativeUrl.error,
+                    source: url.error,
                 } satisfies InvalidResponseError
             }
             return {
-                relativeUrl: relativeUrl.value,
+                url: url.value,
                 events: res.enabled_events as StripeEvent[],
                 config: {
                     name: res.name,
@@ -172,6 +241,7 @@ const stripeProvider = describeProvider<
             p.autoPagingEach((dest) => {
                 const endpointUrl = dest.webhook_endpoint?.url
                 if (!endpointUrl) {
+                    // TODO
                     return true
                 }
                 const invalidEvents = getInvalidEvents(dest.enabled_events)
@@ -180,11 +250,20 @@ const stripeProvider = describeProvider<
                         `event(s) ${invalidEvents.join(', ')} are/is invalid`,
                     )
                 }
-                const pathname = new URL(endpointUrl).pathname
-                const endpointId = createEndpointHandle(dest.id)._unsafeUnwrap() // Throw b/c in fromPromise
-                const relativeUrl = createRelativeUrl(pathname)._unsafeUnwrap() // Throw b/c in fromPromise
-                index.set(endpointId, {
-                    relativeUrl,
+                const endpointId = createEndpointHandle(dest.id)
+                if (endpointId.isErr()) {
+                    throw new Error(endpointId.error.message, {
+                        cause: endpointId.error,
+                    })
+                }
+                const url = createEndpointUrl(endpointUrl)
+                if (url.isErr()) {
+                    throw new Error(url.error.message, {
+                        cause: url.error,
+                    })
+                }
+                index.set(endpointId.value, {
+                    url: url.value,
                     events: dest.enabled_events as StripeEvent[],
                     config: {
                         name: dest.name,
