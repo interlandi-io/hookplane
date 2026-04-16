@@ -1,6 +1,6 @@
 import { err, ok, Result } from 'neverthrow'
 import { createJiti } from 'jiti'
-import { Hookplane } from './hookplane.js'
+import { Hookplane } from '../hookplane.js'
 import z from 'zod'
 
 const HookplaneSchemaApprox: z.ZodType<Hookplane> = z.object({

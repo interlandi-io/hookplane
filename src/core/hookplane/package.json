@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "private": true,
     "bin": {
-        "hp": "dist/cli.js"
+        "hp": "dist/cli/cli.js"
     },
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
