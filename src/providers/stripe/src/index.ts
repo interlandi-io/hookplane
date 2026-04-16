@@ -277,6 +277,15 @@ const stripeProvider = describeProvider<
             toProviderError,
         ).map(() => index)
     },
+    normalizeEndpointConfig(config) {
+        const description = config.description ? config.description : ''
+        const metadata = config.metadata ? config.metadata : {}
+        return {
+            ...config,
+            description,
+            metadata,
+        }
+    },
     processRequest: ({
         request,
         handle,
