@@ -34,7 +34,7 @@ export function displayPlan(
                         actual.providerStates[providerName]?.get(step.handle)
                             ?.url || ''
                     break
-                case 'update':
+                case 'update': {
                     kind = styleText('yellow', 'Update')
                     url = step.state.url
                     const indent = new Array(8).fill(' ').join('')
@@ -46,6 +46,7 @@ export function displayPlan(
                         )
                     other = ` (${step.state.events.join(', ')})\n${config}`
                     break
+                }
             }
             steps.push(
                 `    ${kind} ${styleText(['blue', 'underline'], url)}${other}`,

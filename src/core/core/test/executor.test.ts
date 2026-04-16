@@ -104,10 +104,6 @@ const MockProvider: Provider<
     },
 }
 
-const providers = {
-    MockProvider,
-}
-
 describe('executor', () => {
     beforeEach(() => {
         endpoints.clear()

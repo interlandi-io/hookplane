@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createEndpointUrl, type EndpointUrl } from '~/url.js'
+import { createEndpointUrl } from '~/url.js'
 
 describe('url', () => {
     describe('createEndpointUrl', () => {

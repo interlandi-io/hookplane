@@ -6,7 +6,6 @@
  *
  */
 import {
-    type Provider,
     type EndpointState,
     type EndpointIndex,
 } from './provider.js'

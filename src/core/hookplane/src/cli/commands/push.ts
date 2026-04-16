@@ -10,15 +10,15 @@ export const pushCommand = defineCommand({
     },
     args: {
         ...defaultArgs,
-        'dry-run': {
-            name: 'dry-run',
-            type: 'boolean',
-            description: 'Equilvalent to hp plan',
-            default: false,
-        },
+        // 'dry-run': {
+        //     name: 'dry-run',
+        //     type: 'boolean',
+        //     description: 'Equilvalent to hp plan',
+        //     default: false,
+        // },
     },
     run: async ({
-        args: { 'tsconfig-path': tsconfigPath, 'dry-run': dryRun },
+        args: { 'tsconfig-path': tsconfigPath },
     }) => {
         const hookplaneResult = await getHookplane(tsconfigPath)
         if (hookplaneResult.isErr()) {
