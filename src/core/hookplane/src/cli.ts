@@ -20,6 +20,16 @@ import { defineCommand, runMain } from 'citty'
 import { styleText } from 'util'
 import { Hookplane } from './hookplane.js'
 import { findHookplane } from './find-hookplane.js'
+import { Table } from 'voici.js'
+
+const defaultArgs = {
+    'tsconfig-path': {
+        name: 'tsconfig-path',
+        type: 'string',
+        description: 'Path to tsconfig.json',
+        default: './tsconfig.json' ,
+    },
+} as const
 
 const main = defineCommand({
     meta: { name: 'hookplane', version: '0.1.0' },
@@ -29,14 +39,7 @@ const main = defineCommand({
                 name: 'plan',
                 description: 'Compute a plan, but do not execute it'
             },
-            args: {
-                'tsconfig-path': {
-                    name: 'tsconfig-path',
-                    type: 'string',
-                    description: 'Path to tsconfig.json',
-                    default: './tsconfig.json' ,
-                },
-            },
+            args: defaultArgs,
             run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
                 const hookplane = await getHookplane(tsconfigPath)
                 const { prior, actual, desired } = await states(hookplane)
@@ -45,6 +48,28 @@ const main = defineCommand({
                 displayPlan(syncPlan, actual)
                 console.log('\nTarget Plan:')
                 displayPlan(targetPlan, actual)
+            }
+        }),
+        'config': defineCommand({
+            meta: {
+                name: 'config',
+                description: 'Get the current Hookplane config'
+            },
+            args: defaultArgs,
+            run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
+                const instance = findHookplane(tsconfigPath)
+                if (instance.isErr()) {
+                    console.error('failed to locate hookplane instance: ', instance.error)
+                    process.exit(1)
+                }
+                const { filePath: hookplanePath } = instance.value
+                const hookplane = await getHookplane(tsconfigPath)
+                const data = [
+                    { Name: 'TSConfig Path', Value: tsconfigPath, Description: 'Path to tsconfig.json' },
+                    { Name: 'Hookplane Path', Value: hookplanePath, Description: 'Located Hookplane file' },
+                    { Name: 'Backend', Value: hookplane.backend.name, Description: 'Hookplane backend' },
+                ]
+                new Table(data).print()
             }
         })
     }}) 
