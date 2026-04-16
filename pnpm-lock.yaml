@@ -82,6 +82,12 @@ importers:
       '@hookplane/core':
         specifier: workspace:*
         version: link:../core
+      citty:
+        specifier: ^0.2.2
+        version: 0.2.2
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
@@ -716,6 +722,9 @@ packages:
 
   chardet@2.1.1:
     resolution: {integrity: sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ==}
+
+  citty@0.2.2:
+    resolution: {integrity: sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w==}
 
   code-block-writer@13.0.3:
     resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
@@ -2587,6 +2596,8 @@ snapshots:
       supports-color: 7.2.0
 
   chardet@2.1.1: {}
+
+  citty@0.2.2: {}
 
   code-block-writer@13.0.3: {}
 
