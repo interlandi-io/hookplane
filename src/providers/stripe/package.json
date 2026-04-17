@@ -1,8 +1,21 @@
 {
     "name": "@hookplane/stripe",
-    "version": "0.0.0",
+    "version": "1.0.0",
+    "license": "Apache-2.0",
+    "description": "Stripe provider for hookplane",
+    "repository": "github:interlandi-io/hookplane",
+    "author": {
+        "name": "Mike Interlandi",
+        "url": "https://interlandi.io"
+    },
+    "homepage": "https://hookplane.com",
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist"
+    ],
     "type": "module",
-    "private": true,
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",
