@@ -1,0 +1,48 @@
+{
+    "name": "@hookplane/remote",
+    "type": "module",
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "description": "Remote backend contract for Hookplane",
+    "repository": "github:interlandi-io/hookplane",
+    "author": {
+        "name": "Mike Interlandi",
+        "url": "https://interlandi.io"
+    },
+    "homepage": "https://hookplane.com",
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "dev": "tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json",
+        "test": "vitest",
+        "test:run": "vitest run",
+        "test:watch": "vitest --watch",
+        "check-types": "tsc --noEmit",
+        "lint": "eslint . --max-warnings 0"
+    },
+    "exports": {
+        ".": {
+            "default": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "dependencies": {
+        "@hookplane/core": "workspace:*",
+        "@hookplane/backend": "workspace:*",
+        "@trpc/server": "^11.16.0",
+        "neverthrow": "^8.2.0",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^22.15.3",
+        "vite": "^8.0.0",
+        "vitest": "^4.1.2"
+    }
+}

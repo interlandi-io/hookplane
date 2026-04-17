@@ -66,7 +66,7 @@ const ProviderStateSchema = z.record(EndpointHandleSchema, EndpointSchema)
  * - version: The statefile version
  * - providerStates: A record of providers, each containing endpoints keyed by handle
  */
-const StatefileSchema = z.object({
+export const StatefileSchema = z.object({
     version: z.literal(1),
     providerStates: z.record(z.string(), ProviderStateSchema),
 })
