@@ -1,18 +1,25 @@
+<div align="center">
+
+[![npm](https://img.shields.io/npm/v/hookplane)](https://www.npmjs.com/package/hookplane)
+&nbsp;&nbsp;&nbsp;&nbsp;
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/interlandi-io/hookplane/blob/master/LICENSE)
+
+</div>
+
 # Hookplane
 
-Define and manage webhooks subscriptions entirely in code.
+Define and manage webhook subscriptions entirely in code.
 
 ## Receive webhooks by writing code
 
 ```typescript
 const hp = await hookplane({
-    baseUrl: 'https://example.com',
     providers: {
         stripe: {
             provider: await stripeProvider({
                 apiKey: process.env['STRIPE_API_KEY']!,
             }),
-            endpoint: '/hooks/stripe',
+            endpoint: 'https://example.com/hooks/stripe',
             events: ['checkout.session.completed'],
             endpointConfig: {
                 name: 'my_endpoint',
@@ -25,7 +32,7 @@ const hp = await hookplane({
 
 ## Your integrations live in your codebase
 
-Hookplane is stateless and 100% declarative.
+Hookplane is 100% declarative.
 
 No more keeping code in sync with dashboards.
 
@@ -51,19 +58,20 @@ npm install hookplane @hookplane/stripe
 
 Create a `hookplane.ts` file anywhere you would otherwise keep your source files.
 
+Replace `<YOUR_ENDPOINT>` with any URL you'd like.
+
 ```typescript
 // ./src/hookplane.ts
 import { hookplane } from 'hookplane'
 import { stripeProvider } from '@hookplane/stripe'
 
 const hp = await hookplane({
-    baseUrl: 'https://example.com',
     providers: {
         stripe: {
             provider: await stripeProvider({
                 apiKey: process.env['STRIPE_API_KEY']!,
             }),
-            endpoint: '/hooks/stripe',
+            endpoint: '<YOUR_ENDPONT>',
             events: ['checkout.session.completed'],
             endpointConfig: {
                 name: 'my_endpoint',
