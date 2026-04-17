@@ -32,8 +32,9 @@
         }
     },
     "dependencies": {
-        "@hookplane/core": "workspace:*",
         "@hookplane/backend": "workspace:*",
+        "@hookplane/core": "workspace:*",
+        "@trpc/client": "^11.16.0",
         "@trpc/server": "^11.16.0",
         "neverthrow": "^8.2.0",
         "zod": "^4.3.6"

@@ -1,6 +1,7 @@
 import { ProviderSet, Statefile } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 
+// TODO: just infer directly
 export type StatefileData = Statefile<ProviderSet>['data']
 
 export interface Backend {

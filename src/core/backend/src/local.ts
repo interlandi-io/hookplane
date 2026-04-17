@@ -68,6 +68,7 @@ async function readStatefile(
     config: LocalBackendConfig,
 ): Promise<StatefileData> {
     const contents = await readFile(config.statefilePath, 'utf-8')
+    // TODO fix this here
     return JSON.parse(contents)
 }
 
