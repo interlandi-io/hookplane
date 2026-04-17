@@ -6,9 +6,9 @@
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",
-        "test": "doppler run -- vitest",
-        "__test:run": "doppler run -- vitest run",
-        "test:watch": "doppler run -- vitest --watch",
+        "test": "vitest",
+        "test:run": "vitest run",
+        "test:watch": "vitest --watch",
         "check-types": "tsc --noEmit",
         "lint": "eslint . --max-warnings 0"
     },

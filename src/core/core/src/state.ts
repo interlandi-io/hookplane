@@ -5,11 +5,7 @@
  * and the snapshot state used by the library.
  *
  */
-import {
-    type Provider,
-    type EndpointState,
-    type EndpointIndex,
-} from './provider.js'
+import { type EndpointState, type EndpointIndex } from './provider.js'
 import { ProviderSet } from './provider-set.js'
 
 /**
