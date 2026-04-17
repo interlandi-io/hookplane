@@ -2,7 +2,9 @@
     "name": "@hookplane/backend",
     "type": "module",
     "version": "0.1.0",
-    "private": true,
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",

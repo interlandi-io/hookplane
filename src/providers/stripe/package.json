@@ -1,8 +1,10 @@
 {
     "name": "@hookplane/stripe",
     "version": "1.0.0",
+    "publishConfig": {
+        "access": "public"
+    },
     "type": "module",
-    "private": true,
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",

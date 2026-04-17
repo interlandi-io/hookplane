@@ -1,7 +1,9 @@
 {
     "name": "@hookplane/core",
     "version": "0.1.0",
-    "private": true,
+    "publishConfig": {
+        "access": "public"
+    },
     "type": "module",
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
