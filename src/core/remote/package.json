@@ -26,9 +26,13 @@
         "lint": "eslint . --max-warnings 0"
     },
     "exports": {
-        ".": {
-            "default": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+        "./client": {
+            "default": "./dist/client.js",
+            "types": "./dist/client.d.ts"
+        },
+        "./server": {
+            "default": "./dist/server.js",
+            "types": "./dist/server.d.ts"
         }
     },
     "dependencies": {
