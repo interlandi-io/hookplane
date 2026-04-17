@@ -17,9 +17,7 @@ export const pushCommand = defineCommand({
         //     default: false,
         // },
     },
-    run: async ({
-        args: { 'tsconfig-path': tsconfigPath },
-    }) => {
+    run: async ({ args: { 'tsconfig-path': tsconfigPath } }) => {
         const hookplaneResult = await getHookplane(tsconfigPath)
         if (hookplaneResult.isErr()) {
             logger.error(hookplaneResult.error.message)

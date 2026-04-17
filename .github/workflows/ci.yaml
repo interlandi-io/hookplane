@@ -7,16 +7,32 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PNPM Setup
+        uses: pnpm/action-setup@v4
+
+      - name: Node Setup
+        uses: actions/setup-node@v4
         with: 
           node-version: 25
           cache: pnpm 
-      - run: pnpm i --frozen-lockfile
-      - run: pnpm run format:check
-      - run: pnpm run check-types
-      - run: pnpm run lint 
-      - run: pnpm run check-types
-      - run: pnpm run test
-      - run: pnpm run build
+
+      - name: Install Deps
+        run: pnpm i --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Format
+        run: pnpm run format:check
+
+      - name: Check Types
+        run: pnpm run check-types
+
+      - name: Lint
+        run: pnpm run lint 
+
+      - name: Test
+        run: pnpm run test
