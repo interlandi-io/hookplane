@@ -2,9 +2,20 @@
     "name": "hookplane",
     "type": "module",
     "version": "0.1.0",
+    "license": "Apache-2.0",
+    "description": "Hookplane SDK and CLI",
+    "repository": "github:interlandi-io/hookplane",
+    "author": {
+        "name": "Mike Interlandi",
+        "url": "https://interlandi.io"
+    },
+    "homepage": "https://hookplane.com",
     "publishConfig": {
         "access": "public"
     },
+    "files": [
+        "dist"
+    ],
     "bin": {
         "hp": "dist/cli/cli.js"
     },

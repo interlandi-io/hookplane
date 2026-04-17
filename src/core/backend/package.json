@@ -2,9 +2,20 @@
     "name": "@hookplane/backend",
     "type": "module",
     "version": "0.1.0",
+    "license": "Apache-2.0",
+    "description": "Uniform backend interface for hookplane",
+    "repository": "github:interlandi-io/hookplane",
+    "author": {
+        "name": "Mike Interlandi",
+        "url": "https://interlandi.io"
+    },
+    "homepage": "https://hookplane.com",
     "publishConfig": {
         "access": "public"
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "dev": "tsc --project tsconfig.build.json --watch",
         "build": "tsc --project tsconfig.build.json",
