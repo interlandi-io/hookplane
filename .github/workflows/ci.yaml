@@ -39,6 +39,6 @@ jobs:
         run: pnpm run lint 
 
       - name: Test
-        run: pnpm run test
+        run: doppler run -- pnpm run test
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
