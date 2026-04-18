@@ -178,6 +178,96 @@ describe('plan', () => {
         })
     })
 
+    it('generates create for non-orphan handles when createNonOrphanHandles is true', () => {
+        const left: State<typeof providers> = {
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map(),
+            },
+        }
+        const right: State<typeof providers> = {
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            url: createEndpointUrl(
+                                'https://localhost/',
+                            )._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
+            },
+        }
+
+        const result = createPlan(left, right, { createNonOrphanHandles: true })
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
+        expect(plan.providerPlans.testProvider!).toHaveLength(1)
+        expect(plan.providerPlans.testProvider!.get(createStepId(0))).toEqual({
+            kind: 'create',
+            state: {
+                url: createEndpointUrl('https://localhost/')._unsafeUnwrap(),
+                events: ['testEvent'],
+                config: {},
+            },
+        })
+    })
+
+    it('does not generate create for non-orphan handles by default', () => {
+        const left: State<typeof providers> = {
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map(),
+            },
+        }
+        const right: State<typeof providers> = {
+            providers: {
+                testProvider: TestProvider({
+                    storeUrl: 'storeurl',
+                    storeKey: 'storekey',
+                }),
+            },
+            providerStates: {
+                testProvider: new Map([
+                    [
+                        createEndpointHandle('handle-0')._unsafeUnwrap(),
+                        {
+                            url: createEndpointUrl(
+                                'https://localhost/',
+                            )._unsafeUnwrap(),
+                            events: ['testEvent'],
+                            config: {},
+                        },
+                    ],
+                ]),
+            },
+        }
+
+        const result = createPlan(left, right)
+        expect(result.isOk()).toBe(true)
+        const plan = result._unsafeUnwrap()
+        expect(plan.providerPlans.testProvider!).toHaveLength(0)
+    })
+
     it('generates update when changing endpoint url', () => {
         const left: State<typeof providers> = {
             providers: {
