@@ -147,7 +147,11 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
             } satisfies PlanError)
         }
         providerPlans[providerKey] = new Map()
-        const steps = normalizeAndDiff(provider, providerComparison, opts?.createNonOrphanHandles || false)
+        const steps = normalizeAndDiff(
+            provider,
+            providerComparison,
+            opts?.createNonOrphanHandles || false,
+        )
         if (steps.isErr()) {
             return err(steps.error)
         }

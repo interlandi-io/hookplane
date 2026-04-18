@@ -51,7 +51,7 @@ const errorPrefix = styleText('red', 'error')
 export const logger = {
     dir: (name: string, obj: object) => {
         if (shouldLog('debug')) {
-            console.log(debugPrefix, `${name}: `) 
+            console.log(debugPrefix, `${name}: `)
             console.dir(obj)
         }
     },

@@ -52,13 +52,12 @@ export const createRemoteBackend = describeBackend<
                 (async () => {
                     const data = await client.statefile.read.query()
                     return parseStatefile(data, providers)
-                        .map(s => s.toState())
-                        .andThen(r => r)
+                        .map((s) => s.toState())
+                        .andThen((r) => r)
                         .mapErr(statefileErrorToBackendError)
-                    })(), 
+                })(),
                 (e) => toBackendError(e, 'read'),
-            )
-                .andThen(r => r),
+            ).andThen((r) => r),
 
         write: ({ state: { client }, data }) =>
             ResultAsync.fromPromise(
@@ -66,15 +65,16 @@ export const createRemoteBackend = describeBackend<
                 // but this is more explicit.
                 (async () => {
                     const statefile = fromState(1, data)
-                    await client.statefile.write.mutate({ data: statefile.data })
-                })(), 
+                    await client.statefile.write.mutate({
+                        data: statefile.data,
+                    })
+                })(),
                 (e) => toBackendError(e, 'write'),
             ),
 
         delete: ({ state: { client } }) =>
-            ResultAsync.fromPromise(
-                client.statefile.delete.mutate(),
-                (e) => toBackendError(e, 'delete'),
+            ResultAsync.fromPromise(client.statefile.delete.mutate(), (e) =>
+                toBackendError(e, 'delete'),
             ),
     },
 
@@ -84,7 +84,7 @@ export const createRemoteBackend = describeBackend<
                 client.signingSecret.read.query({ id }),
                 (e) => toBackendError(e, 'read'),
             ),
-                
+
         write: ({ state: { client }, id, data }) =>
             ResultAsync.fromPromise(
                 client.signingSecret.write.mutate({ id, data }),

@@ -12,7 +12,7 @@ export async function plan(
     desired: State<ProviderSet>,
 ): Promise<Result<PlanOutput, Error>> {
     const syncPlanResult = createPlan(prior, actual, {
-        createNonOrphanHandles: true, 
+        createNonOrphanHandles: true,
     })
     if (syncPlanResult.isErr()) {
         return err(new Error(syncPlanResult.error.message))
