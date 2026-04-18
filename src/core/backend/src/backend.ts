@@ -7,7 +7,9 @@ export interface Backend {
 
     state: {
         /** Reads state data */
-        read<P extends ProviderSet>(providers: P): ResultAsync<State<P>, BackendError>
+        read<P extends ProviderSet>(
+            providers: P,
+        ): ResultAsync<State<P>, BackendError>
 
         /** Writes a state to storage */
         write<P extends ProviderSet>(
@@ -38,6 +40,7 @@ export type BackendError =
     | WriteRejectedError
     | ServerError
     | InternalError
+    | ProviderNotFoundError
     | UnknownError
 
 export interface NotFoundError {
@@ -75,6 +78,14 @@ export interface InternalError {
     message: string
     while: BackendOperation
     cause?: unknown
+}
+
+export interface ProviderNotFoundError {
+    kind: 'BackendError'
+    name: 'ProviderNotFoundError'
+    message: string
+    while: BackendOperation
+    provider: string
 }
 
 export interface UnknownError {

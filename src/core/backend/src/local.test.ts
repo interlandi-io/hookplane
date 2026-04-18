@@ -150,7 +150,7 @@ describe('createLocalBackend', () => {
             expect(result._unsafeUnwrapErr().while).toBe('read')
         })
 
-        it('returns InternalError when statefile references unknown provider', async () => {
+        it('returns ProviderNotFoundError when statefile references unknown provider', async () => {
             const badData = createFakeStatefileData(
                 'unknown-provider',
                 fakeHandle,
@@ -163,7 +163,10 @@ describe('createLocalBackend', () => {
             const result = await driver.state.read(fakeProviders)
 
             expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('InternalError')
+            expect(result._unsafeUnwrapErr().name).toBe('ProviderNotFoundError')
+            expect(
+                (result._unsafeUnwrapErr() as ProviderNotFoundError).provider,
+            ).toBe('unknown-provider')
         })
     })
 

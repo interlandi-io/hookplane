@@ -13,5 +13,6 @@ export type {
     WriteRejectedError,
     ServerError,
     InternalError,
+    ProviderNotFoundError,
     UnknownError,
 } from './backend.js'

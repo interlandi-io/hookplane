@@ -5,6 +5,7 @@ import {
     PermissionDeniedError,
     WriteRejectedError,
     InternalError,
+    ProviderNotFoundError,
     UnknownError,
     BackendOperation,
 } from './backend.js'
@@ -12,6 +13,7 @@ import {
     parseStatefile,
     fromState,
     StatefileError,
+    type ProviderNotFoundError as StatefileProviderNotFoundError,
 } from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
@@ -77,7 +79,16 @@ function toBackendError(
     } satisfies UnknownError
 }
 
-function statefileErrorToBackendError(error: StatefileError): InternalError {
+function statefileErrorToBackendError(error: StatefileError): BackendError {
+    if (error.name === 'ProviderNotFoundError') {
+        return {
+            kind: 'BackendError',
+            name: 'ProviderNotFoundError',
+            message: error.message,
+            while: 'read',
+            provider: (error as StatefileProviderNotFoundError).provider,
+        } satisfies ProviderNotFoundError
+    }
     return {
         kind: 'BackendError',
         name: 'InternalError',
