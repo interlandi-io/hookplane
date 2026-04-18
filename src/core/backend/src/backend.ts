@@ -91,7 +91,10 @@ export interface BackendDescriptor<TConfig, TState> {
             state: TState
             data: Statefile<P>
         }): ResultAsync<void, BackendError>
-        delete(params: { config: TConfig }): ResultAsync<void, BackendError>
+        delete(params: {
+            config: TConfig
+            state: TState
+        }): ResultAsync<void, BackendError>
     }
     signingSecret: {
         read(params: {
@@ -126,7 +129,7 @@ export function describeBackend<TConfig, TState>(
             statefile: {
                 read: () => desc.statefile.read({ config, state }),
                 write: (data) => desc.statefile.write({ config, state, data }),
-                delete: () => desc.statefile.delete({ config }),
+                delete: () => desc.statefile.delete({ config, state }),
             },
             signingSecret: {
                 read: (id) => desc.signingSecret.read({ config, state, id }),

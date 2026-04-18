@@ -1,11 +1,13 @@
 on:
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
     branches:
       - master
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
 
     steps:
       - name: Checkout

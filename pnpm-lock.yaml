@@ -157,6 +157,43 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
 
+  src/core/remote:
+    dependencies:
+      '@hookplane/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@hookplane/core':
+        specifier: workspace:*
+        version: link:../core
+      '@trpc/client':
+        specifier: ^11.16.0
+        version: 11.16.0(@trpc/server@11.16.0(typescript@5.9.2))(typescript@5.9.2)
+      '@trpc/server':
+        specifier: ^11.16.0
+        version: 11.16.0(typescript@5.9.2)
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../shared/eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../shared/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      vite:
+        specifier: ^8.0.0
+        version: 8.0.3(@types/node@22.15.3)(jiti@2.6.1)
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@22.15.3)(vite@8.0.3(@types/node@22.15.3)(jiti@2.6.1))
+
   src/providers/stripe:
     dependencies:
       '@hookplane/provider':
@@ -492,6 +529,19 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@trpc/client@11.16.0':
+    resolution: {integrity: sha512-TxIzm7OoK3baKZ0XCbuMUbI3GhgjcbKHIc4nWVKaRpCRnbSh0T31BT6fTPYwtnA/Nur8pBCGqC2B4J5hEPiPFQ==}
+    hasBin: true
+    peerDependencies:
+      '@trpc/server': 11.16.0
+      typescript: '>=5.7.2'
+
+  '@trpc/server@11.16.0':
+    resolution: {integrity: sha512-XgGuUMddrUTd04+za/WE5GFuZ1/YU9XQG0t3VL5WOIu2JspkOlq6k4RYEiqS6HSJt+S0RXaPdIoE2anIP/BBRQ==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.7.2'
 
   '@ts-morph/common@0.28.1':
     resolution: {integrity: sha512-W74iWf7ILp1ZKNYXY5qbddNaml7e9Sedv5lvU1V8lftlitkc9Pq1A+jlH23ltDgWYeZFFEqGCD1Ies9hqu3O+g==}
@@ -2373,6 +2423,15 @@ snapshots:
     optional: true
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@trpc/client@11.16.0(@trpc/server@11.16.0(typescript@5.9.2))(typescript@5.9.2)':
+    dependencies:
+      '@trpc/server': 11.16.0(typescript@5.9.2)
+      typescript: 5.9.2
+
+  '@trpc/server@11.16.0(typescript@5.9.2)':
+    dependencies:
+      typescript: 5.9.2
 
   '@ts-morph/common@0.28.1':
     dependencies:

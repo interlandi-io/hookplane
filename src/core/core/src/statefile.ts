@@ -9,7 +9,7 @@ import { createEndpointUrl, type EndpointUrl } from './url.js'
 import { Result, ok, err } from 'neverthrow'
 import { ProviderSet } from './provider-set.js'
 import { State } from './state.js'
-import { EndpointIndex, EndpointState, Provider } from './provider.js'
+import { EndpointIndex, Provider } from './provider.js'
 import { EndpointHandle, createRealEndpointHandle } from './endpoint-handle.js'
 
 /**
@@ -33,13 +33,23 @@ const EndpointHandleSchema = refineString<EndpointHandle>(
     'invalid endpoint handle',
 )
 
+// Fun fact: This schema used to be annotated with z.ZodType<EndpointState<Provider>>
+// The problem with that was that when Typescript generated the z.infer<...> types, it would
+// flatten the schema such that config was effectively z.unknown().
+// This happens because the default value for the TEndpointConfig generic in
+// Provider is unknown, so EndpointState<Provider> would have { config: unknown }.
+// Since all type extends every type, undefined extends unknown which means
+// the inferred type of this schema would have something equivalent to { config?: unknown },
+// which is inaccurate since config is not an optional property of EndpointState.
+// If you want to repeat the experiment, add the annotation back and take a look at the generated
+// statefile.d.ts file.
 /**
  * Zod schema for endpoint state.
  *
  * Represents the configuration of a single endpoint including its
  * URL, subscribed events, and provider-specific config.
  */
-const EndpointStateSchema: z.ZodType<EndpointState<Provider>> = z.object({
+const EndpointStateSchema = z.object({
     url: EndpointUrlSchema,
     events: z.array(z.string()),
     config: z.record(z.string(), z.unknown()),
@@ -66,7 +76,7 @@ const ProviderStateSchema = z.record(EndpointHandleSchema, EndpointSchema)
  * - version: The statefile version
  * - providerStates: A record of providers, each containing endpoints keyed by handle
  */
-const StatefileSchema = z.object({
+export const StatefileSchema = z.object({
     version: z.literal(1),
     providerStates: z.record(z.string(), ProviderStateSchema),
 })
