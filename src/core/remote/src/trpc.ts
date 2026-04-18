@@ -1,8 +1,9 @@
 import { initTRPC, TRPCError } from '@trpc/server'
-import { StatefileSchema } from '@hookplane/core'
+import { ProviderSet, Statefile, StatefileSchema } from '@hookplane/core'
 import z from 'zod'
-import { StatefileData } from '@hookplane/backend'
 import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
+
+type StatefileData = Statefile<ProviderSet>['data']
 
 export type RouterDescriptor<TContext extends object> = {
     createContext: (
