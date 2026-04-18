@@ -45,6 +45,8 @@ export const createRemoteBackend = describeBackend<
             ),
         write: ({ state: { client }, data: statefile }) =>
             ResultAsync.fromPromise(
+                // This could be done shorthand like ....mutate(statefile),
+                // but this is more explicit.
                 client.statefile.write.mutate({ data: statefile['data'] }),
                 (e) => toBackendError(e, 'write'),
             ),
