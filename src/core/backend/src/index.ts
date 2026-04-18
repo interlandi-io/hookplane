@@ -1,11 +1,10 @@
 export { createLocalBackend, type LocalBackendConfig } from './local.js'
 export { createTempBackend } from './temp.js'
 export type {
-    StatefileData,
     Backend,
     BackendDescriptor,
     BackendError,
-    StatefileOperation,
+    BackendOperation,
 } from './backend.js'
 export { describeBackend } from './backend.js'
 export type {
@@ -13,5 +12,6 @@ export type {
     PermissionDeniedError,
     WriteRejectedError,
     ServerError,
+    InternalError,
     UnknownError,
 } from './backend.js'
