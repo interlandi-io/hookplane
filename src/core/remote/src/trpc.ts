@@ -11,15 +11,15 @@ export type RouterDescriptor<TContext extends object> = {
     ) => Promise<TContext>
     middleware: (ctx: TContext) => Promise<void>
     statefile: {
-        read: (ctx: TContext) => Promise<StatefileData>,
-        write: (ctx: TContext, data: StatefileData) => Promise<void>,
-        delete: (ctx: TContext) => Promise<void>,
-    },
+        read: (ctx: TContext) => Promise<StatefileData>
+        write: (ctx: TContext, data: StatefileData) => Promise<void>
+        delete: (ctx: TContext) => Promise<void>
+    }
     signingSecret: {
-        read: (ctx: TContext, id: string) => Promise<string>,
-        write: (ctx: TContext, id: string, data: string) => Promise<void>,
-        delete: (ctx: TContext, id: string) => Promise<void>,
-    },
+        read: (ctx: TContext, id: string) => Promise<string>
+        write: (ctx: TContext, id: string, data: string) => Promise<void>
+        delete: (ctx: TContext, id: string) => Promise<void>
+    }
 }
 
 export type RemoteBackendHeaders = {
