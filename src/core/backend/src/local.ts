@@ -1,14 +1,20 @@
 import {
     describeBackend,
-    type StatefileOperation,
     type BackendError,
-    type StatefileData,
     NotFoundError,
     PermissionDeniedError,
     WriteRejectedError,
+    InternalError,
+    ProviderNotFoundError,
     UnknownError,
+    BackendOperation,
 } from './backend.js'
-import { Statefile, ProviderSet } from '@hookplane/core'
+import {
+    parseStatefile,
+    fromState,
+    StatefileError,
+    type ProviderNotFoundError as StatefileProviderNotFoundError,
+} from '@hookplane/core'
 import { ResultAsync } from 'neverthrow'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
 import { z } from 'zod'
@@ -24,7 +30,7 @@ const SigningSecretFileSchema = z.object({
 
 function toBackendError(
     e: unknown,
-    operation: StatefileOperation,
+    operation: BackendOperation,
     path: string,
 ): BackendError {
     const error = e as NodeJS.ErrnoException & { kind?: string }
@@ -55,6 +61,15 @@ function toBackendError(
             while: operation,
         } satisfies WriteRejectedError
     }
+    if (e instanceof SyntaxError) {
+        return {
+            kind: 'BackendError',
+            name: 'InternalError',
+            message: `invalid JSON: ${e.message}`,
+            while: operation,
+            cause: e,
+        } satisfies InternalError
+    }
     return {
         kind: 'BackendError',
         name: 'UnknownError',
@@ -64,23 +79,23 @@ function toBackendError(
     } satisfies UnknownError
 }
 
-async function readStatefile(
-    config: LocalBackendConfig,
-): Promise<StatefileData> {
-    const contents = await readFile(config.statefilePath, 'utf-8')
-    // TODO fix this here
-    return JSON.parse(contents)
-}
-
-async function writeStatefile<P extends ProviderSet>(
-    config: LocalBackendConfig,
-    data: Statefile<P>,
-): Promise<void> {
-    await writeFile(
-        config.statefilePath,
-        JSON.stringify(data.data, null, 2),
-        'utf-8',
-    )
+function statefileErrorToBackendError(error: StatefileError): BackendError {
+    if (error.name === 'ProviderNotFoundError') {
+        return {
+            kind: 'BackendError',
+            name: 'ProviderNotFoundError',
+            message: error.message,
+            while: 'read',
+            provider: (error as StatefileProviderNotFoundError).provider,
+        } satisfies ProviderNotFoundError
+    }
+    return {
+        kind: 'BackendError',
+        name: 'InternalError',
+        message: error.message,
+        while: 'read',
+        cause: error,
+    } satisfies InternalError
 }
 
 async function deleteStatefile(config: LocalBackendConfig): Promise<void> {
@@ -168,14 +183,40 @@ async function deleteSigningSecret(
 
 export const createLocalBackend = describeBackend<LocalBackendConfig, void>({
     name: 'local-file',
-    statefile: {
-        read: ({ config }) =>
-            ResultAsync.fromPromise(readStatefile(config), (e) =>
-                toBackendError(e, 'read', config.statefilePath),
+    state: {
+        read: ({ config, providers }) =>
+            ResultAsync.fromPromise(
+                (async () => {
+                    const contents = await readFile(
+                        config.statefilePath,
+                        'utf-8',
+                    )
+                    const parsed = JSON.parse(contents)
+                    const statefileResult = parseStatefile(parsed, providers)
+                    if (statefileResult.isErr()) {
+                        throw statefileErrorToBackendError(
+                            statefileResult.error,
+                        )
+                    }
+                    const stateResult = statefileResult.value.toState()
+                    if (stateResult.isErr()) {
+                        throw statefileErrorToBackendError(stateResult.error)
+                    }
+                    return stateResult.value
+                })(),
+                (e) => toBackendError(e, 'read', config.statefilePath),
             ),
         write: ({ config, data }) =>
-            ResultAsync.fromPromise(writeStatefile(config, data), (e) =>
-                toBackendError(e, 'write', config.statefilePath),
+            ResultAsync.fromPromise(
+                (async () => {
+                    const statefile = fromState(1, data)
+                    await writeFile(
+                        config.statefilePath,
+                        JSON.stringify(statefile.data, null, 2),
+                        'utf-8',
+                    )
+                })(),
+                (e) => toBackendError(e, 'write', config.statefilePath),
             ),
         delete: ({ config }) =>
             ResultAsync.fromPromise(deleteStatefile(config), (e) =>

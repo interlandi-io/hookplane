@@ -102,15 +102,33 @@ type UpdateStep<P extends Provider> = {
 }
 
 /**
+ * Options to be passed to `createPlan`.
+ */
+export type CreatePlanOptions = {
+    /**
+     * If true, the plan will contain create steps for non-orphan endpoint handles.
+     * You want this for "sync" plans (drift reconciliation), but not "target" plans.
+     *
+     * If those terms don't make sense, it's probably because the way the CLI/client structure has changed.
+     * In that event, update these docs.
+     *
+     * @default false
+     */
+    createNonOrphanHandles?: boolean
+}
+
+/**
  * Creates a `Plan` for updating a state from one state to another.
  *
  * @param left The left state.
  * @param right The right state.
+ * @param opts Optional @see CreatePlanOptions
  * @returns A `Plan` for updating the left state to the right state.
  */
 function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
     left: L,
     right: R,
+    opts?: CreatePlanOptions,
 ): Result<Plan<ProviderSet>, PlanError> {
     const comparison = createComparison(left, right)
     const providers = comparison.providers // Merged providers
@@ -129,7 +147,11 @@ function createPlan<L extends State<ProviderSet>, R extends State<ProviderSet>>(
             } satisfies PlanError)
         }
         providerPlans[providerKey] = new Map()
-        const steps = normalizeAndDiff(provider, providerComparison)
+        const steps = normalizeAndDiff(
+            provider,
+            providerComparison,
+            opts?.createNonOrphanHandles || false,
+        )
         if (steps.isErr()) {
             return err(steps.error)
         }
@@ -297,6 +319,7 @@ function mergeProviders<L extends ProviderSet, R extends ProviderSet>(
 function normalizeAndDiff<P extends Provider>(
     provider: Provider,
     { left, right }: ProviderComparison<P>,
+    createNonOrphanHandles: boolean,
 ): Result<Set<Step<P>>, PlanError> {
     const steps: Set<Step<P>> = new Set()
 
@@ -342,7 +365,7 @@ function normalizeAndDiff<P extends Provider>(
     }
 
     for (const [rightHandle, rightState] of right) {
-        if (!endpointHandleIsOrphan(rightHandle)) {
+        if (!endpointHandleIsOrphan(rightHandle) && !createNonOrphanHandles) {
             continue
         }
         // TODO assert that left shouldn't have this one

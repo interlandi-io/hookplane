@@ -1,6 +1,5 @@
 import { err, ok, Result } from 'neverthrow'
 import {
-    bootstrap,
     endpointUrlHeuristic,
     match,
     ProviderSet,
@@ -20,12 +19,6 @@ export async function states(
     hookplane: Hookplane,
 ): Promise<Result<StateOutput, Error>> {
     const backend = hookplane.backend
-    const bootstrapContent = bootstrap()
-    const writeResult = await backend.statefile.write(bootstrapContent)
-    if (writeResult.isErr()) {
-        return err(new Error(writeResult.error.message))
-    }
-
     const desiredUnknown = hookplane.state
 
     const priorResult = await getPrior(backend, desiredUnknown.providers)

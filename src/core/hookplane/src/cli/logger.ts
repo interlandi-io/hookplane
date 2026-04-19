@@ -49,8 +49,14 @@ const warnPrefix = styleText('yellow', 'warn')
 const errorPrefix = styleText('red', 'error')
 
 export const logger = {
+    dir: (name: string, obj: object) => {
+        if (shouldLog('debug')) {
+            console.log(debugPrefix, `${name}: `)
+            console.dir(obj)
+        }
+    },
     debug: (...msg: unknown[]) => {
-        if (shouldLog('debug')) console.debug(debugPrefix, ...msg)
+        if (shouldLog('debug')) console.log(debugPrefix, ...msg)
     },
     info: (...msg: unknown[]) => {
         if (shouldLog('info')) console.log(infoPrefix, ...msg)

@@ -1,24 +1,99 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createLocalBackend } from '~/local.js'
-import { StatefileData } from '~/backend.js'
+import { Backend, ProviderNotFoundError } from '~/backend.js'
 import {
-    Statefile,
     ProviderSet,
+    Provider,
+    EventDefinition,
+    EndpointHandle,
     createEndpointHandle,
     createEndpointUrl,
+    State,
 } from '@hookplane/core'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as os from 'node:os'
 
+function createFakeProvider(name: string, events: string[]): Provider {
+    const eventsRecord = {} as Record<string, EventDefinition<unknown>>
+    for (const eventName of events) {
+        eventsRecord[eventName] = {
+            __phantom: undefined,
+        } as EventDefinition<unknown>
+    }
+    return {
+        name,
+        config: {},
+        state: null,
+        events: eventsRecord,
+        setup: () => {
+            throw new Error('not implemented')
+        },
+        createEndpoint: () => {
+            throw new Error('not implemented')
+        },
+        readEndpoint: () => {
+            throw new Error('not implemented')
+        },
+        updateEndpoint: () => {
+            throw new Error('not implemented')
+        },
+        deleteEndpoint: () => {
+            throw new Error('not implemented')
+        },
+        indexEndpoints: () => {
+            throw new Error('not implemented')
+        },
+    }
+}
+
+function createFakeStatefileData(
+    providerName: string,
+    handle: string,
+    url: string,
+    events: string[],
+) {
+    return {
+        version: 1,
+        providerStates: {
+            [providerName]: {
+                [handle]: {
+                    state: {
+                        url,
+                        events,
+                        config: {},
+                    },
+                },
+            },
+        },
+    }
+}
+
 describe('createLocalBackend', () => {
     let tmpDir: string
+    let statefilePath: string
     let signingSecretPath: string
 
+    const fakeProviderName = 'stripe'
+    const fakeEvents = ['payment.succeeded', 'payment.failed']
+    const fakeHandle = createEndpointHandle('endpoint-1')._unsafeUnwrap()
+    const fakeUrl = createEndpointUrl(
+        'https://example.com/webhook',
+    )._unsafeUnwrap()
+
+    const fakeProvider = createFakeProvider(fakeProviderName, fakeEvents)
+    const fakeProviders: ProviderSet = { [fakeProviderName]: fakeProvider }
+
+    const mockStatefileData = createFakeStatefileData(
+        fakeProviderName,
+        fakeHandle,
+        fakeUrl,
+        fakeEvents,
+    )
+
     beforeAll(async () => {
-        tmpDir = await fs.mkdtemp(
-            path.join(os.tmpdir(), 'statefile-driver-test-'),
-        )
+        tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
+        statefilePath = path.join(tmpDir, 'statefile.json')
         signingSecretPath = path.join(tmpDir, 'secrets.json')
     })
 
@@ -26,112 +101,150 @@ describe('createLocalBackend', () => {
         await fs.rm(tmpDir, { recursive: true, force: true })
     })
 
-    const createDriver = (
-        statefilePath?: string,
-    ): ReturnType<typeof createLocalBackend> =>
-        createLocalBackend({
-            statefilePath: statefilePath || path.join(tmpDir, 'state.json'),
+    const createDriver = async (): Promise<Backend> => {
+        const makeBackend = createLocalBackend({
+            statefilePath,
             signingSecretPath,
         })
-
-    const mockData: StatefileData = {
-        version: 1,
-        providerStates: {
-            stripe: {
-                [createEndpointHandle('endpoint-1')._unsafeUnwrap()]: {
-                    state: {
-                        url: createEndpointUrl(
-                            'https://example.com/webhook',
-                        )._unsafeUnwrap(),
-                        events: ['payment.succeeded'],
-                        config: {},
-                    },
-                },
-            },
-        },
+        return makeBackend()
     }
 
-    const mockStatefile: Statefile<ProviderSet> = {
-        data: mockData,
-        toState: () => {
-            throw new Error('Not implemented in test')
-        },
-    }
-
-    describe('statefile.read', () => {
+    describe('state.read', () => {
         it('returns ok with parsed data when file exists', async () => {
-            const filePath = path.join(tmpDir, 'state.json')
-            await fs.writeFile(filePath, JSON.stringify(mockData), 'utf-8')
+            await fs.writeFile(
+                statefilePath,
+                JSON.stringify(mockStatefileData),
+                'utf-8',
+            )
 
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.read()
+            const driver = await createDriver()
+            const result = await driver.state.read(fakeProviders)
 
             expect(result.isOk()).toBe(true)
-            expect(result._unsafeUnwrap()).toEqual(mockData)
+            const state = result._unsafeUnwrap()
+            expect(state.providerStates[fakeProviderName]).toBeDefined()
+            const providerState = state.providerStates[fakeProviderName]!
+            expect(providerState.has(fakeHandle)).toBe(true)
         })
 
         it('returns NotFoundError when file does not exist', async () => {
-            const filePath = path.join(tmpDir, 'nonexistent.json')
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.read()
+            const driver = await createLocalBackend({
+                statefilePath: path.join(tmpDir, 'doesnotexist.json'),
+                signingSecretPath,
+            })()
+            const result = await driver.state.read(fakeProviders)
 
             expect(result.isErr()).toBe(true)
             expect(result._unsafeUnwrapErr().name).toBe('NotFoundError')
             expect(result._unsafeUnwrapErr().while).toBe('read')
         })
 
-        it('returns UnknownError when file contains invalid json', async () => {
-            const filePath = path.join(tmpDir, 'invalid.json')
-            await fs.writeFile(filePath, 'not valid json', 'utf-8')
+        it('returns InternalError when file contains invalid json', async () => {
+            await fs.writeFile(statefilePath, 'not valid json', 'utf-8')
 
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.read()
+            const driver = await createDriver()
+            const result = await driver.state.read(fakeProviders)
 
             expect(result.isErr()).toBe(true)
-            expect(result._unsafeUnwrapErr().name).toBe('UnknownError')
+            expect(result._unsafeUnwrapErr().name).toBe('InternalError')
             expect(result._unsafeUnwrapErr().while).toBe('read')
         })
+
+        it('returns ProviderNotFoundError when statefile references unknown provider', async () => {
+            const badData = createFakeStatefileData(
+                'unknown-provider',
+                fakeHandle,
+                fakeUrl,
+                fakeEvents,
+            )
+            await fs.writeFile(statefilePath, JSON.stringify(badData), 'utf-8')
+
+            const driver = await createDriver()
+            const result = await driver.state.read(fakeProviders)
+
+            expect(result.isErr()).toBe(true)
+            expect(result._unsafeUnwrapErr().name).toBe('ProviderNotFoundError')
+            expect(
+                (result._unsafeUnwrapErr() as ProviderNotFoundError).provider,
+            ).toBe('unknown-provider')
+        })
     })
 
-    describe('statefile.write', () => {
+    describe('state.write', () => {
         it('creates file with json data', async () => {
-            const filePath = path.join(tmpDir, 'write-test.json')
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.write(mockStatefile)
+            const endpointState = {
+                url: fakeUrl,
+                events: fakeEvents,
+                config: {},
+            }
+            const providerState = new Map<EndpointHandle, typeof endpointState>(
+                [[fakeHandle, endpointState]],
+            )
+            const state: State<ProviderSet> = {
+                providers: fakeProviders,
+                providerStates: {
+                    [fakeProviderName]: providerState,
+                },
+            }
+
+            const driver = await createDriver()
+            const result = await driver.state.write(state)
 
             expect(result.isOk()).toBe(true)
 
-            const contents = await fs.readFile(filePath, 'utf-8')
+            const contents = await fs.readFile(statefilePath, 'utf-8')
             const parsed = JSON.parse(contents)
-            expect(parsed).toEqual(mockData)
+            expect(parsed.version).toBe(1)
+            expect(parsed.providerStates[fakeProviderName]).toBeDefined()
+            expect(
+                parsed.providerStates[fakeProviderName][fakeHandle],
+            ).toBeDefined()
         })
 
-        it('overwrites existing file', async () => {
-            const filePath = path.join(tmpDir, 'overwrite.json')
-            await fs.writeFile(filePath, '{"old": "data"}', 'utf-8')
+        it('roundtrips data through write and read', async () => {
+            const endpointState = {
+                url: fakeUrl,
+                events: fakeEvents,
+                config: {},
+            }
+            const providerState = new Map<EndpointHandle, typeof endpointState>(
+                [[fakeHandle, endpointState]],
+            )
+            const state: State<ProviderSet> = {
+                providers: fakeProviders,
+                providerStates: {
+                    [fakeProviderName]: providerState,
+                },
+            }
 
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.write(mockStatefile)
+            const driver = await createDriver()
+            await driver.state.write(state)
 
+            const result = await driver.state.read(fakeProviders)
             expect(result.isOk()).toBe(true)
 
-            const contents = await fs.readFile(filePath, 'utf-8')
-            const parsed = JSON.parse(contents)
-            expect(parsed).toEqual(mockData)
+            const loadedState = result._unsafeUnwrap()
+            expect(loadedState.providerStates[fakeProviderName]).toBeDefined()
+            const loadedProviderState =
+                loadedState.providerStates[fakeProviderName]!
+            expect(loadedProviderState.has(fakeHandle)).toBe(true)
+
+            const loadedEndpoint = loadedProviderState.get(fakeHandle)!
+            expect(loadedEndpoint.url).toBe(fakeUrl)
+            expect(loadedEndpoint.events).toEqual(fakeEvents)
         })
     })
 
-    describe('statefile.delete', () => {
+    describe('state.delete', () => {
         it('removes existing file', async () => {
-            const filePath = path.join(tmpDir, 'delete-me.json')
-            await fs.writeFile(filePath, '{}', 'utf-8')
+            await fs.writeFile(statefilePath, '{}', 'utf-8')
 
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.delete()
+            const driver = await createDriver()
+            const result = await driver.state.delete()
 
             expect(result.isOk()).toBe(true)
 
-            const exists = await fs.access(filePath).then(
+            const exists = await fs.access(statefilePath).then(
                 () => true,
                 () => false,
             )
@@ -139,9 +252,8 @@ describe('createLocalBackend', () => {
         })
 
         it('returns ok when file does not exist (idempotent delete)', async () => {
-            const filePath = path.join(tmpDir, 'never-existed.json')
-            const driver = await createDriver(filePath)
-            const result = await driver.statefile.delete()
+            const driver = await createDriver()
+            const result = await driver.state.delete()
 
             expect(result.isOk()).toBe(true)
         })

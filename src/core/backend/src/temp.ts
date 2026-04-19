@@ -3,7 +3,15 @@ import { rmSync } from 'fs'
 import path from 'path'
 import os from 'os'
 import { createLocalBackend } from './local.js'
+import { ProviderSet, State } from '@hookplane/core'
 
+/**
+ * Creates a `Backend` backed by a tempfile.
+ * This is a simple wrapper over `createLocalBackend` that's not
+ * desiged for any production use-cases.
+ *
+ * @see createLocalBackend
+ */
 export async function createTempBackend() {
     const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
     const statefilePath = path.join(tmpdir, 'statefile.json')
@@ -25,7 +33,15 @@ export async function createTempBackend() {
     const backend = await createLocalBackend({
         statefilePath,
         signingSecretPath,
-    })
+    })()
+
+    const state = {
+        providers: {},
+        providerStates: {},
+    } satisfies State<ProviderSet>
+    // This is really not for production use-cases,
+    // so it's fine to have this throw.
+    await backend.state.write(state).then((r) => r._unsafeUnwrap())
 
     return backend
 }

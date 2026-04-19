@@ -1,15 +1,23 @@
 import {
     type BackendError,
+    InternalError,
     type NotFoundError,
     type PermissionDeniedError,
     type ServerError,
     type UnknownError,
     type WriteRejectedError,
+    type ProviderNotFoundError,
     describeBackend,
 } from '@hookplane/backend'
 import { createTRPCClient, httpBatchLink, TRPCClient } from '@trpc/client'
 import { createAuthorizedHeaders, RemoteBackendRouter } from './trpc.js'
 import { ResultAsync } from 'neverthrow'
+import {
+    fromState,
+    parseStatefile,
+    type StatefileError,
+    ProviderNotFoundError as ProviderNotFoundStatefileError,
+} from '@hookplane/core'
 
 const DEFAULT_HOOKPLANE_URL = 'https://api.hookplane.com/v1/state'
 
@@ -38,34 +46,51 @@ export const createRemoteBackend = describeBackend<
         })
         return { client }
     },
-    statefile: {
-        read: ({ state: { client } }) =>
-            ResultAsync.fromPromise(client.statefile.read.query(), (e) =>
-                toBackendError(e, 'read'),
-            ),
-        write: ({ state: { client }, data: statefile }) =>
+    state: {
+        read: ({ state: { client }, providers }) =>
+            ResultAsync.fromPromise(
+                (async () => {
+                    const data = await client.statefile.read.query()
+                    return parseStatefile(data, providers)
+                        .map((s) => s.toState())
+                        .andThen((r) => r)
+                        .mapErr(statefileErrorToBackendError)
+                })(),
+                (e) => toBackendError(e, 'read'),
+            ).andThen((r) => r),
+
+        write: ({ state: { client }, data }) =>
             ResultAsync.fromPromise(
                 // This could be done shorthand like ....mutate(statefile),
                 // but this is more explicit.
-                client.statefile.write.mutate({ data: statefile['data'] }),
+                (async () => {
+                    const statefile = fromState(1, data)
+                    await client.statefile.write.mutate({
+                        data: statefile.data,
+                    })
+                })(),
                 (e) => toBackendError(e, 'write'),
             ),
+
         delete: ({ state: { client } }) =>
             ResultAsync.fromPromise(client.statefile.delete.mutate(), (e) =>
                 toBackendError(e, 'delete'),
             ),
     },
+
     signingSecret: {
         read: ({ state: { client }, id }) =>
             ResultAsync.fromPromise(
                 client.signingSecret.read.query({ id }),
                 (e) => toBackendError(e, 'read'),
             ),
+
         write: ({ state: { client }, id, data }) =>
             ResultAsync.fromPromise(
                 client.signingSecret.write.mutate({ id, data }),
                 (e) => toBackendError(e, 'write'),
             ),
+
         delete: ({ state: { client }, id }) =>
             ResultAsync.fromPromise(
                 client.signingSecret.delete.mutate({ id }),
@@ -142,4 +167,24 @@ function toBackendError(
         message: String(e),
         while: operation,
     } satisfies UnknownError
+}
+
+// TODO: this should be very strictly tested
+function statefileErrorToBackendError(error: StatefileError): BackendError {
+    if (error.name === 'ProviderNotFoundError') {
+        return {
+            kind: 'BackendError',
+            name: 'ProviderNotFoundError',
+            message: error.message,
+            while: 'read',
+            provider: (error as ProviderNotFoundStatefileError).provider,
+        } satisfies ProviderNotFoundError
+    }
+    return {
+        kind: 'BackendError',
+        name: 'InternalError',
+        message: error.message,
+        while: 'read',
+        cause: error,
+    } satisfies InternalError
 }

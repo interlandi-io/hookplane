@@ -1,22 +1,22 @@
-import { ProviderSet, Statefile } from '@hookplane/core'
-import { ResultAsync } from 'neverthrow'
-
-export type StatefileData = Statefile<ProviderSet>['data']
+import type { ProviderSet, State } from '@hookplane/core'
+import type { ResultAsync } from 'neverthrow'
 
 export interface Backend {
     /** Name of the backend */
     readonly name: string
 
-    statefile: {
-        /** Reads the raw statefile data from storage */
-        read(): ResultAsync<StatefileData, BackendError>
+    state: {
+        /** Reads state data */
+        read<P extends ProviderSet>(
+            providers: P,
+        ): ResultAsync<State<P>, BackendError>
 
-        /** Writes a validated statefile to storage */
+        /** Writes a state to storage */
         write<P extends ProviderSet>(
-            data: Statefile<P>,
+            data: State<P>,
         ): ResultAsync<void, BackendError>
 
-        /** Deletes the statefile from storage */
+        /** Deletes the state from storage */
         delete(): ResultAsync<void, BackendError>
     }
 
@@ -32,34 +32,36 @@ export interface Backend {
     }
 }
 
-export type StatefileOperation = 'read' | 'write' | 'delete'
+export type BackendOperation = 'read' | 'write' | 'delete'
 
 export type BackendError =
     | NotFoundError
     | PermissionDeniedError
     | WriteRejectedError
     | ServerError
+    | InternalError
+    | ProviderNotFoundError
     | UnknownError
 
 export interface NotFoundError {
     kind: 'BackendError'
     name: 'NotFoundError'
     message: string
-    while: StatefileOperation
+    while: BackendOperation
 }
 
 export interface PermissionDeniedError {
     kind: 'BackendError'
     name: 'PermissionDeniedError'
     message: string
-    while: StatefileOperation
+    while: BackendOperation
 }
 
 export interface WriteRejectedError {
     kind: 'BackendError'
     name: 'WriteRejectedError'
     message: string
-    while: StatefileOperation
+    while: BackendOperation
 }
 
 export interface ServerError {
@@ -67,29 +69,46 @@ export interface ServerError {
     name: 'ServerError'
     message: string
     statusCode?: number
-    while: StatefileOperation
+    while: BackendOperation
+}
+
+export interface InternalError {
+    kind: 'BackendError'
+    name: 'InternalError'
+    message: string
+    while: BackendOperation
+    cause?: unknown
+}
+
+export interface ProviderNotFoundError {
+    kind: 'BackendError'
+    name: 'ProviderNotFoundError'
+    message: string
+    while: BackendOperation
+    provider: string
 }
 
 export interface UnknownError {
     kind: 'BackendError'
     name: 'UnknownError'
     message: string
-    while: StatefileOperation
+    while: BackendOperation
     cause?: unknown
 }
 
 export interface BackendDescriptor<TConfig, TState> {
     readonly name: string
     init?: (config: TConfig) => Promise<TState>
-    statefile: {
-        read(params: {
+    state: {
+        read<P extends ProviderSet>(params: {
             config: TConfig
             state: TState
-        }): ResultAsync<StatefileData, BackendError>
+            providers: P
+        }): ResultAsync<State<P>, BackendError>
         write<P extends ProviderSet>(params: {
             config: TConfig
             state: TState
-            data: Statefile<P>
+            data: State<P>
         }): ResultAsync<void, BackendError>
         delete(params: {
             config: TConfig
@@ -118,18 +137,28 @@ export interface BackendDescriptor<TConfig, TState> {
 
 export function describeBackend<TConfig, TState>(
     desc: BackendDescriptor<TConfig, TState>,
-): (config: TConfig) => Promise<Backend> {
-    return async (config: TConfig) => {
+): (config: TConfig) => () => Promise<Backend> {
+    return (config: TConfig) => async () => {
         let state = {} as TState
         if (desc.init) {
             state = await desc.init(config)
         }
         return {
             name: desc.name,
-            statefile: {
-                read: () => desc.statefile.read({ config, state }),
-                write: (data) => desc.statefile.write({ config, state, data }),
-                delete: () => desc.statefile.delete({ config, state }),
+            state: {
+                read: <P extends ProviderSet>(providers: P) =>
+                    desc.state.read<P>({
+                        config,
+                        state,
+                        providers: providers,
+                    }),
+                write: <P extends ProviderSet>(data: State<P>) =>
+                    desc.state.write<P>({
+                        config,
+                        state,
+                        data,
+                    }),
+                delete: () => desc.state.delete({ config, state }),
             },
             signingSecret: {
                 read: (id) => desc.signingSecret.read({ config, state, id }),
