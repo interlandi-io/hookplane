@@ -5,6 +5,13 @@ import os from 'os'
 import { createLocalBackend } from './local.js'
 import { ProviderSet, State } from '@hookplane/core'
 
+/**
+ * Creates a `Backend` backed by a tempfile.
+ * This is a simple wrapper over `createLocalBackend` that's not
+ * desiged for any production use-cases.
+ *
+ * @see createLocalBackend
+ */
 export async function createTempBackend() {
     const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookplane-test-'))
     const statefilePath = path.join(tmpdir, 'statefile.json')
