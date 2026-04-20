@@ -1,5 +1,5 @@
 {
-    "name": "@hookplane/remote",
+    "name": "@hookplane/backend-remote",
     "type": "module",
     "version": "0.2.0",
     "license": "Apache-2.0",
