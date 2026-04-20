@@ -3,14 +3,22 @@
     "extends": ["//"],
     "tasks": {
         "test": {
+            "env": ["DATABASE_URL"],
             "cache": false,
             "persistent": false
         },
         "test:run": {
+            "env": ["DATABASE_URL"],
+            "cache": false,
+            "persistent": false
+        },
+        "test:integration": {
+            "env": ["DATABASE_URL"],
             "cache": false,
             "persistent": false
         },
         "test:watch": {
+            "env": ["DATABASE_URL"],
             "cache": false,
             "persistent": true
         }

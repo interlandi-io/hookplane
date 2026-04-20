@@ -22,9 +22,12 @@
         "test": "vitest",
         "test:run": "vitest run",
         "test:watch": "vitest --watch",
+        "test:integration": "DATABASE_URL=postgresql://hookplane:hookplane@127.0.0.1:54329/hookplane_test vitest run test/index.test.ts",
         "check-types": "tsc --noEmit",
         "lint": "eslint . --max-warnings 0",
-        "gen:migrations": "drizzle-kit generate"
+        "gen:migrations": "drizzle-kit generate",
+        "db:up": "docker compose -f ./compose.yaml up -d",
+        "db:down": "docker compose -f ./compose.yaml down -v"
     },
     "exports": {
         "./index": {
