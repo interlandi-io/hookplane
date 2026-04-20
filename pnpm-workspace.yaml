@@ -1,4 +1,5 @@
 packages:
+  - "src/backend/*"
   - "src/core/*"
   - "src/providers/*"
   - "src/shared/*"

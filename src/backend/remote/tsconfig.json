@@ -11,7 +11,10 @@
     "exclude": ["node_modules", "dist"],
     "references": [
         {
-            "path": "../core"
+            "path": "../../core/core"
+        },
+        {
+            "path": "../backend"
         }
     ]
 }
