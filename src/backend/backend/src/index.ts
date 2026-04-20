@@ -3,6 +3,7 @@ export { createTempBackend } from './temp.js'
 export type {
     Backend,
     BackendDescriptor,
+    StateEvent,
     BackendError,
     BackendOperation,
 } from './backend.js'
