@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "endpoints_handle_idx" ON "endpoints" ("handle");

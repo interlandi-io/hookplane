@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar, jsonb, uniqueIndex } from 'drizzle-orm/pg-core'
 
 export const endpoints = pgTable('endpoints', {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -7,7 +7,9 @@ export const endpoints = pgTable('endpoints', {
     url: varchar().notNull(),
     events: varchar().array().notNull(),
     config: jsonb().notNull(),
-})
+}, (table) => ({
+    handleIdx: uniqueIndex('endpoints_handle_idx').on(table.handle),
+}))
 
 export const providers = pgTable('providers', {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
