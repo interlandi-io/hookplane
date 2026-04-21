@@ -4,6 +4,8 @@ import { Backend, StateEvent } from '@hookplane/backend'
 import { EndpointHandle, EndpointUrl, Provider } from '@hookplane/core'
 import * as schema from '../src/db/schema.js'
 
+const CONN_TIMEOUT = 10_000
+const CONN_RETRY_DELAY = 500
 const databaseUrl = process.env['DATABASE_URL']
 const describeIntegration = databaseUrl ? describe : describe.skip
 
@@ -33,6 +35,28 @@ const itWrapped = (
 }
 
 describeIntegration('pgsql backend', () => {
+    beforeAll(async () => {
+        // Wait for the db to be ready to connect, since it starts immediately before
+        // this test in CI.
+        const start = Date.now()
+        while (true) {
+            const client = new Client({ connectionString: databaseUrl })
+            try {
+                await client.connect()
+                await client.query('select 1')
+            } catch {
+                await client.end()
+                if (Date.now() - start > CONN_TIMEOUT) {
+                    throw new Error('database connection timed out')
+                }
+                await new Promise((res) => setTimeout(res, CONN_RETRY_DELAY))
+                continue
+            }
+            await client.end()
+            break
+        }
+    })
+
     itWrapped(
         'initializes and runs migrations',
         async ({ backend, client }) => {
