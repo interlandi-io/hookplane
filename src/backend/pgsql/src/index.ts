@@ -14,7 +14,7 @@ import path from 'path'
 import * as schema from './db/schema.js'
 import { Provider } from '@hookplane/core'
 import { eq } from 'drizzle-orm'
-import { ResultAsync } from 'neverthrow'
+import { err, ok, Result, ResultAsync } from 'neverthrow'
 
 export type PgsqlBackendConfig = {
     databaseUrl: string
@@ -49,6 +49,9 @@ export const createPgsqlBackend = describeBackend<
     },
     state: {
         writeMode: 'event',
+        read({ state: { db } , providers }) {
+            throw ''
+        },
         commit({ state: { db }, events }) {
             const results: ResultAsync<void, BackendError>[] = events.map(
                 (event) =>
@@ -60,9 +63,11 @@ export const createPgsqlBackend = describeBackend<
         },
     },
     signingSecret: {
-        read: () => {
-            throw ''
-        },
+        // TODO: this should be an endpoint handle
+        read: ({ state: { db }, id }) =>
+            ResultAsync.fromSafePromise(
+                readSecret(db, id),
+            ).andThen(r => r),
         write: () => {
             throw ''
         },
@@ -155,6 +160,42 @@ async function commitEvent(db: Database, event: StateEvent<Provider>) {
             break
         }
     }
+}
+
+async function readSecret(db: Database, id: string): Promise<Result<string, BackendError>> {
+    const endpoint = (
+        await db
+        .select()
+        .from(schema.endpoints)
+        .where(eq(schema.endpoints.handle, id))
+        .limit(1)
+    )[0]
+    if (!endpoint) {
+        return err({
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: `no endpoint found for endpoint handle ${id}`,
+            while: 'read'
+        } satisfies BackendError)
+    }
+    const secret = (
+        await db
+        .select()
+        .from(schema.secrets)
+        .where(eq(schema.secrets.endpointId, endpoint.id))
+        .limit(1)
+    )[0]
+    if (!secret) {
+        return err({
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: `no secret found for endpoint handle ${id}`,
+            while: 'read'
+        } satisfies BackendError)
+    }
+
+    return ok(secret.secret)
+
 }
 
 function toBackendError(e: unknown, operation: BackendOperation): BackendError {
