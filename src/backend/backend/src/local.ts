@@ -181,7 +181,11 @@ async function deleteSigningSecret(
     )
 }
 
-export const createLocalBackend = describeBackend<LocalBackendConfig, void, 'snapshot'>({
+export const createLocalBackend = describeBackend<
+    LocalBackendConfig,
+    void,
+    'snapshot'
+>({
     name: 'local-file',
     state: {
         writeMode: 'snapshot',

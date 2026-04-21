@@ -31,7 +31,7 @@ export interface Backend<
               delete(): ResultAsync<void, BackendError>
           }
         : {
-              writeMode: 'event' 
+              writeMode: 'event'
               /**
                * Commits the events provided to the state currently present in the backend.
                */
@@ -137,30 +137,32 @@ export interface UnknownError {
 export interface BackendDescriptor<TConfig, TState, TStateWriteMode> {
     readonly name: string
     init?: (config: TConfig) => Promise<TState>
-    state: TStateWriteMode extends 'snapshot' ? { 
-        writeMode: TStateWriteMode,
-        read<P extends ProviderSet>(params: {
-            config: TConfig
-            state: TState
-            providers: P
-        }): ResultAsync<State<P>, BackendError>
-        write<P extends ProviderSet>(params: {
-            config: TConfig
-            state: TState
-            data: State<P>
-        }): ResultAsync<void, BackendError>
-        delete(params: {
-            config: TConfig
-            state: TState
-        }): ResultAsync<void, BackendError>
-    } :  {
-        writeMode: TStateWriteMode,
-            commit(params: {
-                config: TConfig
-                state: TState
-                events: StateEvent<Provider>[]
-            }): ResultAsync<void, BackendError>
-        }
+    state: TStateWriteMode extends 'snapshot'
+        ? {
+              writeMode: TStateWriteMode
+              read<P extends ProviderSet>(params: {
+                  config: TConfig
+                  state: TState
+                  providers: P
+              }): ResultAsync<State<P>, BackendError>
+              write<P extends ProviderSet>(params: {
+                  config: TConfig
+                  state: TState
+                  data: State<P>
+              }): ResultAsync<void, BackendError>
+              delete(params: {
+                  config: TConfig
+                  state: TState
+              }): ResultAsync<void, BackendError>
+          }
+        : {
+              writeMode: TStateWriteMode
+              commit(params: {
+                  config: TConfig
+                  state: TState
+                  events: StateEvent<Provider>[]
+              }): ResultAsync<void, BackendError>
+          }
     signingSecret: {
         read(params: {
             config: TConfig
@@ -181,15 +183,26 @@ export interface BackendDescriptor<TConfig, TState, TStateWriteMode> {
     }
 }
 
-
-export function describeBackend<TConfig, TState, TStateWriteMode extends 'snapshot'>(
+export function describeBackend<
+    TConfig,
+    TState,
+    TStateWriteMode extends 'snapshot',
+>(
     desc: BackendDescriptor<TConfig, TState, 'snapshot'>,
 ): (config: TConfig) => () => Promise<Backend<'snapshot'>>
-export function describeBackend<TConfig, TState, TStateWriteMode extends 'event'>(
+export function describeBackend<
+    TConfig,
+    TState,
+    TStateWriteMode extends 'event',
+>(
     desc: BackendDescriptor<TConfig, TState, 'event'>,
 ): (config: TConfig) => () => Promise<Backend<'event'>>
 
-export function describeBackend<TConfig, TState, TStateWriteMode extends BackendStateWriteMode>(
+export function describeBackend<
+    TConfig,
+    TState,
+    TStateWriteMode extends BackendStateWriteMode,
+>(
     desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
 ): (config: TConfig) => () => Promise<Backend<TStateWriteMode>> {
     return (config: TConfig) => async () => {
@@ -198,38 +211,43 @@ export function describeBackend<TConfig, TState, TStateWriteMode extends Backend
             state = await desc.init(config)
         }
 
-        const stateProp: Backend['state'] = desc.state.writeMode === 'snapshot'
-            ? (() => {
-                const s = (desc as BackendDescriptor<TConfig, TState, 'snapshot'>).state
-                return {
-                    writeMode: 'snapshot',
-                    read: <P extends ProviderSet>(providers: P) =>
-                        s.read<P>({
-                            config,
-                            state,
-                            providers: providers,
-                        }),
-                    write: <P extends ProviderSet>(data: State<P>) =>
-                        s.write<P>({
-                            config,
-                            state,
-                            data,
-                        }),
-                    delete: () => s.delete({ config, state }),
-                } as const
-            })()
-            : (() => {
-                const s = (desc as BackendDescriptor<TConfig, TState, 'event'>).state
-                return {
-                    writeMode: 'event',
-                    commit: (events: StateEvent<Provider>[]) =>
-                        s.commit({
-                            config,
-                            state,
-                            events
-                        })
-                } as const
-            })()
+        const stateProp: Backend['state'] =
+            desc.state.writeMode === 'snapshot'
+                ? (() => {
+                      const s = (
+                          desc as BackendDescriptor<TConfig, TState, 'snapshot'>
+                      ).state
+                      return {
+                          writeMode: 'snapshot',
+                          read: <P extends ProviderSet>(providers: P) =>
+                              s.read<P>({
+                                  config,
+                                  state,
+                                  providers: providers,
+                              }),
+                          write: <P extends ProviderSet>(data: State<P>) =>
+                              s.write<P>({
+                                  config,
+                                  state,
+                                  data,
+                              }),
+                          delete: () => s.delete({ config, state }),
+                      } as const
+                  })()
+                : (() => {
+                      const s = (
+                          desc as BackendDescriptor<TConfig, TState, 'event'>
+                      ).state
+                      return {
+                          writeMode: 'event',
+                          commit: (events: StateEvent<Provider>[]) =>
+                              s.commit({
+                                  config,
+                                  state,
+                                  events,
+                              }),
+                      } as const
+                  })()
 
         return {
             name: desc.name,

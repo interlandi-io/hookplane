@@ -11,7 +11,10 @@ const describeIntegration = databaseUrl ? describe : describe.skip
 
 const itWrapped = (
     name: string,
-    fn: (params: { backend: Backend<'event'>; client: Client }) => Promise<void>,
+    fn: (params: {
+        backend: Backend<'event'>
+        client: Client
+    }) => Promise<void>,
 ) => {
     it(name, async () => {
         const client = new Client({ connectionString: databaseUrl })
