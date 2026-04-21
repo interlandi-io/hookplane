@@ -113,4 +113,88 @@ describeIntegration('pgsql backend', () => {
         expect(providersAfterDelete.rowCount).toBe(0)
         expect(endpointsAfterDelete.rowCount).toBe(0)
     })
+
+    itWrapped('returns WriteRejectedError on unique constraint violation', async ({ backend }) => {
+        const mockProvider = { name: 'mock' } as Provider
+        const create: StateEvent<typeof mockProvider> = {
+            tag: 'endpoint.created',
+            provider: mockProvider,
+            handle: 'handle-duplicate' as EndpointHandle,
+            state: {
+                url: 'https://example.com/hooks/mock' as EndpointUrl,
+                events: ['event'],
+                config: {}
+            },
+        }
+
+        const result = await backend.state.events.apply([create])
+        expect(result.isOk()).toBe(true)
+
+        const resultDuplicate = await backend.state.events.apply([create])
+        expect(resultDuplicate.isErr()).toBe(true)
+        const error = resultDuplicate._unsafeUnwrapErr()
+        expect(error.name).toBe('WriteRejectedError')
+    })
+
+    itWrapped('returns NotFoundError when updating non-existent endpoint', async ({ backend }) => {
+        const mockProvider = { name: 'mock' } as Provider
+        const update: StateEvent<typeof mockProvider> = {
+            tag: 'endpoint.updated',
+            provider: mockProvider,
+            handle: 'non-existent-handle' as EndpointHandle,
+            before: {
+                url: 'https://example.com/hooks/mock' as EndpointUrl,
+                events: ['event'],
+                config: {}
+            },
+            after: {
+                url: 'https://example.com/hooks/mock-updated' as EndpointUrl,
+                events: ['event'],
+                config: {}
+            },
+        }
+
+        const result = await backend.state.events.apply([update])
+        expect(result.isErr()).toBe(true)
+        const error = result._unsafeUnwrapErr()
+        expect(error.name).toBe('NotFoundError')
+    })
+
+    itWrapped('returns NotFoundError when deleting non-existent endpoint', async ({ backend }) => {
+        const mockProvider = { name: 'mock' } as Provider
+        const _delete: StateEvent<typeof mockProvider> = {
+            tag: 'endpoint.deleted',
+            provider: mockProvider,
+            handle: 'non-existent-handle' as EndpointHandle,
+        }
+
+        const result = await backend.state.events.apply([_delete])
+        expect(result.isErr()).toBe(true)
+        const error = result._unsafeUnwrapErr()
+        expect(error.name).toBe('NotFoundError')
+    })
+
+    itWrapped('returns UnknownError on generic postgres error', async ({ backend, client }) => {
+        await client.query('alter table endpoints add column bad_column int not null')
+        try {
+            const mockProvider = { name: 'mock' } as Provider
+            const create: StateEvent<typeof mockProvider> = {
+                tag: 'endpoint.created',
+                provider: mockProvider,
+                handle: 'handle-err' as EndpointHandle,
+                state: {
+                    url: 'https://example.com/hooks/mock' as EndpointUrl,
+                    events: ['event'],
+                    config: {}
+                },
+            }
+
+            const result = await backend.state.events.apply([create])
+            expect(result.isErr()).toBe(true)
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('UnknownError')
+        } finally {
+            await client.query("alter table endpoints drop column bad_column")
+        }
+    })
 })
