@@ -32,12 +32,19 @@ export interface Backend<
           }
         : {
               writeMode: 'event'
+
+              /** Reads state data */
+              read<P extends ProviderSet>(
+                  providers: P,
+              ): ResultAsync<State<P>, BackendError>
+
               /**
                * Commits the events provided to the state currently present in the backend.
                */
               commit(
                   events: StateEvent<Provider>[],
               ): ResultAsync<void, BackendError>
+
           }
 
     signingSecret: {
@@ -157,6 +164,11 @@ export interface BackendDescriptor<TConfig, TState, TStateWriteMode> {
           }
         : {
               writeMode: TStateWriteMode
+              read<P extends ProviderSet>(params: {
+                  config: TConfig
+                  state: TState
+                  providers: P
+              }): ResultAsync<State<P>, BackendError>
               commit(params: {
                   config: TConfig
                   state: TState
@@ -240,6 +252,12 @@ export function describeBackend<
                       ).state
                       return {
                           writeMode: 'event',
+                          read: <P extends ProviderSet>(providers: P) =>
+                              s.read<P>({
+                                  config,
+                                  state,
+                                  providers: providers,
+                              }),
                           commit: (events: StateEvent<Provider>[]) =>
                               s.commit({
                                   config,
