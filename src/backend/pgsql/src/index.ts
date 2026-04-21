@@ -34,7 +34,8 @@ const PGRST_NO_DATA_FOUND = 'PGRST116'
 
 export const createPgsqlBackend = describeBackend<
     PgsqlBackendConfig,
-    PgsqlBackendState
+    PgsqlBackendState,
+    'event'
 >({
     name: 'pgsql',
     init: async ({ databaseUrl, runMigrations = true }) => {
@@ -47,25 +48,15 @@ export const createPgsqlBackend = describeBackend<
         return { db }
     },
     state: {
-        read: () => {
-            throw ''
-        },
-        write: () => {
-            throw ''
-        },
-        delete: () => {
-            throw ''
-        },
-        events: {
-            apply({ state: { db }, events }) {
-                const results: ResultAsync<void, BackendError>[] = events.map(
-                    (event) =>
-                        ResultAsync.fromPromise(applyEvent(db, event), (e) =>
-                            toBackendError(e, 'write'),
-                        ),
-                )
-                return ResultAsync.combine(results).map(() => {})
-            },
+        writeMode: 'event',
+        apply({ state: { db }, events }) {
+            const results: ResultAsync<void, BackendError>[] = events.map(
+                (event) =>
+                    ResultAsync.fromPromise(applyEvent(db, event), (e) =>
+                        toBackendError(e, 'write'),
+                    ),
+            )
+            return ResultAsync.combine(results).map(() => {})
         },
     },
     signingSecret: {

@@ -32,7 +32,8 @@ type RemoteBackendState = {
 
 export const createRemoteBackend = describeBackend<
     RemoteBackendConfig,
-    RemoteBackendState
+    RemoteBackendState,
+    'snapshot'
 >({
     name: 'remote',
     init: async ({ url = DEFAULT_HOOKPLANE_URL, token }) => {
@@ -47,6 +48,7 @@ export const createRemoteBackend = describeBackend<
         return { client }
     },
     state: {
+        writeMode: 'snapshot',
         read: ({ state: { client }, providers }) =>
             ResultAsync.fromPromise(
                 (async () => {
