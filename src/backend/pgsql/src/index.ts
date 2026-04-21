@@ -49,10 +49,10 @@ export const createPgsqlBackend = describeBackend<
     },
     state: {
         writeMode: 'event',
-        apply({ state: { db }, events }) {
+        commit({ state: { db }, events }) {
             const results: ResultAsync<void, BackendError>[] = events.map(
                 (event) =>
-                    ResultAsync.fromPromise(applyEvent(db, event), (e) =>
+                    ResultAsync.fromPromise(commitEvent(db, event), (e) =>
                         toBackendError(e, 'write'),
                     ),
             )
@@ -72,7 +72,7 @@ export const createPgsqlBackend = describeBackend<
     },
 })
 
-async function applyEvent(db: Database, event: StateEvent<Provider>) {
+async function commitEvent(db: Database, event: StateEvent<Provider>) {
     let provider = (
         await db
             .select({ id: schema.providers.id })

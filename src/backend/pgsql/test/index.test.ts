@@ -118,7 +118,7 @@ describeIntegration('pgsql backend', () => {
             handle: 'handle-0' as EndpointHandle,
         }
 
-        let result = await backend.state.apply([create])
+        let result = await backend.state.commit([create])
         expect(result.isOk()).toBe(true)
         const providersAfterCreate = await client.query<
             (typeof schema)['providers']
@@ -131,7 +131,7 @@ describeIntegration('pgsql backend', () => {
         expect(endpointsAfterCreate.rowCount).toBe(1)
         expect(endpointsAfterCreate.rows[0]?.handle).toBe('handle-0')
 
-        result = await backend.state.apply([update])
+        result = await backend.state.commit([update])
         expect(result.isOk()).toBe(true)
         const providersAfterUpdate = await client.query<
             (typeof schema)['providers']
@@ -146,7 +146,7 @@ describeIntegration('pgsql backend', () => {
         expect(endpointsAfterUpdate.rows[0]?.events).toContainEqual('event')
         expect(endpointsAfterUpdate.rows[0]?.events).toContainEqual('event2')
 
-        result = await backend.state.apply([_delete])
+        result = await backend.state.commit([_delete])
         expect(result.isOk()).toBe(true)
         const providersAfterDelete = await client.query<
             (typeof schema)['providers']
@@ -173,10 +173,10 @@ describeIntegration('pgsql backend', () => {
                 },
             }
 
-            const result = await backend.state.apply([create])
+            const result = await backend.state.commit([create])
             expect(result.isOk()).toBe(true)
 
-            const resultDuplicate = await backend.state.apply([create])
+            const resultDuplicate = await backend.state.commit([create])
             expect(resultDuplicate.isErr()).toBe(true)
             const error = resultDuplicate._unsafeUnwrapErr()
             expect(error.name).toBe('WriteRejectedError')
@@ -203,7 +203,7 @@ describeIntegration('pgsql backend', () => {
                 },
             }
 
-            const result = await backend.state.apply([update])
+            const result = await backend.state.commit([update])
             expect(result.isErr()).toBe(true)
             const error = result._unsafeUnwrapErr()
             expect(error.name).toBe('NotFoundError')
@@ -220,7 +220,7 @@ describeIntegration('pgsql backend', () => {
                 handle: 'non-existent-handle' as EndpointHandle,
             }
 
-            const result = await backend.state.apply([_delete])
+            const result = await backend.state.commit([_delete])
             expect(result.isErr()).toBe(true)
             const error = result._unsafeUnwrapErr()
             expect(error.name).toBe('NotFoundError')
@@ -246,7 +246,7 @@ describeIntegration('pgsql backend', () => {
                     },
                 }
 
-                const result = await backend.state.apply([create])
+                const result = await backend.state.commit([create])
                 expect(result.isErr()).toBe(true)
                 const error = result._unsafeUnwrapErr()
                 expect(error.name).toBe('UnknownError')

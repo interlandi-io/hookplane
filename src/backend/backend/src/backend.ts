@@ -33,9 +33,9 @@ export interface Backend<
         : {
               writeMode: 'event' 
               /**
-               * Applies the events provided to the state currently present in the backend.
+               * Commits the events provided to the state currently present in the backend.
                */
-              apply(
+              commit(
                   events: StateEvent<Provider>[],
               ): ResultAsync<void, BackendError>
           }
@@ -155,7 +155,7 @@ export interface BackendDescriptor<TConfig, TState, TStateWriteMode> {
         }): ResultAsync<void, BackendError>
     } :  {
         writeMode: TStateWriteMode,
-            apply(params: {
+            commit(params: {
                 config: TConfig
                 state: TState
                 events: StateEvent<Provider>[]
@@ -222,8 +222,8 @@ export function describeBackend<TConfig, TState, TStateWriteMode extends Backend
                 const s = (desc as BackendDescriptor<TConfig, TState, 'event'>).state
                 return {
                     writeMode: 'event',
-                    apply: (events: StateEvent<Provider>[]) =>
-                        s.apply({
+                    commit: (events: StateEvent<Provider>[]) =>
+                        s.commit({
                             config,
                             state,
                             events
