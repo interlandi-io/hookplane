@@ -1,4 +1,10 @@
-import type { EndpointHandle, EndpointState, Provider, ProviderSet, State } from '@hookplane/core'
+import type {
+    EndpointHandle,
+    EndpointState,
+    Provider,
+    ProviderSet,
+    State,
+} from '@hookplane/core'
 import { okAsync, type ResultAsync } from 'neverthrow'
 
 export interface Backend {
@@ -24,12 +30,14 @@ export interface Backend {
         delete(): ResultAsync<void, BackendError>
 
         events: {
-            /** 
+            /**
              * Optional: not supported by every provider
-             * 
+             *
              * Applies the events provided to the state currently present in the backend.
              */
-            apply(events: StateEvent<Provider>[]): ResultAsync<void, BackendError>
+            apply(
+                events: StateEvent<Provider>[],
+            ): ResultAsync<void, BackendError>
         }
     }
 
@@ -46,8 +54,19 @@ export interface Backend {
 }
 
 export type StateEvent<P extends Provider> =
-    | { tag: 'endpoint.created'; provider: P; handle: EndpointHandle, state: EndpointState<P> }
-    | { tag: 'endpoint.updated'; provider: P; handle: EndpointHandle; before: EndpointState<P>; after: EndpointState<P> }
+    | {
+          tag: 'endpoint.created'
+          provider: P
+          handle: EndpointHandle
+          state: EndpointState<P>
+      }
+    | {
+          tag: 'endpoint.updated'
+          provider: P
+          handle: EndpointHandle
+          before: EndpointState<P>
+          after: EndpointState<P>
+      }
     | { tag: 'endpoint.deleted'; provider: P; handle: EndpointHandle }
 
 export type BackendOperation = 'read' | 'write' | 'delete'
@@ -136,7 +155,7 @@ export interface BackendDescriptor<TConfig, TState> {
             apply?(params: {
                 config: TConfig
                 state: TState
-                events: StateEvent<Provider>[],
+                events: StateEvent<Provider>[]
             }): ResultAsync<void, BackendError>
         }
     }
@@ -171,7 +190,7 @@ export function describeBackend<TConfig, TState>(
         return {
             name: desc.name,
             features: {
-                applyEvents: desc.state.events?.apply !== undefined
+                applyEvents: desc.state.events?.apply !== undefined,
             },
             state: {
                 read: <P extends ProviderSet>(providers: P) =>
@@ -189,14 +208,16 @@ export function describeBackend<TConfig, TState>(
                 delete: () => desc.state.delete({ config, state }),
                 events: {
                     apply(events) {
-                        if (!desc.state.events?.apply) { return okAsync() }
+                        if (!desc.state.events?.apply) {
+                            return okAsync()
+                        }
                         return desc.state.events!.apply({
                             config,
                             state,
                             events,
                         })
-                    } 
-                }
+                    },
+                },
             },
             signingSecret: {
                 read: (id) => desc.signingSecret.read({ config, state, id }),

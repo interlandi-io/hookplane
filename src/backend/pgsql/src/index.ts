@@ -1,4 +1,13 @@
-import { BackendError, describeBackend, StateEvent, WriteRejectedError, BackendOperation, InternalError, NotFoundError, UnknownError } from '@hookplane/backend'
+import {
+    BackendError,
+    describeBackend,
+    StateEvent,
+    WriteRejectedError,
+    BackendOperation,
+    InternalError,
+    NotFoundError,
+    UnknownError,
+} from '@hookplane/backend'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
@@ -23,36 +32,52 @@ const PGSQL_FOREIGN_KEY_VIOLATION = '23503'
 const PGSQL_RAISE_EXCEPTION = 'P0001'
 const PGRST_NO_DATA_FOUND = 'PGRST116'
 
-export const createPgsqlBackend = describeBackend<PgsqlBackendConfig, PgsqlBackendState>({
+export const createPgsqlBackend = describeBackend<
+    PgsqlBackendConfig,
+    PgsqlBackendState
+>({
     name: 'pgsql',
     init: async ({ databaseUrl, runMigrations = true }) => {
         const db = drizzle(databaseUrl, { schema })
         if (runMigrations) {
             await migrate(db, {
-                migrationsFolder: path.join(__dirname, '../drizzle/')
+                migrationsFolder: path.join(__dirname, '../drizzle/'),
             })
         }
         return { db }
     },
     state: {
-        read: () => { throw '' },
-        write: () => { throw '' },
-        delete: () => { throw '' },
+        read: () => {
+            throw ''
+        },
+        write: () => {
+            throw ''
+        },
+        delete: () => {
+            throw ''
+        },
         events: {
             apply({ state: { db }, events }) {
-                const results: ResultAsync<void, BackendError>[] = events
-                    .map(event => ResultAsync.fromPromise(
-                        applyEvent(db, event),
-                        (e) => toBackendError(e, 'write')
-                    ))
+                const results: ResultAsync<void, BackendError>[] = events.map(
+                    (event) =>
+                        ResultAsync.fromPromise(applyEvent(db, event), (e) =>
+                            toBackendError(e, 'write'),
+                        ),
+                )
                 return ResultAsync.combine(results).map(() => {})
             },
-        }
+        },
     },
     signingSecret: {
-        read: () => { throw '' },
-        write: () => { throw '' },
-        delete: () => { throw '' },
+        read: () => {
+            throw ''
+        },
+        write: () => {
+            throw ''
+        },
+        delete: () => {
+            throw ''
+        },
     },
 })
 
@@ -77,8 +102,8 @@ async function applyEvent(db: Database, event: StateEvent<Provider>) {
                 kind: 'BackendError',
                 name: 'WriteRejectedError',
                 message: `provider ${event.provider.name} could not be found or created`,
-                while: 'write'
-            } satisfies WriteRejectedError 
+                while: 'write',
+            } satisfies WriteRejectedError
         }
         provider = inserted
     }
@@ -109,7 +134,7 @@ async function applyEvent(db: Database, event: StateEvent<Provider>) {
                     kind: 'BackendError',
                     name: 'NotFoundError',
                     message: `endpoint ${event.handle} not found`,
-                    while: 'write'
+                    while: 'write',
                 } satisfies NotFoundError
             }
             break
@@ -124,7 +149,7 @@ async function applyEvent(db: Database, event: StateEvent<Provider>) {
                     kind: 'BackendError',
                     name: 'NotFoundError',
                     message: `endpoint ${event.handle} not found`,
-                    while: 'write'
+                    while: 'write',
                 } satisfies NotFoundError
             }
             const providerEvents = await db
@@ -153,7 +178,9 @@ function toBackendError(e: unknown, operation: BackendOperation): BackendError {
         return {
             kind: 'BackendError',
             name: 'WriteRejectedError',
-            message: (e as { message?: string }).message || 'unique constraint violation',
+            message:
+                (e as { message?: string }).message ||
+                'unique constraint violation',
             while: operation,
         } satisfies WriteRejectedError
     }
@@ -164,7 +191,9 @@ function toBackendError(e: unknown, operation: BackendOperation): BackendError {
         return {
             kind: 'BackendError',
             name: 'WriteRejectedError',
-            message: (e as { message?: string }).message || 'unique constraint violation',
+            message:
+                (e as { message?: string }).message ||
+                'unique constraint violation',
             while: operation,
         } satisfies WriteRejectedError
     }
