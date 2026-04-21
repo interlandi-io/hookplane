@@ -18,9 +18,7 @@ export const endpoints = pgTable(
         events: varchar().array().notNull(),
         config: jsonb().notNull(),
     },
-    (table) => ({
-        handleIdx: uniqueIndex('endpoints_handle_idx').on(table.handle),
-    }),
+    (table) => [uniqueIndex('endpoints_handle_idx').on(table.handle)],
 )
 
 export const providers = pgTable('providers', {
