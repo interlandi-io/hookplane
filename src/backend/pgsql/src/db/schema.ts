@@ -26,10 +26,14 @@ export const providers = pgTable('providers', {
     name: varchar().notNull(),
 })
 
-export const secrets = pgTable('secrets', {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    endpointId: integer('endpoint_id').references(() => endpoints.id, {
-        onDelete: 'cascade',
-    }),
-    secret: varchar().notNull(),
-})
+export const secrets = pgTable(
+    'secrets',
+    {
+        id: integer().primaryKey().generatedAlwaysAsIdentity(),
+        endpointId: integer('endpoint_id').references(() => endpoints.id, {
+            onDelete: 'cascade',
+        }),
+        secret: varchar().notNull(),
+    },
+    (table) => [uniqueIndex('secrets_endpoint_id_idx').on(table.endpointId)],
+)

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "secrets_endpoint_id_idx" ON "secrets" ("endpoint_id");
