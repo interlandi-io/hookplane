@@ -3,7 +3,6 @@ import {
     describeBackend,
     StateEvent,
     WriteRejectedError,
-    BackendOperation,
     InternalError,
     NotFoundError,
     UnknownError,
@@ -63,8 +62,8 @@ export const createPgsqlBackend = describeBackend<
         commit({ state: { db }, events }) {
             const results: ResultAsync<void, BackendError>[] = events.map(
                 (event) =>
-                    ResultAsync.fromPromise(commitEvent(db, event), (e) =>
-                        toBackendError(e, 'write'),
+                    ResultAsync.fromSafePromise(commitEvent(db, event)).andThen(
+                        (r) => r,
                     ),
             )
             return ResultAsync.combine(results).map(() => {})
@@ -154,89 +153,157 @@ async function readState<P extends ProviderSet>(db: Database, providers: P) {
     })
 }
 
-async function commitEvent(db: Database, event: StateEvent<Provider>) {
-    let provider = (
-        await db
-            .select({ id: schema.providers.id })
-            .from(schema.providers)
-            .where(eq(schema.providers.name, event.provider.name))
-            .limit(1)
-    )[0]
-
-    if (!provider) {
-        const inserted = (
+async function commitEvent(
+    db: Database,
+    event: StateEvent<Provider>,
+): Promise<Result<void, BackendError>> {
+    try {
+        let provider = (
             await db
-                .insert(schema.providers)
-                .values({ name: event.provider.name })
-                .returning()
+                .select({ id: schema.providers.id })
+                .from(schema.providers)
+                .where(eq(schema.providers.name, event.provider.name))
+                .limit(1)
         )[0]
-        if (!inserted) {
-            throw {
+
+        if (!provider) {
+            const inserted = (
+                await db
+                    .insert(schema.providers)
+                    .values({ name: event.provider.name })
+                    .returning()
+            )[0]
+            if (!inserted) {
+                return err({
+                    kind: 'BackendError',
+                    name: 'WriteRejectedError',
+                    message: `provider ${event.provider.name} could not be found or created`,
+                    while: 'write',
+                } satisfies WriteRejectedError)
+            }
+            provider = inserted
+        }
+
+        switch (event.tag) {
+            case 'endpoint.created':
+                await db.insert(schema.endpoints).values({
+                    providerId: provider.id,
+                    // TODO: validate handle/url and roll transaction back if invalid
+                    handle: event.handle,
+                    url: event.state.url,
+                    events: event.state.events,
+                    config: event.state.config,
+                })
+                break
+
+            case 'endpoint.updated': {
+                const result = await db
+                    .update(schema.endpoints)
+                    .set({
+                        url: event.after.url,
+                        handle: event.handle,
+                        events: event.after.events,
+                        config: event.after.config,
+                    })
+                    .where(eq(schema.endpoints.handle, event.handle))
+                if (result.rowCount === 0) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'NotFoundError',
+                        message: `endpoint ${event.handle} not found`,
+                        while: 'write',
+                    } satisfies NotFoundError)
+                }
+                break
+            }
+
+            case 'endpoint.deleted': {
+                const result = await db
+                    .delete(schema.endpoints)
+                    .where(eq(schema.endpoints.handle, event.handle))
+                if (result.rowCount === 0) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'NotFoundError',
+                        message: `endpoint ${event.handle} not found`,
+                        while: 'write',
+                    } satisfies NotFoundError)
+                }
+                const providerEvents = await db
+                    .select()
+                    .from(schema.endpoints)
+                    .where(eq(schema.endpoints.providerId, provider.id))
+                if (providerEvents.length === 0) {
+                    await db
+                        .delete(schema.providers)
+                        .where(eq(schema.providers.id, provider.id))
+                }
+                break
+            }
+        }
+
+        return ok()
+    } catch (e) {
+        if ((e as { kind?: string })?.kind === 'BackendError') {
+            return err(e as BackendError)
+        }
+        const cause = (e as { cause?: { code?: string } }).cause || undefined
+
+        if (cause?.code === PGSQL_UNIQUE_VIOLATION) {
+            return err({
                 kind: 'BackendError',
                 name: 'WriteRejectedError',
-                message: `provider ${event.provider.name} could not be found or created`,
+                message:
+                    (e as { message?: string }).message ||
+                    'unique constraint violation',
                 while: 'write',
-            } satisfies WriteRejectedError
-        }
-        provider = inserted
-    }
-
-    switch (event.tag) {
-        case 'endpoint.created':
-            await db.insert(schema.endpoints).values({
-                providerId: provider.id,
-                // TODO: validate handle/url and roll transaction back if invalid
-                handle: event.handle,
-                url: event.state.url,
-                events: event.state.events,
-                config: event.state.config,
-            })
-            break
-
-        case 'endpoint.updated': {
-            const result = await db
-                .update(schema.endpoints)
-                .set({
-                    url: event.after.url,
-                    handle: event.handle,
-                    events: event.after.events,
-                    config: event.after.config,
-                })
-                .where(eq(schema.endpoints.handle, event.handle))
-            if (result.rowCount === 0) {
-                throw {
-                    kind: 'BackendError',
-                    name: 'NotFoundError',
-                    message: `endpoint ${event.handle} not found`,
-                    while: 'write',
-                } satisfies NotFoundError
-            }
-            break
+            } satisfies WriteRejectedError)
         }
 
-        case 'endpoint.deleted': {
-            const result = await db
-                .delete(schema.endpoints)
-                .where(eq(schema.endpoints.handle, event.handle))
-            if (result.rowCount === 0) {
-                throw {
-                    kind: 'BackendError',
-                    name: 'NotFoundError',
-                    message: `endpoint ${event.handle} not found`,
-                    while: 'write',
-                } satisfies NotFoundError
-            }
-            const providerEvents = await db
-                .select()
-                .from(schema.endpoints)
-                .where(eq(schema.endpoints.providerId, provider.id))
-            if (providerEvents.length === 0) {
-                await db
-                    .delete(schema.providers)
-                    .where(eq(schema.providers.id, provider.id))
-            }
-            break
+        const error = e as NodeJS.ErrnoException & { code?: string }
+
+        if (error.code === PGSQL_UNIQUE_VIOLATION) {
+            return err({
+                kind: 'BackendError',
+                name: 'WriteRejectedError',
+                message:
+                    (e as { message?: string }).message ||
+                    'unique constraint violation',
+                while: 'write',
+            } satisfies WriteRejectedError)
         }
+        if (error.code === PGSQL_FOREIGN_KEY_VIOLATION) {
+            return err({
+                kind: 'BackendError',
+                name: 'InternalError',
+                message: error.message || 'foreign key constraint violation',
+                while: 'write',
+                cause: e,
+            } satisfies InternalError)
+        }
+        if (error.code === PGSQL_RAISE_EXCEPTION) {
+            return err({
+                kind: 'BackendError',
+                name: 'WriteRejectedError',
+                message: error.message || 'write rejected',
+                while: 'write',
+            } satisfies WriteRejectedError)
+        }
+        if (error.code === 'ENOENT' || error.code === PGRST_NO_DATA_FOUND) {
+            return err({
+                kind: 'BackendError',
+                name: 'NotFoundError',
+                message: error.message || 'record not found',
+                while: 'write',
+            } satisfies NotFoundError)
+        }
+        return err({
+            kind: 'BackendError',
+            name: 'UnknownError',
+            message: String(e),
+            while: 'write',
+            cause: e,
+        } satisfies UnknownError)
     }
 }
 
@@ -346,69 +413,4 @@ async function deleteSecret(
         .where(eq(schema.secrets.endpointId, endpoint.id))
 
     return ok()
-}
-
-function toBackendError(e: unknown, operation: BackendOperation): BackendError {
-    if ((e as { kind?: string })?.kind === 'BackendError') {
-        return e as BackendError
-    }
-
-    const err = e as { cause?: unknown }
-    const cause = err.cause as { code?: string } | undefined
-
-    if (cause?.code === PGSQL_UNIQUE_VIOLATION) {
-        return {
-            kind: 'BackendError',
-            name: 'WriteRejectedError',
-            message:
-                (e as { message?: string }).message ||
-                'unique constraint violation',
-            while: operation,
-        } satisfies WriteRejectedError
-    }
-
-    const error = e as NodeJS.ErrnoException & { code?: string }
-
-    if (error.code === PGSQL_UNIQUE_VIOLATION) {
-        return {
-            kind: 'BackendError',
-            name: 'WriteRejectedError',
-            message:
-                (e as { message?: string }).message ||
-                'unique constraint violation',
-            while: operation,
-        } satisfies WriteRejectedError
-    }
-    if (error.code === PGSQL_FOREIGN_KEY_VIOLATION) {
-        return {
-            kind: 'BackendError',
-            name: 'InternalError',
-            message: error.message || 'foreign key constraint violation',
-            while: operation,
-            cause: e,
-        } satisfies InternalError
-    }
-    if (error.code === PGSQL_RAISE_EXCEPTION) {
-        return {
-            kind: 'BackendError',
-            name: 'WriteRejectedError',
-            message: error.message || 'write rejected',
-            while: operation,
-        } satisfies WriteRejectedError
-    }
-    if (error.code === 'ENOENT' || error.code === PGRST_NO_DATA_FOUND) {
-        return {
-            kind: 'BackendError',
-            name: 'NotFoundError',
-            message: error.message || 'record not found',
-            while: operation,
-        } satisfies NotFoundError
-    }
-    return {
-        kind: 'BackendError',
-        name: 'UnknownError',
-        message: String(e),
-        while: operation,
-        cause: e,
-    } satisfies UnknownError
 }
