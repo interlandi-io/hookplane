@@ -73,7 +73,10 @@ export const createPgsqlBackend = describeBackend<
             ResultAsync.fromSafePromise(
                 writeSecret(db, id, data),
             ).andThen(r => r),
-        delete: () => { throw '' }
+        delete: ({ state: { db }, id }) =>
+            ResultAsync.fromSafePromise(
+                deleteSecret(db, id),
+            ).andThen(r => r),
     },
 })
 
@@ -308,6 +311,30 @@ async function writeSecret(db: Database, id: string, secret: string): Promise<Re
 
     return ok()
 
+}
+
+async function deleteSecret(db: Database, id: string): Promise<Result<void, BackendError>> {
+    const endpoint = (
+        await db
+            .select()
+            .from(schema.endpoints)
+            .where(eq(schema.endpoints.handle, id))
+            .limit(1)
+    )[0]
+    if (!endpoint) {
+        return err({
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: `no endpoint found for endpoint handle ${id}`,
+            while: 'delete'
+        } satisfies BackendError)
+    }
+
+    await db
+        .delete(schema.secrets)
+        .where(eq(schema.secrets.endpointId, endpoint.id))
+
+    return ok()
 }
 
 function toBackendError(e: unknown, operation: BackendOperation): BackendError {
