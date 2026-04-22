@@ -12,7 +12,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import * as schema from './db/schema.js'
-import { Provider } from '@hookplane/core'
+import { createEndpointHandle, createEndpointUrl, EndpointIndex, Provider, ProviderSet, State } from '@hookplane/core'
 import { eq } from 'drizzle-orm'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
 
@@ -49,9 +49,10 @@ export const createPgsqlBackend = describeBackend<
     },
     state: {
         writeMode: 'event',
-        read({ state: { db } , providers }) {
-            throw ''
-        },
+        read: ({ state: { db } , providers }) =>
+            ResultAsync.fromSafePromise(
+                readState(db, providers),
+            ).andThen(r => r),
         commit({ state: { db }, events }) {
             const results: ResultAsync<void, BackendError>[] = events.map(
                 (event) =>
@@ -76,6 +77,77 @@ export const createPgsqlBackend = describeBackend<
         },
     },
 })
+
+// TODO: we need a better solution for "stale" providers
+async function readState<P extends ProviderSet>(db: Database, providers: P) {
+    const providerStates = {} as State<P>['providerStates']
+
+    for (const providerName of Object.keys(providers)) {
+        const provider = (
+            await db
+                .select()
+                .from(schema.providers)
+                .where(eq(schema.providers.name, providerName))
+                .limit(1)
+        )[0]
+        if (!provider) {
+            return err({
+                kind: 'BackendError',
+                name: 'ProviderNotFoundError',
+                message: `no provider found for name ${providerName}`,
+                provider: providerName,
+                while: 'read'
+            } satisfies BackendError)
+        }
+
+        const endpoints = await db
+            .select()
+            .from(schema.endpoints)
+            .where(eq(schema.endpoints.providerId, provider.id))
+        if (!endpoints) {
+            return err({
+                kind: 'BackendError',
+                name: 'NotFoundError',
+                message: `no endpoints found for provider name ${providerName}`,
+                while: 'read'
+            } satisfies BackendError)
+        }
+
+        const endpointIndex: EndpointIndex<Provider> = new Map()
+        for (const endpoint of endpoints) {
+            const handle = createEndpointHandle(endpoint.handle)
+            if (handle.isErr()) {
+                return err({
+                    kind: 'BackendError',
+                    name: 'InternalError',
+                    message: 'invalid endpoint handle: ' + handle,
+                    while: 'read',
+                } satisfies BackendError)
+            }
+            const url = createEndpointUrl(endpoint.url)
+            if (url.isErr()) {
+                return err({
+                    kind: 'BackendError',
+                    name: 'InternalError',
+                    message: 'invalid endpoint url: ' + url,
+                    while: 'read',
+                } satisfies BackendError)
+            }
+            endpointIndex.set(handle.value, {
+                url: url.value,
+                events: endpoint.events,
+                config: endpoint.config,
+            })
+        }
+
+        providerStates[providerName as keyof P] = endpointIndex
+    }
+
+    return ok({
+        providers,
+        providerStates,
+    })
+}
 
 async function commitEvent(db: Database, event: StateEvent<Provider>) {
     let provider = (
@@ -108,6 +180,7 @@ async function commitEvent(db: Database, event: StateEvent<Provider>) {
         case 'endpoint.created':
             await db.insert(schema.endpoints).values({
                 providerId: provider.id,
+                // TODO: validate handle/url and roll transaction back if invalid
                 handle: event.handle,
                 url: event.state.url,
                 events: event.state.events,
