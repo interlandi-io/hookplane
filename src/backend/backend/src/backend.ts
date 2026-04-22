@@ -58,6 +58,11 @@ export interface Backend<
     }
 }
 
+export type BackendFactory<
+    TConfig,
+    TStateWriteMode extends BackendStateWriteMode,
+> = (config: TConfig) => Promise<Backend<TStateWriteMode>>
+
 export type BackendStateWriteMode = 'snapshot' | 'event'
 
 export type StateEvent<P extends Provider> =
@@ -200,14 +205,14 @@ export function describeBackend<
     TStateWriteMode extends 'snapshot',
 >(
     desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
-): (config: TConfig) => () => Promise<Backend<TStateWriteMode>>
+): BackendFactory<TConfig, TStateWriteMode>
 export function describeBackend<
     TConfig,
     TState,
     TStateWriteMode extends 'event',
 >(
     desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
-): (config: TConfig) => () => Promise<Backend<TStateWriteMode>>
+): BackendFactory<TConfig, TStateWriteMode>
 
 export function describeBackend<
     TConfig,
@@ -215,8 +220,8 @@ export function describeBackend<
     TStateWriteMode extends BackendStateWriteMode,
 >(
     desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
-): (config: TConfig) => () => Promise<Backend<TStateWriteMode>> {
-    return (config: TConfig) => async () => {
+): BackendFactory<TConfig, TStateWriteMode> {
+    return async (config: TConfig) => {
         let state = {} as TState
         if (desc.init) {
             state = await desc.init(config)

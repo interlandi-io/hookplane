@@ -12,6 +12,7 @@
     "type": "module",
     "dependencies": {
         "hookplane": "file:../../hookplane",
+        "@hookplane/backend-pgsql": "file:../../../backend/pgsql",
         "@hookplane/stripe": "file:../../../providers/stripe"
     }
 }
