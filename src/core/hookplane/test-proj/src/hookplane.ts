@@ -1,5 +1,6 @@
 import { hookplane } from 'hookplane'
 import { stripeProvider } from '@hookplane/stripe'
+import { createPgsqlBackend } from '@hookplane/backend-pgsql'
 
 const hp = await hookplane({
     providers: {
@@ -15,6 +16,10 @@ const hp = await hookplane({
             },
         },
     },
+    backend: await createPgsqlBackend({
+        databaseUrl: process.env['DATABASE_URL']!,
+        runMigrations: true, 
+    })
 })
 
 export default hp
