@@ -12,7 +12,7 @@ export const endpoints = pgTable(
         id: integer().primaryKey().generatedAlwaysAsIdentity(),
         providerId: integer('provider_id').references(() => providers.id, {
             onDelete: 'cascade',
-        }),
+        }).notNull(),
         handle: varchar().notNull(),
         url: varchar().notNull(),
         events: varchar().array().notNull(),
