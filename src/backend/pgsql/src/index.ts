@@ -186,11 +186,29 @@ async function commitEvent(
 
         switch (event.tag) {
             case 'endpoint.created':
+                const handle = createEndpointHandle(event.handle)
+                if (handle.isErr()) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'InternalError',
+                        message: 'invalid endpoint handle: ' + event.handle,
+                        while: 'read',
+                    } satisfies BackendError)
+                }
+                const url = createEndpointUrl(event.state.url)
+                if (url.isErr()) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'InternalError',
+                        message: 'invalid endpoint url: ' + event.state.url,
+                        while: 'read',
+                    } satisfies BackendError)
+                }
+
                 await db.insert(schema.endpoints).values({
                     providerId: provider.id,
-                    // TODO: validate handle/url and roll transaction back if invalid
-                    handle: event.handle,
-                    url: event.state.url,
+                    handle: handle.value,
+                    url: url.value,
                     events: event.state.events,
                     config: event.state.config,
                 })
