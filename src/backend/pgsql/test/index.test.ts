@@ -37,6 +37,29 @@ const itWrapped = (
     })
 }
 
+const makeProvider = (name = 'mock') => ({ name } as Provider)
+
+const makeCreateEvent = (
+    provider: Provider,
+    handle = 'handle-0',
+    state: {
+        url?: EndpointUrl
+        events?: string[]
+        config?: Record<string, unknown>
+    } = {},
+): StateEvent<typeof provider> => ({
+    tag: 'endpoint.created',
+    provider,
+    handle: handle as EndpointHandle,
+    state: {
+        url:
+            state.url ??
+            ('https://example.com/hooks/mock' as EndpointUrl),
+        events: state.events ?? ['event'],
+        config: state.config ?? {},
+    },
+})
+
 describeIntegration('pgsql backend', () => {
     beforeAll(async () => {
         // Wait for the db to be ready to connect, since it starts immediately before
@@ -164,17 +187,8 @@ describeIntegration('pgsql backend', () => {
     itWrapped(
         'returns WriteRejectedError on unique constraint violation',
         async ({ backend }) => {
-            const mockProvider = { name: 'mock' } as Provider
-            const create: StateEvent<typeof mockProvider> = {
-                tag: 'endpoint.created',
-                provider: mockProvider,
-                handle: 'handle-duplicate' as EndpointHandle,
-                state: {
-                    url: 'https://example.com/hooks/mock' as EndpointUrl,
-                    events: ['event'],
-                    config: {},
-                },
-            }
+            const mockProvider = makeProvider()
+            const create = makeCreateEvent(mockProvider, 'handle-duplicate')
 
             const result = await backend.state.commit([create])
             expect(result.isOk()).toBe(true)
@@ -183,6 +197,7 @@ describeIntegration('pgsql backend', () => {
             expect(resultDuplicate.isErr()).toBe(true)
             const error = resultDuplicate._unsafeUnwrapErr()
             expect(error.name).toBe('WriteRejectedError')
+            expect(error.while).toBe('write')
         },
     )
 
@@ -210,6 +225,7 @@ describeIntegration('pgsql backend', () => {
             expect(result.isErr()).toBe(true)
             const error = result._unsafeUnwrapErr()
             expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('write')
         },
     )
 
@@ -227,6 +243,7 @@ describeIntegration('pgsql backend', () => {
             expect(result.isErr()).toBe(true)
             const error = result._unsafeUnwrapErr()
             expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('write')
         },
     )
 
@@ -253,11 +270,287 @@ describeIntegration('pgsql backend', () => {
                 expect(result.isErr()).toBe(true)
                 const error = result._unsafeUnwrapErr()
                 expect(error.name).toBe('UnknownError')
+                expect(error.while).toBe('write')
             } finally {
                 await client.query(
                     'alter table endpoints drop column bad_column',
                 )
             }
+        },
+    )
+
+    itWrapped('reads state for a single provider', async ({ backend }) => {
+        const mockProvider = makeProvider()
+        const create = makeCreateEvent(mockProvider, 'handle-read-one', {
+            url: 'https://example.com/hooks/read-one' as EndpointUrl,
+            events: ['event', 'event2'],
+            config: { enabled: true },
+        })
+
+        const commitResult = await backend.state.commit([create])
+        expect(commitResult.isOk()).toBe(true)
+
+        const result = await backend.state.read({ mock: mockProvider })
+        expect(result.isOk()).toBe(true)
+
+        const state = result._unsafeUnwrap()
+        const providerState = state.providerStates['mock']
+        expect(providerState).toBeDefined()
+        expect(providerState.size).toBe(1)
+        expect(providerState.get('handle-read-one' as EndpointHandle)).toEqual({
+            url: 'https://example.com/hooks/read-one',
+            events: ['event', 'event2'],
+            config: { enabled: true },
+        })
+    })
+
+    itWrapped(
+        'reads state for multiple endpoints and providers',
+        async ({ backend }) => {
+            const mockProvider = makeProvider('mock')
+            const secondProvider = makeProvider('second')
+
+            const resultCommit = await backend.state.commit([
+                makeCreateEvent(mockProvider, 'handle-read-a', {
+                    url: 'https://example.com/hooks/a' as EndpointUrl,
+                    events: ['event-a'],
+                    config: { order: 1 },
+                }),
+                makeCreateEvent(mockProvider, 'handle-read-b', {
+                    url: 'https://example.com/hooks/b' as EndpointUrl,
+                    events: ['event-b'],
+                    config: { order: 2 },
+                }),
+                makeCreateEvent(secondProvider, 'handle-read-c', {
+                    url: 'https://example.com/hooks/c' as EndpointUrl,
+                    events: ['event-c'],
+                    config: { order: 3 },
+                }),
+            ])
+
+            expect(resultCommit.isOk()).toBe(true)
+
+            const result = await backend.state.read({
+                mock: mockProvider,
+                second: secondProvider,
+            })
+            expect(result.isOk()).toBe(true)
+
+            const state = result._unsafeUnwrap()
+            expect(state.providerStates['mock'].size).toBe(2)
+            expect(state.providerStates['second'].size).toBe(1)
+            expect(
+                state.providerStates['mock'].get(
+                    'handle-read-b' as EndpointHandle,
+                ),
+            ).toEqual({
+                url: 'https://example.com/hooks/b',
+                events: ['event-b'],
+                config: { order: 2 },
+            })
+            expect(
+                state.providerStates['second'].get(
+                    'handle-read-c' as EndpointHandle,
+                ),
+            ).toEqual({
+                url: 'https://example.com/hooks/c',
+                events: ['event-c'],
+                config: { order: 3 },
+            })
+        },
+    )
+
+    itWrapped(
+        'returns ProviderNotFoundError when reading a provider that does not exist',
+        async ({ backend }) => {
+            const missingProvider = makeProvider('missing')
+
+            const result = await backend.state.read({ missing: missingProvider })
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('ProviderNotFoundError')
+            expect(error.while).toBe('read')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((error as any).provider).toBe('missing')
+        },
+    )
+
+    itWrapped(
+        'returns InternalError when reading an invalid endpoint handle',
+        async ({ backend, client }) => {
+            const providerInsert = await client.query<{ id: number }>(
+                `insert into providers (name) values ('mock') returning id`,
+            )
+            await client.query(
+                `insert into endpoints (provider_id, handle, url, events, config)
+                 values ($1, $2, $3, $4, $5)`,
+                [
+                    providerInsert.rows[0]!.id,
+                    '',
+                    'https://example.com/hooks/mock',
+                    ['event'],
+                    {},
+                ],
+            )
+
+            const result = await backend.state.read({ mock: makeProvider() })
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('InternalError')
+            expect(error.while).toBe('read')
+        },
+    )
+
+    itWrapped(
+        'returns InternalError when reading an invalid endpoint url',
+        async ({ backend, client }) => {
+            const providerInsert = await client.query<{ id: number }>(
+                `insert into providers (name) values ('mock') returning id`,
+            )
+            await client.query(
+                `insert into endpoints (provider_id, handle, url, events, config)
+                 values ($1, $2, $3, $4, $5)`,
+                [
+                    providerInsert.rows[0]!.id,
+                    'handle-invalid-url',
+                    'not-a-url',
+                    ['event'],
+                    {},
+                ],
+            )
+
+            const result = await backend.state.read({ mock: makeProvider() })
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('InternalError')
+            expect(error.while).toBe('read')
+        },
+    )
+
+    itWrapped('writes and reads signing secrets', async ({ backend, client }) => {
+        const provider = makeProvider()
+        const handle = 'handle-secret-read'
+        const create = makeCreateEvent(provider, handle)
+
+        const commitResult = await backend.state.commit([create])
+        expect(commitResult.isOk()).toBe(true)
+
+        const writeResult = await backend.signingSecret.write(
+            handle,
+            'whsec_test_123',
+        )
+        expect(writeResult.isOk()).toBe(true)
+
+        const secrets = await client.query<(typeof schema)['secrets']>(
+            'select * from secrets',
+        )
+        expect(secrets.rowCount).toBe(1)
+        expect(secrets.rows[0]?.secret).toBe('whsec_test_123')
+
+        const readResult = await backend.signingSecret.read(handle)
+        expect(readResult.isOk()).toBe(true)
+        expect(readResult._unsafeUnwrap()).toBe('whsec_test_123')
+    })
+
+    itWrapped(
+        'updates an existing signing secret without creating a duplicate row',
+        async ({ backend, client }) => {
+            const provider = makeProvider()
+            const handle = 'handle-secret-update'
+            const create = makeCreateEvent(provider, handle)
+
+            expect((await backend.state.commit([create])).isOk()).toBe(true)
+            expect(
+                (await backend.signingSecret.write(handle, 'whsec_old')).isOk(),
+            ).toBe(true)
+            expect(
+                (await backend.signingSecret.write(handle, 'whsec_new')).isOk(),
+            ).toBe(true)
+
+            const secrets = await client.query<(typeof schema)['secrets']>(
+                'select * from secrets',
+            )
+            expect(secrets.rowCount).toBe(1)
+            expect(secrets.rows[0]?.secret).toBe('whsec_new')
+        },
+    )
+
+    itWrapped('deletes a signing secret', async ({ backend, client }) => {
+        const provider = makeProvider()
+        const handle = 'handle-secret-delete'
+        const create = makeCreateEvent(provider, handle)
+
+        expect((await backend.state.commit([create])).isOk()).toBe(true)
+        expect(
+            (await backend.signingSecret.write(handle, 'whsec_delete')).isOk(),
+        ).toBe(true)
+
+        const deleteResult = await backend.signingSecret.delete(handle)
+        expect(deleteResult.isOk()).toBe(true)
+
+        const secrets = await client.query<(typeof schema)['secrets']>(
+            'select * from secrets',
+        )
+        expect(secrets.rowCount).toBe(0)
+    })
+
+    itWrapped(
+        'returns NotFoundError when reading a signing secret for a missing endpoint',
+        async ({ backend }) => {
+            const result = await backend.signingSecret.read('missing-endpoint')
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('read')
+        },
+    )
+
+    itWrapped(
+        'returns NotFoundError when reading a signing secret that does not exist',
+        async ({ backend }) => {
+            const provider = makeProvider()
+            const handle = 'handle-secret-missing'
+            expect(
+                (await backend.state.commit([makeCreateEvent(provider, handle)])).isOk(),
+            ).toBe(true)
+
+            const result = await backend.signingSecret.read(handle)
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('read')
+        },
+    )
+
+    itWrapped(
+        'returns NotFoundError when writing a signing secret for a missing endpoint',
+        async ({ backend }) => {
+            const result = await backend.signingSecret.write(
+                'missing-endpoint',
+                'whsec_missing',
+            )
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('write')
+        },
+    )
+
+    itWrapped(
+        'returns NotFoundError when deleting a signing secret for a missing endpoint',
+        async ({ backend }) => {
+            const result = await backend.signingSecret.delete('missing-endpoint')
+            expect(result.isErr()).toBe(true)
+
+            const error = result._unsafeUnwrapErr()
+            expect(error.name).toBe('NotFoundError')
+            expect(error.while).toBe('delete')
         },
     )
 })
