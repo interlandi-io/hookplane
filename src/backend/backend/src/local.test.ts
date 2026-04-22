@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createLocalBackend } from '~/local.js'
-import { Backend, ProviderNotFoundError } from '~/backend.js'
+import { ProviderNotFoundError } from '~/backend.js'
 import {
     ProviderSet,
     Provider,
@@ -101,7 +101,7 @@ describe('createLocalBackend', () => {
         await fs.rm(tmpDir, { recursive: true, force: true })
     })
 
-    const createDriver = async (): Promise<Backend> => {
+    const createDriver = async () => {
         const makeBackend = createLocalBackend({
             statefilePath,
             signingSecretPath,
