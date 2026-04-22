@@ -10,9 +10,11 @@ export const endpoints = pgTable(
     'endpoints',
     {
         id: integer().primaryKey().generatedAlwaysAsIdentity(),
-        providerId: integer('provider_id').references(() => providers.id, {
-            onDelete: 'cascade',
-        }).notNull(),
+        providerId: integer('provider_id')
+            .references(() => providers.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
         handle: varchar().notNull(),
         url: varchar().notNull(),
         events: varchar().array().notNull(),
@@ -27,7 +29,7 @@ export const providers = pgTable(
         id: integer().primaryKey().generatedAlwaysAsIdentity(),
         name: varchar().notNull(),
     },
-    (table) => [uniqueIndex('providers_name_idx').on(table.name)]
+    (table) => [uniqueIndex('providers_name_idx').on(table.name)],
 )
 
 export const secrets = pgTable(

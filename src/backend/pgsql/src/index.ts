@@ -67,9 +67,7 @@ export const createPgsqlBackend = describeBackend<
         read: ({ state: { db }, providers }) =>
             ResultAsync.fromPromise(readState(db, providers), (e) =>
                 toBackendError(e, 'read'),
-            ).andThen(
-                (r) => r,
-            ),
+            ).andThen((r) => r),
         commit: ({ state: { db }, events }) =>
             ResultAsync.fromPromise(
                 (async (): Promise<Result<void, BackendError>> => {
@@ -102,9 +100,7 @@ export const createPgsqlBackend = describeBackend<
         write: ({ state: { db }, id, data }) =>
             ResultAsync.fromPromise(writeSecret(db, id, data), (e) =>
                 toBackendError(e, 'write'),
-            ).andThen(
-                (r) => r,
-            ),
+            ).andThen((r) => r),
         delete: ({ state: { db }, id }) =>
             ResultAsync.fromPromise(deleteSecret(db, id), (e) =>
                 toBackendError(e, 'delete'),
@@ -112,10 +108,7 @@ export const createPgsqlBackend = describeBackend<
     },
 })
 
-function toBackendError(
-    e: unknown,
-    operation: BackendOperation,
-): BackendError {
+function toBackendError(e: unknown, operation: BackendOperation): BackendError {
     const error = e as NodeJS.ErrnoException & {
         kind?: string
         cause?: { code?: string }
