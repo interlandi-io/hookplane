@@ -44,7 +44,6 @@ export interface Backend<
               commit(
                   events: StateEvent<Provider>[],
               ): ResultAsync<void, BackendError>
-
           }
 
     signingSecret: {

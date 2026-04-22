@@ -12,7 +12,14 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import * as schema from './db/schema.js'
-import { createEndpointHandle, createEndpointUrl, EndpointIndex, Provider, ProviderSet, State } from '@hookplane/core'
+import {
+    createEndpointHandle,
+    createEndpointUrl,
+    EndpointIndex,
+    Provider,
+    ProviderSet,
+    State,
+} from '@hookplane/core'
 import { eq } from 'drizzle-orm'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
 
@@ -49,10 +56,10 @@ export const createPgsqlBackend = describeBackend<
     },
     state: {
         writeMode: 'event',
-        read: ({ state: { db } , providers }) =>
-            ResultAsync.fromSafePromise(
-                readState(db, providers),
-            ).andThen(r => r),
+        read: ({ state: { db }, providers }) =>
+            ResultAsync.fromSafePromise(readState(db, providers)).andThen(
+                (r) => r,
+            ),
         commit({ state: { db }, events }) {
             const results: ResultAsync<void, BackendError>[] = events.map(
                 (event) =>
@@ -66,17 +73,13 @@ export const createPgsqlBackend = describeBackend<
     signingSecret: {
         // TODO: this should be an endpoint handle
         read: ({ state: { db }, id }) =>
-            ResultAsync.fromSafePromise(
-                readSecret(db, id),
-            ).andThen(r => r),
+            ResultAsync.fromSafePromise(readSecret(db, id)).andThen((r) => r),
         write: ({ state: { db }, id, data }) =>
-            ResultAsync.fromSafePromise(
-                writeSecret(db, id, data),
-            ).andThen(r => r),
+            ResultAsync.fromSafePromise(writeSecret(db, id, data)).andThen(
+                (r) => r,
+            ),
         delete: ({ state: { db }, id }) =>
-            ResultAsync.fromSafePromise(
-                deleteSecret(db, id),
-            ).andThen(r => r),
+            ResultAsync.fromSafePromise(deleteSecret(db, id)).andThen((r) => r),
     },
 })
 
@@ -98,7 +101,7 @@ async function readState<P extends ProviderSet>(db: Database, providers: P) {
                 name: 'ProviderNotFoundError',
                 message: `no provider found for name ${providerName}`,
                 provider: providerName,
-                while: 'read'
+                while: 'read',
             } satisfies BackendError)
         }
 
@@ -111,7 +114,7 @@ async function readState<P extends ProviderSet>(db: Database, providers: P) {
                 kind: 'BackendError',
                 name: 'NotFoundError',
                 message: `no endpoints found for provider name ${providerName}`,
-                while: 'read'
+                while: 'read',
             } satisfies BackendError)
         }
 
@@ -237,7 +240,10 @@ async function commitEvent(db: Database, event: StateEvent<Provider>) {
     }
 }
 
-async function readSecret(db: Database, id: string): Promise<Result<string, BackendError>> {
+async function readSecret(
+    db: Database,
+    id: string,
+): Promise<Result<string, BackendError>> {
     const endpoint = (
         await db
             .select()
@@ -250,7 +256,7 @@ async function readSecret(db: Database, id: string): Promise<Result<string, Back
             kind: 'BackendError',
             name: 'NotFoundError',
             message: `no endpoint found for endpoint handle ${id}`,
-            while: 'read'
+            while: 'read',
         } satisfies BackendError)
     }
     const secret = (
@@ -265,15 +271,18 @@ async function readSecret(db: Database, id: string): Promise<Result<string, Back
             kind: 'BackendError',
             name: 'NotFoundError',
             message: `no secret found for endpoint handle ${id}`,
-            while: 'read'
+            while: 'read',
         } satisfies BackendError)
     }
 
     return ok(secret.secret)
-
 }
 
-async function writeSecret(db: Database, id: string, secret: string): Promise<Result<void, BackendError>> {
+async function writeSecret(
+    db: Database,
+    id: string,
+    secret: string,
+): Promise<Result<void, BackendError>> {
     const endpoint = (
         await db
             .select()
@@ -286,7 +295,7 @@ async function writeSecret(db: Database, id: string, secret: string): Promise<Re
             kind: 'BackendError',
             name: 'NotFoundError',
             message: `no endpoint found for endpoint handle ${id}`,
-            while: 'write'
+            while: 'write',
         } satisfies BackendError)
     }
 
@@ -310,10 +319,12 @@ async function writeSecret(db: Database, id: string, secret: string): Promise<Re
     }
 
     return ok()
-
 }
 
-async function deleteSecret(db: Database, id: string): Promise<Result<void, BackendError>> {
+async function deleteSecret(
+    db: Database,
+    id: string,
+): Promise<Result<void, BackendError>> {
     const endpoint = (
         await db
             .select()
@@ -326,7 +337,7 @@ async function deleteSecret(db: Database, id: string): Promise<Result<void, Back
             kind: 'BackendError',
             name: 'NotFoundError',
             message: `no endpoint found for endpoint handle ${id}`,
-            while: 'delete'
+            while: 'delete',
         } satisfies BackendError)
     }
 

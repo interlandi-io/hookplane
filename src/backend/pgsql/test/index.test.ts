@@ -37,7 +37,7 @@ const itWrapped = (
     })
 }
 
-const makeProvider = (name = 'mock') => ({ name } as Provider)
+const makeProvider = (name = 'mock') => ({ name }) as Provider
 
 const makeCreateEvent = (
     provider: Provider,
@@ -52,9 +52,7 @@ const makeCreateEvent = (
     provider,
     handle: handle as EndpointHandle,
     state: {
-        url:
-            state.url ??
-            ('https://example.com/hooks/mock' as EndpointUrl),
+        url: state.url ?? ('https://example.com/hooks/mock' as EndpointUrl),
         events: state.events ?? ['event'],
         config: state.config ?? {},
     },
@@ -365,7 +363,9 @@ describeIntegration('pgsql backend', () => {
         async ({ backend }) => {
             const missingProvider = makeProvider('missing')
 
-            const result = await backend.state.read({ missing: missingProvider })
+            const result = await backend.state.read({
+                missing: missingProvider,
+            })
             expect(result.isErr()).toBe(true)
 
             const error = result._unsafeUnwrapErr()
@@ -430,30 +430,33 @@ describeIntegration('pgsql backend', () => {
         },
     )
 
-    itWrapped('writes and reads signing secrets', async ({ backend, client }) => {
-        const provider = makeProvider()
-        const handle = 'handle-secret-read'
-        const create = makeCreateEvent(provider, handle)
+    itWrapped(
+        'writes and reads signing secrets',
+        async ({ backend, client }) => {
+            const provider = makeProvider()
+            const handle = 'handle-secret-read'
+            const create = makeCreateEvent(provider, handle)
 
-        const commitResult = await backend.state.commit([create])
-        expect(commitResult.isOk()).toBe(true)
+            const commitResult = await backend.state.commit([create])
+            expect(commitResult.isOk()).toBe(true)
 
-        const writeResult = await backend.signingSecret.write(
-            handle,
-            'whsec_test_123',
-        )
-        expect(writeResult.isOk()).toBe(true)
+            const writeResult = await backend.signingSecret.write(
+                handle,
+                'whsec_test_123',
+            )
+            expect(writeResult.isOk()).toBe(true)
 
-        const secrets = await client.query<(typeof schema)['secrets']>(
-            'select * from secrets',
-        )
-        expect(secrets.rowCount).toBe(1)
-        expect(secrets.rows[0]?.secret).toBe('whsec_test_123')
+            const secrets = await client.query<(typeof schema)['secrets']>(
+                'select * from secrets',
+            )
+            expect(secrets.rowCount).toBe(1)
+            expect(secrets.rows[0]?.secret).toBe('whsec_test_123')
 
-        const readResult = await backend.signingSecret.read(handle)
-        expect(readResult.isOk()).toBe(true)
-        expect(readResult._unsafeUnwrap()).toBe('whsec_test_123')
-    })
+            const readResult = await backend.signingSecret.read(handle)
+            expect(readResult.isOk()).toBe(true)
+            expect(readResult._unsafeUnwrap()).toBe('whsec_test_123')
+        },
+    )
 
     itWrapped(
         'updates an existing signing secret without creating a duplicate row',
@@ -515,7 +518,11 @@ describeIntegration('pgsql backend', () => {
             const provider = makeProvider()
             const handle = 'handle-secret-missing'
             expect(
-                (await backend.state.commit([makeCreateEvent(provider, handle)])).isOk(),
+                (
+                    await backend.state.commit([
+                        makeCreateEvent(provider, handle),
+                    ])
+                ).isOk(),
             ).toBe(true)
 
             const result = await backend.signingSecret.read(handle)
@@ -545,7 +552,8 @@ describeIntegration('pgsql backend', () => {
     itWrapped(
         'returns NotFoundError when deleting a signing secret for a missing endpoint',
         async ({ backend }) => {
-            const result = await backend.signingSecret.delete('missing-endpoint')
+            const result =
+                await backend.signingSecret.delete('missing-endpoint')
             expect(result.isErr()).toBe(true)
 
             const error = result._unsafeUnwrapErr()
