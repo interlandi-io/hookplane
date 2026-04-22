@@ -199,15 +199,15 @@ export function describeBackend<
     TState,
     TStateWriteMode extends 'snapshot',
 >(
-    desc: BackendDescriptor<TConfig, TState, 'snapshot'>,
-): (config: TConfig) => () => Promise<Backend<'snapshot'>>
+    desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
+): (config: TConfig) => () => Promise<Backend<TStateWriteMode>>
 export function describeBackend<
     TConfig,
     TState,
     TStateWriteMode extends 'event',
 >(
-    desc: BackendDescriptor<TConfig, TState, 'event'>,
-): (config: TConfig) => () => Promise<Backend<'event'>>
+    desc: BackendDescriptor<TConfig, TState, TStateWriteMode>,
+): (config: TConfig) => () => Promise<Backend<TStateWriteMode>>
 
 export function describeBackend<
     TConfig,

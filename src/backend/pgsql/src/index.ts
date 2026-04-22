@@ -185,7 +185,7 @@ async function commitEvent(
         }
 
         switch (event.tag) {
-            case 'endpoint.created':
+            case 'endpoint.created': {
                 const handle = createEndpointHandle(event.handle)
                 if (handle.isErr()) {
                     return err({
@@ -213,6 +213,7 @@ async function commitEvent(
                     config: event.state.config,
                 })
                 break
+            }
 
             case 'endpoint.updated': {
                 const result = await db

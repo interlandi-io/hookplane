@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createLocalBackend } from '~/local.js'
-import {
-    Backend,
-    BackendStateWriteMode,
-    ProviderNotFoundError,
-} from '~/backend.js'
+import { ProviderNotFoundError } from '~/backend.js'
 import {
     ProviderSet,
     Provider,
