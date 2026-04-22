@@ -19,7 +19,7 @@ import {
     ProviderSet,
     State,
 } from '@hookplane/core'
-import { EmptyRelations, eq } from 'drizzle-orm'
+import { EmptyRelations, and, eq } from 'drizzle-orm'
 import { ExtractTablesWithRelations } from 'drizzle-orm/_relations'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
 import { PgAsyncTransaction } from 'drizzle-orm/pg-core'
@@ -179,6 +179,15 @@ async function commitEvent(
         )[0]
 
         if (!provider) {
+            if (event.tag !== 'endpoint.created') {
+                return err({
+                    kind: 'BackendError',
+                    name: 'NotFoundError',
+                    message: `provider ${event.provider.name} not found`,
+                    while: 'write',
+                } satisfies NotFoundError)
+            }
+
             const inserted = (
                 await tx
                     .insert(schema.providers)
@@ -236,7 +245,12 @@ async function commitEvent(
                         events: event.after.events,
                         config: event.after.config,
                     })
-                    .where(eq(schema.endpoints.handle, event.handle))
+                    .where(
+                        and(
+                            eq(schema.endpoints.providerId, provider.id),
+                            eq(schema.endpoints.handle, event.handle),
+                        ),
+                    )
                 if (result.rowCount === 0) {
                     return err({
                         kind: 'BackendError',
@@ -251,7 +265,12 @@ async function commitEvent(
             case 'endpoint.deleted': {
                 const result = await tx
                     .delete(schema.endpoints)
-                    .where(eq(schema.endpoints.handle, event.handle))
+                    .where(
+                        and(
+                            eq(schema.endpoints.providerId, provider.id),
+                            eq(schema.endpoints.handle, event.handle),
+                        ),
+                    )
                 if (result.rowCount === 0) {
                     return err({
                         kind: 'BackendError',
