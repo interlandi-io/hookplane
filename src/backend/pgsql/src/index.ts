@@ -7,7 +7,7 @@ import {
     NotFoundError,
     UnknownError,
 } from '@hookplane/backend'
-import { drizzle } from 'drizzle-orm/node-postgres'
+import { drizzle, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import path from 'path'
 import * as schema from './db/schema.js'
@@ -19,8 +19,10 @@ import {
     ProviderSet,
     State,
 } from '@hookplane/core'
-import { eq } from 'drizzle-orm'
+import { EmptyRelations, eq } from 'drizzle-orm'
+import { ExtractTablesWithRelations } from 'drizzle-orm/_relations'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
+import { PgAsyncTransaction } from 'drizzle-orm/pg-core'
 
 export type PgsqlBackendConfig = {
     databaseUrl: string
@@ -32,6 +34,12 @@ type PgsqlBackendState = {
 }
 
 type Database = ReturnType<typeof drizzle<typeof schema>>
+type Transaction = PgAsyncTransaction<
+    NodePgQueryResultHKT,
+    typeof schema,
+    EmptyRelations,
+    ExtractTablesWithRelations<typeof schema>
+>
 
 const PGSQL_UNIQUE_VIOLATION = '23505'
 const PGSQL_FOREIGN_KEY_VIOLATION = '23503'
@@ -59,15 +67,19 @@ export const createPgsqlBackend = describeBackend<
             ResultAsync.fromSafePromise(readState(db, providers)).andThen(
                 (r) => r,
             ),
-        commit({ state: { db }, events }) {
-            const results: ResultAsync<void, BackendError>[] = events.map(
-                (event) =>
-                    ResultAsync.fromSafePromise(commitEvent(db, event)).andThen(
-                        (r) => r,
-                    ),
-            )
-            return ResultAsync.combine(results).map(() => {})
-        },
+        commit: ({ state: { db }, events }) =>
+            ResultAsync.fromSafePromise(
+                db.transaction(async (tx): Promise<Result<void, BackendError>> => {
+                    for (const event of events) {
+                        const result = await commitEvent(tx, event)
+                        if (result.isErr()) {
+                            tx.rollback()
+                            return err(result.error)
+                        }
+                    }
+                    return ok()
+                }),
+            ).andThen((r) => r),
     },
     signingSecret: {
         // TODO: this should be an endpoint handle
@@ -154,12 +166,12 @@ async function readState<P extends ProviderSet>(db: Database, providers: P) {
 }
 
 async function commitEvent(
-    db: Database,
+    tx: Transaction,
     event: StateEvent<Provider>,
 ): Promise<Result<void, BackendError>> {
     try {
         let provider = (
-            await db
+            await tx
                 .select({ id: schema.providers.id })
                 .from(schema.providers)
                 .where(eq(schema.providers.name, event.provider.name))
@@ -168,7 +180,7 @@ async function commitEvent(
 
         if (!provider) {
             const inserted = (
-                await db
+                await tx
                     .insert(schema.providers)
                     .values({ name: event.provider.name })
                     .returning()
@@ -205,7 +217,7 @@ async function commitEvent(
                     } satisfies BackendError)
                 }
 
-                await db.insert(schema.endpoints).values({
+                await tx.insert(schema.endpoints).values({
                     providerId: provider.id,
                     handle: handle.value,
                     url: url.value,
@@ -216,7 +228,7 @@ async function commitEvent(
             }
 
             case 'endpoint.updated': {
-                const result = await db
+                const result = await tx
                     .update(schema.endpoints)
                     .set({
                         url: event.after.url,
@@ -237,7 +249,7 @@ async function commitEvent(
             }
 
             case 'endpoint.deleted': {
-                const result = await db
+                const result = await tx
                     .delete(schema.endpoints)
                     .where(eq(schema.endpoints.handle, event.handle))
                 if (result.rowCount === 0) {
@@ -248,12 +260,12 @@ async function commitEvent(
                         while: 'write',
                     } satisfies NotFoundError)
                 }
-                const providerEvents = await db
+                const providerEvents = await tx
                     .select()
                     .from(schema.endpoints)
                     .where(eq(schema.endpoints.providerId, provider.id))
                 if (providerEvents.length === 0) {
-                    await db
+                    await tx
                         .delete(schema.providers)
                         .where(eq(schema.providers.id, provider.id))
                 }
