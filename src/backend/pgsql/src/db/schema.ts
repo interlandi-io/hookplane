@@ -21,10 +21,14 @@ export const endpoints = pgTable(
     (table) => [uniqueIndex('endpoints_handle_idx').on(table.handle)],
 )
 
-export const providers = pgTable('providers', {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    name: varchar().notNull(),
-})
+export const providers = pgTable(
+    'providers',
+    {
+        id: integer().primaryKey().generatedAlwaysAsIdentity(),
+        name: varchar().notNull(),
+    },
+    (table) => [uniqueIndex('providers_name_idx').on(table.name)]
+)
 
 export const secrets = pgTable(
     'secrets',
