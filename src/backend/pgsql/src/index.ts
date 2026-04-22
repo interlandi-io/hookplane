@@ -237,11 +237,30 @@ async function commitEvent(
             }
 
             case 'endpoint.updated': {
+                const handle = createEndpointHandle(event.handle)
+                if (handle.isErr()) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'InternalError',
+                        message: 'invalid endpoint handle: ' + event.handle,
+                        while: 'read',
+                    } satisfies BackendError)
+                }
+                const url = createEndpointUrl(event.after.url)
+                if (url.isErr()) {
+                    return err({
+                        kind: 'BackendError',
+                        name: 'InternalError',
+                        message: 'invalid endpoint url: ' + event.after.url,
+                        while: 'read',
+                    } satisfies BackendError)
+                }
+
                 const result = await tx
                     .update(schema.endpoints)
                     .set({
-                        url: event.after.url,
-                        handle: event.handle,
+                        url: url.value,
+                        handle: handle.value,
                         events: event.after.events,
                         config: event.after.config,
                     })
