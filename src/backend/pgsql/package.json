@@ -30,7 +30,7 @@
         "db:down": "docker compose -f ./compose.yaml down -v"
     },
     "exports": {
-        "./index": {
+        ".": {
             "default": "./dist/index.js",
             "types": "./dist/index.d.ts"
         }
