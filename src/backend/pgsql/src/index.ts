@@ -69,12 +69,11 @@ export const createPgsqlBackend = describeBackend<
             ResultAsync.fromSafePromise(
                 readSecret(db, id),
             ).andThen(r => r),
-        write: () => {
-            throw ''
-        },
-        delete: () => {
-            throw ''
-        },
+        write: ({ state: { db }, id, data }) =>
+            ResultAsync.fromSafePromise(
+                writeSecret(db, id, data),
+            ).andThen(r => r),
+        delete: () => { throw '' }
     },
 })
 
@@ -238,10 +237,10 @@ async function commitEvent(db: Database, event: StateEvent<Provider>) {
 async function readSecret(db: Database, id: string): Promise<Result<string, BackendError>> {
     const endpoint = (
         await db
-        .select()
-        .from(schema.endpoints)
-        .where(eq(schema.endpoints.handle, id))
-        .limit(1)
+            .select()
+            .from(schema.endpoints)
+            .where(eq(schema.endpoints.handle, id))
+            .limit(1)
     )[0]
     if (!endpoint) {
         return err({
@@ -253,10 +252,10 @@ async function readSecret(db: Database, id: string): Promise<Result<string, Back
     }
     const secret = (
         await db
-        .select()
-        .from(schema.secrets)
-        .where(eq(schema.secrets.endpointId, endpoint.id))
-        .limit(1)
+            .select()
+            .from(schema.secrets)
+            .where(eq(schema.secrets.endpointId, endpoint.id))
+            .limit(1)
     )[0]
     if (!secret) {
         return err({
@@ -268,6 +267,46 @@ async function readSecret(db: Database, id: string): Promise<Result<string, Back
     }
 
     return ok(secret.secret)
+
+}
+
+async function writeSecret(db: Database, id: string, secret: string): Promise<Result<void, BackendError>> {
+    const endpoint = (
+        await db
+            .select()
+            .from(schema.endpoints)
+            .where(eq(schema.endpoints.handle, id))
+            .limit(1)
+    )[0]
+    if (!endpoint) {
+        return err({
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: `no endpoint found for endpoint handle ${id}`,
+            while: 'write'
+        } satisfies BackendError)
+    }
+
+    const existing = (
+        await db
+            .select()
+            .from(schema.secrets)
+            .where(eq(schema.secrets.endpointId, endpoint.id))
+            .limit(1)
+    )[0]
+
+    if (existing) {
+        await db
+            .update(schema.secrets)
+            .set({ secret })
+            .where(eq(schema.secrets.endpointId, endpoint.id))
+    } else {
+        await db
+            .insert(schema.secrets)
+            .values({ endpointId: endpoint.id, secret })
+    }
+
+    return ok()
 
 }
 
