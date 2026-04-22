@@ -1,5 +1,6 @@
 import {
     BackendError,
+    BackendOperation,
     describeBackend,
     StateEvent,
     WriteRejectedError,
@@ -64,35 +65,117 @@ export const createPgsqlBackend = describeBackend<
     state: {
         writeMode: 'event',
         read: ({ state: { db }, providers }) =>
-            ResultAsync.fromSafePromise(readState(db, providers)).andThen(
+            ResultAsync.fromPromise(readState(db, providers), (e) =>
+                toBackendError(e, 'read'),
+            ).andThen(
                 (r) => r,
             ),
         commit: ({ state: { db }, events }) =>
-            ResultAsync.fromSafePromise(
-                db.transaction(async (tx): Promise<Result<void, BackendError>> => {
-                    for (const event of events) {
-                        const result = await commitEvent(tx, event)
-                        if (result.isErr()) {
-                            tx.rollback()
-                            return err(result.error)
-                        }
+            ResultAsync.fromPromise(
+                (async (): Promise<Result<void, BackendError>> => {
+                    let committed: Result<void, BackendError> = ok()
+                    try {
+                        await db.transaction(async (tx) => {
+                            for (const event of events) {
+                                const r = await commitEvent(tx, event)
+                                if (r.isErr()) {
+                                    committed = err(r.error)
+                                    tx.rollback() // throws to abort
+                                }
+                            }
+                        })
+                    } catch (e) {
+                        if (committed.isErr()) return committed
+                        throw e
                     }
-                    return ok()
-                }),
+                    return committed
+                })(),
+                (e) => toBackendError(e, 'write'),
             ).andThen((r) => r),
     },
     signingSecret: {
         // TODO: this should be an endpoint handle
         read: ({ state: { db }, id }) =>
-            ResultAsync.fromSafePromise(readSecret(db, id)).andThen((r) => r),
+            ResultAsync.fromPromise(readSecret(db, id), (e) =>
+                toBackendError(e, 'read'),
+            ).andThen((r) => r),
         write: ({ state: { db }, id, data }) =>
-            ResultAsync.fromSafePromise(writeSecret(db, id, data)).andThen(
+            ResultAsync.fromPromise(writeSecret(db, id, data), (e) =>
+                toBackendError(e, 'write'),
+            ).andThen(
                 (r) => r,
             ),
         delete: ({ state: { db }, id }) =>
-            ResultAsync.fromSafePromise(deleteSecret(db, id)).andThen((r) => r),
+            ResultAsync.fromPromise(deleteSecret(db, id), (e) =>
+                toBackendError(e, 'delete'),
+            ).andThen((r) => r),
     },
 })
+
+function toBackendError(
+    e: unknown,
+    operation: BackendOperation,
+): BackendError {
+    const error = e as NodeJS.ErrnoException & {
+        kind?: string
+        cause?: { code?: string }
+    }
+
+    if (error.kind === 'BackendError') {
+        return error as BackendError
+    }
+
+    if (error.cause?.code === PGSQL_UNIQUE_VIOLATION) {
+        return {
+            kind: 'BackendError',
+            name: 'WriteRejectedError',
+            message: error.message || 'unique constraint violation',
+            while: operation,
+        } satisfies WriteRejectedError
+    }
+
+    if (error.code === PGSQL_UNIQUE_VIOLATION) {
+        return {
+            kind: 'BackendError',
+            name: 'WriteRejectedError',
+            message: error.message || 'unique constraint violation',
+            while: operation,
+        } satisfies WriteRejectedError
+    }
+    if (error.code === PGSQL_FOREIGN_KEY_VIOLATION) {
+        return {
+            kind: 'BackendError',
+            name: 'InternalError',
+            message: error.message || 'foreign key constraint violation',
+            while: operation,
+            cause: e,
+        } satisfies InternalError
+    }
+    if (error.code === PGSQL_RAISE_EXCEPTION) {
+        return {
+            kind: 'BackendError',
+            name: 'WriteRejectedError',
+            message: error.message || 'write rejected',
+            while: operation,
+        } satisfies WriteRejectedError
+    }
+    if (error.code === 'ENOENT' || error.code === PGRST_NO_DATA_FOUND) {
+        return {
+            kind: 'BackendError',
+            name: 'NotFoundError',
+            message: error.message || 'record not found',
+            while: operation,
+        } satisfies NotFoundError
+    }
+
+    return {
+        kind: 'BackendError',
+        name: 'UnknownError',
+        message: String(e),
+        while: operation,
+        cause: e,
+    } satisfies UnknownError
+}
 
 // TODO: we need a better solution for "stale" providers
 async function readState<P extends ProviderSet>(db: Database, providers: P) {
@@ -313,66 +396,7 @@ async function commitEvent(
 
         return ok()
     } catch (e) {
-        if ((e as { kind?: string })?.kind === 'BackendError') {
-            return err(e as BackendError)
-        }
-        const cause = (e as { cause?: { code?: string } }).cause || undefined
-
-        if (cause?.code === PGSQL_UNIQUE_VIOLATION) {
-            return err({
-                kind: 'BackendError',
-                name: 'WriteRejectedError',
-                message:
-                    (e as { message?: string }).message ||
-                    'unique constraint violation',
-                while: 'write',
-            } satisfies WriteRejectedError)
-        }
-
-        const error = e as NodeJS.ErrnoException & { code?: string }
-
-        if (error.code === PGSQL_UNIQUE_VIOLATION) {
-            return err({
-                kind: 'BackendError',
-                name: 'WriteRejectedError',
-                message:
-                    (e as { message?: string }).message ||
-                    'unique constraint violation',
-                while: 'write',
-            } satisfies WriteRejectedError)
-        }
-        if (error.code === PGSQL_FOREIGN_KEY_VIOLATION) {
-            return err({
-                kind: 'BackendError',
-                name: 'InternalError',
-                message: error.message || 'foreign key constraint violation',
-                while: 'write',
-                cause: e,
-            } satisfies InternalError)
-        }
-        if (error.code === PGSQL_RAISE_EXCEPTION) {
-            return err({
-                kind: 'BackendError',
-                name: 'WriteRejectedError',
-                message: error.message || 'write rejected',
-                while: 'write',
-            } satisfies WriteRejectedError)
-        }
-        if (error.code === 'ENOENT' || error.code === PGRST_NO_DATA_FOUND) {
-            return err({
-                kind: 'BackendError',
-                name: 'NotFoundError',
-                message: error.message || 'record not found',
-                while: 'write',
-            } satisfies NotFoundError)
-        }
-        return err({
-            kind: 'BackendError',
-            name: 'UnknownError',
-            message: String(e),
-            while: 'write',
-            cause: e,
-        } satisfies UnknownError)
+        return err(toBackendError(e, 'write'))
     }
 }
 
