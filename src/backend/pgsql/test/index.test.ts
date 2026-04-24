@@ -24,7 +24,7 @@ const itWrapped = (
             const backend = await createPgsqlBackend({
                 databaseUrl: databaseUrl!,
                 runMigrations: true,
-            })()
+            })
 
             await fn({ backend, client })
         } finally {

@@ -24,6 +24,7 @@ import { EmptyRelations, and, eq } from 'drizzle-orm'
 import { ExtractTablesWithRelations } from 'drizzle-orm/_relations'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
 import { PgAsyncTransaction } from 'drizzle-orm/pg-core'
+import { fileURLToPath } from 'url'
 
 export type PgsqlBackendConfig = {
     databaseUrl: string
@@ -56,8 +57,11 @@ export const createPgsqlBackend = describeBackend<
     init: async ({ databaseUrl, runMigrations = true }) => {
         const db = drizzle(databaseUrl, { schema })
         if (runMigrations) {
+            const currentDir = typeof __dirname !== 'undefined' 
+                ? __dirname 
+                : path.dirname(fileURLToPath(import.meta.url));
             await migrate(db, {
-                migrationsFolder: path.join(__dirname, '../drizzle/'),
+                migrationsFolder: path.join(currentDir, '../drizzle/'),
             })
         }
         return { db }

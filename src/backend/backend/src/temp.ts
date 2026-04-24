@@ -33,7 +33,7 @@ export async function createTempBackend() {
     const backend = await createLocalBackend({
         statefilePath,
         signingSecretPath,
-    })()
+    })
 
     const state = {
         providers: {},

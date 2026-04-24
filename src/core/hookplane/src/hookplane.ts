@@ -8,6 +8,7 @@ import {
     Provider,
 } from '@hookplane/core'
 import { Backend, createTempBackend } from '@hookplane/backend'
+import { BackendStateWriteMode } from '../../../backend/backend/dist/backend.js'
 
 export type Hookplane = {
     state: StateUnknown<ProviderSet>
@@ -23,7 +24,7 @@ type HookplaneParams<TProviderSet extends ProviderSet> = {
             endpointConfig: EndpointConfigOf<TProviderSet[K]>
         }
     }
-    backend?: Backend
+    backend?: Backend<BackendStateWriteMode>
 }
 
 /**
@@ -58,7 +59,7 @@ export async function hookplane<TProviderSet extends ProviderSet>(
         providersUnvalidated,
     )._unsafeUnwrap() as TProviderSet
 
-    const backend = params.backend ?? (await createTempBackend())
+    const backend = params.backend ?? await createTempBackend()
 
     return {
         state: {

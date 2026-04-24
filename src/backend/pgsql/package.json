@@ -17,8 +17,8 @@
         "dist"
     ],
     "scripts": {
-        "dev": "tsc --project tsconfig.build.json --watch",
-        "build": "tsc --project tsconfig.build.json",
+        "dev": "mkdir -p dist && cp -r drizzle dist && tsc --project tsconfig.build.json --watch",
+        "build": "tsc --project tsconfig.build.json && cp -r drizzle dist",
         "test": "vitest",
         "test:run": "pnpm db:up; pnpm test:integration; pnpm db:down",
         "test:watch": "vitest --watch",
@@ -31,8 +31,8 @@
     },
     "exports": {
         ".": {
-            "default": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+            "default": "./dist/src/index.js",
+            "types": "./dist/src/index.d.ts"
         }
     },
     "dependencies": {

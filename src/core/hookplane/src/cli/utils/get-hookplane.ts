@@ -17,11 +17,11 @@ export async function getHookplane(
         'Finding Hookplane instance',
         async () => {
             const result = findHookplane(tsconfigPath)
-            return result.mapErr((e) => e as Error)
+            return result
         },
     )
     if (instance.isErr()) {
-        return err(new Error('failed to locate hookplane instance'))
+        return err(new Error('failed to locate hookplane instance ' + instance.error.message))
     }
     const { exportName, filePath } = instance.value as HookplaneInstance
 
@@ -29,11 +29,14 @@ export async function getHookplane(
         'Extracting Hookplane instance',
         async () => {
             const result = await extract(exportName, filePath)
-            return result.mapErr((e) => e as Error)
+            return result
         },
     )
     if (hookplane.isErr()) {
-        return err(new Error('failed to extract hookplane instance'))
+        const message = hookplane.error.name === 'ModuleError' 
+            ? hookplane.error.cause 
+            : hookplane.error.message
+        return err(new Error('failed to extract hookplane instance: ' + message))
     }
 
     return ok({ hookplane: hookplane.value, filePath })

@@ -101,13 +101,11 @@ describe('createLocalBackend', () => {
         await fs.rm(tmpDir, { recursive: true, force: true })
     })
 
-    const createDriver = async () => {
-        const makeBackend = createLocalBackend({
+    const createDriver = async () =>
+        createLocalBackend({
             statefilePath,
             signingSecretPath,
         })
-        return makeBackend()
-    }
 
     describe('state.read', () => {
         it('returns ok with parsed data when file exists', async () => {
@@ -131,7 +129,7 @@ describe('createLocalBackend', () => {
             const driver = await createLocalBackend({
                 statefilePath: path.join(tmpDir, 'doesnotexist.json'),
                 signingSecretPath,
-            })()
+            })
             const result = await driver.state.read(fakeProviders)
 
             expect(result.isErr()).toBe(true)
